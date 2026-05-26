@@ -8,7 +8,7 @@ export default function Login() {
     e.preventDefault();
 
     if (email === "admin@test.com" && password === "1234") {
-      window.location.href = "/GYB/dashboard";
+      window.location.href = "/GYB/#/dashboard";
     } else {
       alert("Invalid Credentials");
     }
