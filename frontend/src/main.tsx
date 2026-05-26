@@ -13,7 +13,7 @@ import Dashboard from './pages/Dashboard'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <HashRouter basename="/GYB">
+    <HashRouter>
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/dashboard" element={<Dashboard />} />
