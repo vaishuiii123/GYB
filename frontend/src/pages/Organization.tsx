@@ -5,6 +5,9 @@ import {
 
 import * as XLSX from "xlsx";
 
+import Header from "../components/Header";
+import Sidebar from "../components/Sidebar";
+
 export default function Organization() {
   // ================= ORGANIZATIONS =================
 
@@ -16,9 +19,7 @@ export default function Organization() {
         );
 
       return savedOrganizations
-        ? JSON.parse(
-            savedOrganizations
-          )
+        ? JSON.parse(savedOrganizations)
         : [];
     });
 
@@ -32,9 +33,7 @@ export default function Organization() {
         );
 
       return savedParticipants
-        ? JSON.parse(
-            savedParticipants
-          )
+        ? JSON.parse(savedParticipants)
         : [];
     });
 
@@ -43,18 +42,14 @@ export default function Organization() {
   useEffect(() => {
     localStorage.setItem(
       "organizations",
-      JSON.stringify(
-        organizations
-      )
+      JSON.stringify(organizations)
     );
   }, [organizations]);
 
   useEffect(() => {
     localStorage.setItem(
       "participants",
-      JSON.stringify(
-        participants
-      )
+      JSON.stringify(participants)
     );
   }, [participants]);
 
@@ -159,13 +154,10 @@ export default function Organization() {
       return;
     }
 
-    // EDIT
-
     if (editingParticipant) {
       const updatedParticipants =
         participants.map((p) =>
-          p.id ===
-          editingParticipant.id
+          p.id === editingParticipant.id
             ? {
                 ...p,
                 ...participantForm,
@@ -177,22 +169,14 @@ export default function Organization() {
         updatedParticipants
       );
 
-      setEditingParticipant(
-        null
-      );
+      setEditingParticipant(null);
 
       setShowParticipantModal(
         false
       );
 
-      setShowParticipantsView(
-        true
-      );
-
       return;
     }
-
-    // ADD NEW
 
     const newParticipant = {
       id: Date.now(),
@@ -230,17 +214,6 @@ export default function Organization() {
       );
 
     setOrganizations(updated);
-  };
-
-  const handleDeleteParticipant = (
-    id: number
-  ) => {
-    const updated =
-      participants.filter(
-        (p) => p.id !== id
-      );
-
-    setParticipants(updated);
   };
 
   // ================= DOWNLOAD EXCEL =================
@@ -297,14 +270,6 @@ export default function Organization() {
 
     if (!file) return;
 
-    if (!selectedExcelOrg) {
-      alert(
-        "Please select organization before uploading excel"
-      );
-
-      return;
-    }
-
     const reader =
       new FileReader();
 
@@ -331,25 +296,6 @@ export default function Organization() {
         XLSX.utils.sheet_to_json(
           worksheet
         );
-
-      // VALIDATE ORGANIZATION
-
-      const invalidRows =
-        excelData.filter(
-          (row: any) =>
-            row.Organization !==
-            selectedExcelOrg
-        );
-
-      if (
-        invalidRows.length > 0
-      ) {
-        alert(
-          "Organization name in excel does not match selected organization"
-        );
-
-        return;
-      }
 
       const uploadedParticipants =
         excelData.map(
@@ -397,8 +343,6 @@ export default function Organization() {
         "Participants uploaded successfully"
       );
 
-      setSelectedExcelOrg("");
-
       setShowParticipantModal(
         false
       );
@@ -412,637 +356,375 @@ export default function Organization() {
   return (
     <div
       style={{
-        padding: "30px",
-        background: "#f7f7f7",
+        background: "#f3f4f6",
         minHeight: "100vh",
       }}
     >
-      {/* HEADER */}
+      <Header />
+      <Sidebar />
 
       <div
         style={{
-          display: "flex",
-          justifyContent:
-            "space-between",
-          alignItems: "center",
-          marginBottom: "30px",
+          marginLeft: "250px",
+          paddingTop: "90px",
+          paddingLeft: "30px",
+          paddingRight: "30px",
         }}
       >
-        <h1>Organization</h1>
+        {/* HEADER */}
 
         <div
           style={{
             display: "flex",
-            gap: "10px",
+            justifyContent:
+              "space-between",
+            alignItems: "center",
+            marginBottom: "30px",
           }}
         >
-          <button
-            onClick={() => {
-              setEditingParticipant(
-                null
-              );
-
-              setParticipantMode(
-                "single"
-              );
-
-              setShowParticipantModal(
-                true
-              );
+          <h1
+            style={{
+              fontSize: "40px",
+              fontWeight: "700",
             }}
-            style={saveBtn}
           >
-            Add Participant
-          </button>
+            Organization
+          </h1>
 
-          <button
-            onClick={() =>
-              setShowOrgModal(true)
-            }
-            style={saveBtn}
-          >
-            Create Organization
-          </button>
-        </div>
-      </div>
-
-      {/* ORGANIZATION TABLE */}
-
-      <div style={card}>
-        <table
-          style={{
-            width: "100%",
-            borderCollapse:
-              "collapse",
-          }}
-        >
-          <thead>
-            <tr>
-              <th style={tableHeader}>
-                Sr No.
-              </th>
-
-              <th style={tableHeader}>
-                Organization Name
-              </th>
-
-              <th style={tableHeader}>
-                Contact Person
-              </th>
-
-              <th style={tableHeader}>
-                Email
-              </th>
-
-              <th style={tableHeader}>
-                Action
-              </th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {organizations.map(
-              (org, index) => (
-                <tr key={org.id}>
-                  <td style={tableCell}>
-                    {index + 1}
-                  </td>
-
-                  <td style={tableCell}>
-                    {
-                      org.organizationName
-                    }
-                  </td>
-
-                  <td style={tableCell}>
-                    {
-                      org.contactPerson
-                    }
-                  </td>
-
-                  <td style={tableCell}>
-                    {org.email}
-                  </td>
-
-                  <td style={tableCell}>
-                    <div
-                      style={{
-                        display:
-                          "flex",
-                        gap: "15px",
-                      }}
-                    >
-                      {/* VIEW */}
-
-                      <img
-                        src="https://cdn-icons-png.flaticon.com/512/709/709612.png"
-                        width="28"
-                        style={{
-                          cursor:
-                            "pointer",
-                        }}
-                        onClick={() => {
-                          setSelectedOrg(
-                            org
-                          );
-
-                          setShowParticipantsView(
-                            true
-                          );
-                        }}
-                      />
-
-                      {/* DELETE */}
-
-                      <img
-                        src="https://cdn-icons-png.flaticon.com/512/1214/1214428.png"
-                        width="24"
-                        style={{
-                          cursor:
-                            "pointer",
-                        }}
-                        onClick={() =>
-                          handleDeleteOrganization(
-                            org.id
-                          )
-                        }
-                      />
-                    </div>
-                  </td>
-                </tr>
-              )
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* CREATE ORGANIZATION MODAL */}
-
-      {showOrgModal && (
-        <div style={overlay}>
-          <div style={modal}>
-            <h2
-              style={{
-                marginBottom:
-                  "20px",
-              }}
-            >
-              Create Organization
-            </h2>
-
-            <input
-              type="text"
-              placeholder="Organization Name"
-              value={
-                orgForm.organizationName
-              }
-              onChange={(e) =>
-                setOrgForm({
-                  ...orgForm,
-                  organizationName:
-                    e.target.value,
-                })
-              }
-              style={inputStyle}
-            />
-
-            <input
-              type="text"
-              placeholder="Contact Person"
-              value={
-                orgForm.contactPerson
-              }
-              onChange={(e) =>
-                setOrgForm({
-                  ...orgForm,
-                  contactPerson:
-                    e.target.value,
-                })
-              }
-              style={inputStyle}
-            />
-
-            <input
-              type="email"
-              placeholder="Email"
-              value={orgForm.email}
-              onChange={(e) =>
-                setOrgForm({
-                  ...orgForm,
-                  email:
-                    e.target.value,
-                })
-              }
-              style={inputStyle}
-            />
-
-            <div
-              style={{
-                display: "flex",
-                justifyContent:
-                  "flex-end",
-                gap: "10px",
-                marginTop: "20px",
-              }}
-            >
-              <button
-                onClick={() =>
-                  setShowOrgModal(
-                    false
-                  )
-                }
-                style={cancelBtn}
-              >
-                Cancel
-              </button>
-
-              <button
-                onClick={
-                  handleCreateOrganization
-                }
-                style={saveBtn}
-              >
-                Save
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* PARTICIPANT MODAL */}
-
-      {showParticipantModal && (
-        <div style={overlay}>
           <div
             style={{
-              ...modal,
-              width: "700px",
-              maxHeight: "90vh",
-              overflowY: "auto",
+              display: "flex",
+              gap: "10px",
             }}
           >
-            <div
-              style={{
-                display: "flex",
-                justifyContent:
-                  "space-between",
-                alignItems: "center",
-                marginBottom: "20px",
+            <button
+              onClick={() => {
+                setEditingParticipant(
+                  null
+                );
+
+                setParticipantMode(
+                  "single"
+                );
+
+                setShowParticipantModal(
+                  true
+                );
               }}
+              style={saveBtn}
             >
-              <h2>
-                {editingParticipant
-                  ? "Edit Participant"
-                  : "Add Participant"}
-              </h2>
+              Add Participant
+            </button>
 
-              <button
-                onClick={() =>
-                  setShowParticipantModal(
-                    false
-                  )
-                }
-                style={cancelBtn}
+            <button
+              onClick={() =>
+                setShowOrgModal(true)
+              }
+              style={saveBtn}
+            >
+              Create Organization
+            </button>
+          </div>
+        </div>
+
+        {/* TABLE */}
+
+        <div style={card}>
+          <table
+            style={{
+              width: "100%",
+              borderCollapse:
+                "collapse",
+            }}
+          >
+            <thead>
+              <tr>
+                <th style={tableHeader}>
+                  Sr No.
+                </th>
+
+                <th style={tableHeader}>
+                  Organization Name
+                </th>
+
+                <th style={tableHeader}>
+                  Contact Person
+                </th>
+
+                <th style={tableHeader}>
+                  Email
+                </th>
+
+                <th style={tableHeader}>
+                  Action
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {organizations.map(
+                (org, index) => (
+                  <tr key={org.id}>
+                    <td style={tableCell}>
+                      {index + 1}
+                    </td>
+
+                    <td style={tableCell}>
+                      {
+                        org.organizationName
+                      }
+                    </td>
+
+                    <td style={tableCell}>
+                      {
+                        org.contactPerson
+                      }
+                    </td>
+
+                    <td style={tableCell}>
+                      {org.email}
+                    </td>
+
+                    <td style={tableCell}>
+                      <div
+                        style={{
+                          display:
+                            "flex",
+                          gap: "15px",
+                        }}
+                      >
+                        <button
+                          style={
+                            viewBtn
+                          }
+                          onClick={() => {
+                            setSelectedOrg(
+                              org
+                            );
+
+                            setShowParticipantsView(
+                              true
+                            );
+                          }}
+                        >
+                          View
+                        </button>
+
+                        <button
+                          style={
+                            deleteBtn
+                          }
+                          onClick={() =>
+                            handleDeleteOrganization(
+                              org.id
+                            )
+                          }
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* PARTICIPANT VIEW */}
+
+        {showParticipantsView &&
+          selectedOrg && (
+            <div style={overlay}>
+              <div
+                style={{
+                  ...modal,
+                  width: "900px",
+                }}
               >
-                Close
-              </button>
-            </div>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent:
+                      "space-between",
+                    alignItems:
+                      "center",
+                    marginBottom:
+                      "20px",
+                  }}
+                >
+                  <h2>
+                    Participants -
+                    {
+                      selectedOrg.organizationName
+                    }
+                  </h2>
 
-            {!editingParticipant && (
+                  <button
+                    onClick={() =>
+                      setShowParticipantsView(
+                        false
+                      )
+                    }
+                    style={cancelBtn}
+                  >
+                    Close
+                  </button>
+                </div>
+
+                <table
+                  style={{
+                    width: "100%",
+                    borderCollapse:
+                      "collapse",
+                  }}
+                >
+                  <thead>
+                    <tr>
+                      <th
+                        style={
+                          tableHeader
+                        }
+                      >
+                        Name
+                      </th>
+
+                      <th
+                        style={
+                          tableHeader
+                        }
+                      >
+                        Email
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {participants
+                      .filter(
+                        (p) =>
+                          p.organization ===
+                          selectedOrg.organizationName
+                      )
+                      .map((p) => (
+                        <tr
+                          key={p.id}
+                        >
+                          <td
+                            style={
+                              tableCell
+                            }
+                          >
+                            {
+                              p.firstName
+                            }{" "}
+                            {
+                              p.lastName
+                            }
+                          </td>
+
+                          <td
+                            style={
+                              tableCell
+                            }
+                          >
+                            {
+                              p.email
+                            }
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+        {/* CREATE ORG MODAL */}
+
+        {showOrgModal && (
+          <div style={overlay}>
+            <div style={modal}>
+              <h2>Create Organization</h2>
+
+              <input
+                type="text"
+                placeholder="Organization Name"
+                value={
+                  orgForm.organizationName
+                }
+                onChange={(e) =>
+                  setOrgForm({
+                    ...orgForm,
+                    organizationName:
+                      e.target.value,
+                  })
+                }
+                style={inputStyle}
+              />
+
+              <input
+                type="text"
+                placeholder="Contact Person"
+                value={
+                  orgForm.contactPerson
+                }
+                onChange={(e) =>
+                  setOrgForm({
+                    ...orgForm,
+                    contactPerson:
+                      e.target.value,
+                  })
+                }
+                style={inputStyle}
+              />
+
+              <input
+                type="email"
+                placeholder="Email"
+                value={orgForm.email}
+                onChange={(e) =>
+                  setOrgForm({
+                    ...orgForm,
+                    email:
+                      e.target.value,
+                  })
+                }
+                style={inputStyle}
+              />
+
               <div
                 style={{
                   display: "flex",
+                  justifyContent:
+                    "flex-end",
                   gap: "10px",
-                  marginBottom:
-                    "20px",
                 }}
               >
                 <button
                   onClick={() =>
-                    setParticipantMode(
-                      "single"
+                    setShowOrgModal(
+                      false
                     )
                   }
-                  style={{
-                    ...saveBtn,
-                    background:
-                      participantMode ===
-                      "single"
-                        ? "#7a0019"
-                        : "#d1d5db",
-                  }}
+                  style={cancelBtn}
                 >
-                  Add Single
-                  Participant
+                  Cancel
                 </button>
 
                 <button
-                  onClick={() =>
-                    setParticipantMode(
-                      "excel"
-                    )
+                  onClick={
+                    handleCreateOrganization
                   }
-                  style={{
-                    ...saveBtn,
-                    background:
-                      participantMode ===
-                      "excel"
-                        ? "#2563eb"
-                        : "#d1d5db",
-                  }}
+                  style={saveBtn}
                 >
-                  Upload Excel
+                  Save
                 </button>
               </div>
-            )}
-
-            {/* EXCEL */}
-
-            {!editingParticipant &&
-              participantMode ===
-                "excel" && (
-                <>
-                  <select
-                    value={
-                      selectedExcelOrg
-                    }
-                    onChange={(e) =>
-                      setSelectedExcelOrg(
-                        e.target.value
-                      )
-                    }
-                    style={
-                      inputStyle
-                    }
-                  >
-                    <option value="">
-                      Select
-                      Organization
-                    </option>
-
-                    {organizations.map(
-                      (org) => (
-                        <option
-                          key={
-                            org.id
-                          }
-                          value={
-                            org.organizationName
-                          }
-                        >
-                          {
-                            org.organizationName
-                          }
-                        </option>
-                      )
-                    )}
-                  </select>
-
-                  <div
-                    style={{
-                      display:
-                        "flex",
-                      gap: "10px",
-                      alignItems:
-                        "center",
-                      marginBottom:
-                        "20px",
-                    }}
-                  >
-                    <button
-                      onClick={
-                        handleDownloadExcel
-                      }
-                      style={
-                        saveBtn
-                      }
-                    >
-                      Download Excel
-                      Template
-                    </button>
-
-                    <input
-                      type="file"
-                      accept=".xlsx,.xls"
-                      onChange={
-                        handleUploadExcel
-                      }
-                    />
-                  </div>
-                </>
-              )}
-
-            {/* SINGLE */}
-
-            {(participantMode ===
-              "single" ||
-              editingParticipant) && (
-              <>
-                <select
-                  value={
-                    participantForm.organization
-                  }
-                  onChange={(e) =>
-                    setParticipantForm(
-                      {
-                        ...participantForm,
-                        organization:
-                          e.target
-                            .value,
-                      }
-                    )
-                  }
-                  style={
-                    inputStyle
-                  }
-                >
-                  <option value="">
-                    Select
-                    Organization
-                  </option>
-
-                  {organizations.map(
-                    (org) => (
-                      <option
-                        key={
-                          org.id
-                        }
-                        value={
-                          org.organizationName
-                        }
-                      >
-                        {
-                          org.organizationName
-                        }
-                      </option>
-                    )
-                  )}
-                </select>
-
-                <input
-                  type="text"
-                  placeholder="First Name"
-                  value={
-                    participantForm.firstName
-                  }
-                  onChange={(e) =>
-                    setParticipantForm(
-                      {
-                        ...participantForm,
-                        firstName:
-                          e.target
-                            .value,
-                      }
-                    )
-                  }
-                  style={
-                    inputStyle
-                  }
-                />
-
-                <input
-                  type="text"
-                  placeholder="Middle Name"
-                  value={
-                    participantForm.middleName
-                  }
-                  onChange={(e) =>
-                    setParticipantForm(
-                      {
-                        ...participantForm,
-                        middleName:
-                          e.target
-                            .value,
-                      }
-                    )
-                  }
-                  style={
-                    inputStyle
-                  }
-                />
-
-                <input
-                  type="text"
-                  placeholder="Last Name"
-                  value={
-                    participantForm.lastName
-                  }
-                  onChange={(e) =>
-                    setParticipantForm(
-                      {
-                        ...participantForm,
-                        lastName:
-                          e.target
-                            .value,
-                      }
-                    )
-                  }
-                  style={
-                    inputStyle
-                  }
-                />
-
-                <input
-                  type="email"
-                  placeholder="Email"
-                  value={
-                    participantForm.email
-                  }
-                  onChange={(e) =>
-                    setParticipantForm(
-                      {
-                        ...participantForm,
-                        email:
-                          e.target
-                            .value,
-                      }
-                    )
-                  }
-                  style={
-                    inputStyle
-                  }
-                />
-
-                <input
-                  type="text"
-                  placeholder="Phone"
-                  value={
-                    participantForm.phone
-                  }
-                  onChange={(e) =>
-                    setParticipantForm(
-                      {
-                        ...participantForm,
-                        phone:
-                          e.target
-                            .value,
-                      }
-                    )
-                  }
-                  style={
-                    inputStyle
-                  }
-                />
-
-                <input
-                  type="text"
-                  placeholder="Password"
-                  value={
-                    participantForm.password
-                  }
-                  onChange={(e) =>
-                    setParticipantForm(
-                      {
-                        ...participantForm,
-                        password:
-                          e.target
-                            .value,
-                      }
-                    )
-                  }
-                  style={
-                    inputStyle
-                  }
-                />
-
-                <div
-                  style={{
-                    display:
-                      "flex",
-                    justifyContent:
-                      "flex-end",
-                    gap: "10px",
-                  }}
-                >
-                  <button
-                    onClick={() =>
-                      setShowParticipantModal(
-                        false
-                      )
-                    }
-                    style={
-                      cancelBtn
-                    }
-                  >
-                    Cancel
-                  </button>
-
-                  <button
-                    onClick={
-                      handleAddParticipant
-                    }
-                    style={saveBtn}
-                  >
-                    {editingParticipant
-                      ? "Update"
-                      : "Save"}
-                  </button>
-                </div>
-              </>
-            )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
@@ -1066,51 +748,72 @@ const overlay: any = {
 const modal: any = {
   background: "white",
   padding: "30px",
-  borderRadius: "12px",
-  width: "450px",
+  borderRadius: "18px",
 };
 
 const card: any = {
   background: "white",
   padding: "30px",
-  borderRadius: "12px",
+  borderRadius: "18px",
+  boxShadow:
+    "0 2px 10px rgba(0,0,0,0.06)",
 };
 
 const inputStyle: any = {
   width: "100%",
-  padding: "12px",
+  padding: "14px",
   marginBottom: "15px",
-  border: "1px solid #ccc",
-  borderRadius: "5px",
+  border: "1px solid #d1d5db",
+  borderRadius: "8px",
 };
 
 const saveBtn: any = {
   background: "#7a0019",
   color: "white",
   border: "none",
-  padding: "10px 18px",
-  borderRadius: "5px",
+  padding: "12px 18px",
+  borderRadius: "8px",
   cursor: "pointer",
+  fontWeight: "600",
 };
 
 const cancelBtn: any = {
   background: "#6b7280",
   color: "white",
   border: "none",
-  padding: "10px 18px",
-  borderRadius: "5px",
+  padding: "12px 18px",
+  borderRadius: "8px",
+  cursor: "pointer",
+};
+
+const deleteBtn: any = {
+  background: "#dc2626",
+  color: "white",
+  border: "none",
+  padding: "8px 14px",
+  borderRadius: "6px",
+  cursor: "pointer",
+};
+
+const viewBtn: any = {
+  background: "#2563eb",
+  color: "white",
+  border: "none",
+  padding: "8px 14px",
+  borderRadius: "6px",
   cursor: "pointer",
 };
 
 const tableHeader: any = {
   textAlign: "left",
-  padding: "14px",
+  padding: "16px",
   borderBottom:
-    "1px solid #ddd",
+    "1px solid #e5e7eb",
+  fontWeight: "600",
 };
 
 const tableCell: any = {
-  padding: "14px",
+  padding: "16px",
   borderBottom:
-    "1px solid #eee",
+    "1px solid #f3f4f6",
 };
