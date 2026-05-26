@@ -1,25 +1,24 @@
 import { NavLink } from "react-router-dom";
 
 export default function Sidebar() {
-  const menuItems = [
-    {
-      name: "Dashboard",
-      path: "/dashboard",
-    },
-    {
-      name: "Organization",
-      path: "/organization",
-    },
-    {
-      name: "Template",
-      path: "/template",
-    },
-    {
-      name: "Workshop",
-      path: "/workshop",
-    },
-  ];
-
+ const menuItems = [
+  {
+    name: "Dashboard",
+    path: "/",
+  },
+  {
+    name: "Organization",
+    path: "/organization",
+  },
+  {
+    name: "Template",
+    path: "/template",
+  },
+  {
+    name: "Workshop",
+    path: "/workshop",
+  },
+];
   return (
     <div
       style={{
