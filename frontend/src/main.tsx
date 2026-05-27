@@ -8,12 +8,21 @@ import { msalConfig } from "./authConfig";
 
 const msalInstance = new PublicClientApplication(msalConfig);
 
-ReactDOM.createRoot(
-  document.getElementById("root")!
-).render(
-  <React.StrictMode>
-    <MsalProvider instance={msalInstance}>
-      <App />
-    </MsalProvider>
-  </React.StrictMode>
-);
+msalInstance.initialize().then(async () => {
+  const response =
+    await msalInstance.handleRedirectPromise();
+
+  if (response) {
+    msalInstance.setActiveAccount(response.account);
+  }
+
+  ReactDOM.createRoot(
+    document.getElementById("root")!
+  ).render(
+    <React.StrictMode>
+      <MsalProvider instance={msalInstance}>
+        <App />
+      </MsalProvider>
+    </React.StrictMode>
+  );
+});
