@@ -4,19 +4,19 @@ export default function Sidebar() {
  const menuItems = [
   {
     name: "Dashboard",
-    path: "/",
+    path: "#/Dashboard",
   },
   {
     name: "Organization",
-    path: "/organization",
+    path: "#/organization",
   },
   {
     name: "Template",
-    path: "/template",
+    path: "#/template",
   },
   {
     name: "Workshop",
-    path: "/workshop",
+    path: "#/workshop",
   },
 ];
   return (
