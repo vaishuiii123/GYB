@@ -1,19 +1,20 @@
 import { useMsal } from "@azure/msal-react";
-import { loginRequest } from "./authConfig";
 
 function App() {
   const { instance, accounts } = useMsal();
 
- const handleLogin = async () => {
-  try {
-    await instance.loginPopup(loginRequest);
-  } catch (error) {
-    console.error(error);
-  }
-};
-  
+  const handleLogin = async () => {
+    try {
+      await instance.loginRedirect({
+        scopes: ["User.Read"],
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   const handleLogout = () => {
-    instance.logoutPopup();
+    instance.logoutRedirect();
   };
 
   return (
@@ -26,11 +27,12 @@ function App() {
           <button onClick={handleLogout}>Logout</button>
         </>
       ) : (
-        <button onClick={handleLogin}>Login with Azure</button>
+        <button onClick={handleLogin}>
+          Login with Azure
+        </button>
       )}
     </div>
   );
 }
 
 export default App;
-``
