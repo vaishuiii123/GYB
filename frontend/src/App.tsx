@@ -1,82 +1,32 @@
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
-
-import Header from "./components/Header";
-import Sidebar from "./components/Sidebar";
-
-import Dashboard from "./pages/Dashboard";
-import Organization from "./pages/Organization";
-import Template from "./pages/Template";
-import Workshop from "./pages/Workshop";
+import { useMsal } from "@azure/msal-react";
+import { loginRequest } from "./authConfig";
 
 function App() {
+  const { instance, accounts } = useMsal();
+
+  const handleLogin = () => {
+    instance.loginPopup(loginRequest);
+  };
+
+  const handleLogout = () => {
+    instance.logoutPopup();
+  };
+
   return (
-    <BrowserRouter>
-      <div
-        style={{
-          background: "#eef3f7",
-          minHeight: "100vh",
-        }}
-      >
-        {/* HEADER */}
+    <div style={{ textAlign: "center", marginTop: "50px" }}>
+      <h1>Azure SSO Login</h1>
 
-        <Header />
-
-        {/* SIDEBAR */}
-
-        <Sidebar />
-
-        {/* MAIN CONTENT */}
-
-        <div
-          style={{
-            marginLeft: "250px",
-            marginTop: "80px",
-
-            padding: "35px",
-
-            minHeight:
-              "calc(100vh - 80px)",
-
-            boxSizing: "border-box",
-          }}
-        >
-          <Routes>
-            <Route
-              path="/"
-              element={
-                <Navigate to="/dashboard" />
-              }
-            />
-
-            <Route
-              path="/dashboard"
-              element={<Dashboard />}
-            />
-
-            <Route
-              path="/organization"
-              element={<Organization />}
-            />
-
-            <Route
-              path="/template"
-              element={<Template />}
-            />
-
-            <Route
-              path="/workshop"
-              element={<Workshop />}
-            />
-          </Routes>
-        </div>
-      </div>
-    </BrowserRouter>
+      {accounts.length > 0 ? (
+        <>
+          <p>Welcome {accounts[0].username}</p>
+          <button onClick={handleLogout}>Logout</button>
+        </>
+      ) : (
+        <button onClick={handleLogin}>Login with Azure</button>
+      )}
+    </div>
   );
 }
 
 export default App;
+``
