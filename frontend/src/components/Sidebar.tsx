@@ -1,24 +1,25 @@
 import { NavLink } from "react-router-dom";
 
 export default function Sidebar() {
- const menuItems = [
-  {
-    name: "Dashboard",
-    path: "#/Dashboard",
-  },
-  {
-    name: "Organization",
-    path: "#/organization",
-  },
-  {
-    name: "Template",
-    path: "#/template",
-  },
-  {
-    name: "Workshop",
-    path: "#/workshop",
-  },
-];
+  const menuItems = [
+    {
+      name: "Dashboard",
+      path: "/dashboard",
+    },
+    {
+      name: "Organization",
+      path: "/organization",
+    },
+    {
+      name: "Template",
+      path: "/template",
+    },
+    {
+      name: "Workshop",
+      path: "/workshop",
+    },
+  ];
+
   return (
     <div
       style={{
@@ -26,18 +27,19 @@ export default function Sidebar() {
         background: "white",
 
         position: "fixed",
-        top: "80px",
+        top: "60px",
         left: 0,
 
-        height: "calc(100vh - 80px)",
+        height: "calc(100vh - 60px)",
 
-        borderRight:
-          "1px solid #e5e7eb",
+        borderRight: "1px solid #e5e7eb",
 
         padding: "25px 20px",
         boxSizing: "border-box",
 
         overflowY: "auto",
+
+        zIndex: 999,
       }}
     >
       <div
@@ -74,6 +76,8 @@ export default function Sidebar() {
 
               transition:
                 "all 0.2s ease",
+
+              display: "block",
             })}
           >
             {item.name}
