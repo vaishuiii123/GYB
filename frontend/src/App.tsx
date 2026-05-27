@@ -1,13 +1,15 @@
 import { useMsal } from "@azure/msal-react";
+import { loginRequest } from "./authConfig";
+
+import Login from "./pages/Login";
+import Dashboard from "./pages/Dashboard";
 
 function App() {
   const { instance, accounts } = useMsal();
 
   const handleLogin = async () => {
     try {
-      await instance.loginRedirect({
-        scopes: ["User.Read"],
-      });
+      await instance.loginRedirect(loginRequest);
     } catch (error) {
       console.error(error);
     }
@@ -17,21 +19,38 @@ function App() {
     instance.logoutRedirect();
   };
 
-  return (
-    <div style={{ textAlign: "center", marginTop: "50px" }}>
-      <h1>Azure SSO Login</h1>
+  if (accounts.length === 0) {
+    return <Login />;
+  }
 
-      {accounts.length > 0 ? (
-        <>
-          <p>Welcome {accounts[0].username}</p>
-          <button onClick={handleLogout}>Logout</button>
-        </>
-      ) : (
-        <button onClick={handleLogin}>
-          Login with Azure
+  return (
+    <>
+      <div
+        style={{
+          position: "fixed",
+          top: "15px",
+          right: "20px",
+          zIndex: 9999,
+        }}
+      >
+        <button
+          onClick={handleLogout}
+          style={{
+            background: "#7a0019",
+            color: "white",
+            border: "none",
+            padding: "10px 18px",
+            borderRadius: "10px",
+            cursor: "pointer",
+            fontWeight: "600",
+          }}
+        >
+          Logout
         </button>
-      )}
-    </div>
+      </div>
+
+      <Dashboard />
+    </>
   );
 }
 
