@@ -1,8 +1,4 @@
-import {
-  useState,
-  useEffect,
-} from "react";
-
+import { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 
 import Header from "../components/Header";
@@ -13,13 +9,13 @@ export default function Organization() {
 
   const [organizations, setOrganizations] =
     useState<any[]>(() => {
-      const savedOrganizations =
+      const saved =
         localStorage.getItem(
           "organizations"
         );
 
-      return savedOrganizations
-        ? JSON.parse(savedOrganizations)
+      return saved
+        ? JSON.parse(saved)
         : [];
     });
 
@@ -27,17 +23,17 @@ export default function Organization() {
 
   const [participants, setParticipants] =
     useState<any[]>(() => {
-      const savedParticipants =
+      const saved =
         localStorage.getItem(
           "participants"
         );
 
-      return savedParticipants
-        ? JSON.parse(savedParticipants)
+      return saved
+        ? JSON.parse(saved)
         : [];
     });
 
-  // ================= SAVE LOCAL STORAGE =================
+  // ================= SAVE STORAGE =================
 
   useEffect(() => {
     localStorage.setItem(
@@ -77,16 +73,11 @@ export default function Organization() {
     useState("single");
 
   const [
-    editingParticipant,
-    setEditingParticipant,
-  ] = useState<any>(null);
-
-  const [
     selectedExcelOrg,
     setSelectedExcelOrg,
   ] = useState("");
 
-  // ================= ORGANIZATION FORM =================
+  // ================= FORMS =================
 
   const [orgForm, setOrgForm] =
     useState({
@@ -94,8 +85,6 @@ export default function Organization() {
       contactPerson: "",
       email: "",
     });
-
-  // ================= PARTICIPANT FORM =================
 
   const [
     participantForm,
@@ -119,7 +108,7 @@ export default function Organization() {
         !orgForm.contactPerson ||
         !orgForm.email
       ) {
-        alert("Fill all fields");
+        alert("Please fill all fields");
         return;
       }
 
@@ -142,7 +131,7 @@ export default function Organization() {
       setShowOrgModal(false);
     };
 
-  // ================= ADD / EDIT PARTICIPANT =================
+  // ================= ADD PARTICIPANT =================
 
   const handleAddParticipant = () => {
     if (
@@ -150,31 +139,7 @@ export default function Organization() {
       !participantForm.firstName ||
       !participantForm.email
     ) {
-      alert("Fill required fields");
-      return;
-    }
-
-    if (editingParticipant) {
-      const updatedParticipants =
-        participants.map((p) =>
-          p.id === editingParticipant.id
-            ? {
-                ...p,
-                ...participantForm,
-              }
-            : p
-        );
-
-      setParticipants(
-        updatedParticipants
-      );
-
-      setEditingParticipant(null);
-
-      setShowParticipantModal(
-        false
-      );
-
+      alert("Please fill required fields");
       return;
     }
 
@@ -198,9 +163,7 @@ export default function Organization() {
       password: "",
     });
 
-    setShowParticipantModal(
-      false
-    );
+    setShowParticipantModal(false);
   };
 
   // ================= DELETE =================
@@ -305,20 +268,16 @@ export default function Organization() {
               Math.random(),
 
             organization:
-              row.Organization ||
-              "",
+              row.Organization || "",
 
             firstName:
-              row.FirstName ||
-              "",
+              row.FirstName || "",
 
             middleName:
-              row.MiddleName ||
-              "",
+              row.MiddleName || "",
 
             lastName:
-              row.LastName ||
-              "",
+              row.LastName || "",
 
             email:
               row.Email || "",
@@ -327,8 +286,7 @@ export default function Organization() {
               row.Phone || "",
 
             password:
-              row.Password ||
-              "",
+              row.Password || "",
           })
         );
 
@@ -343,14 +301,10 @@ export default function Organization() {
         "Participants uploaded successfully"
       );
 
-      setShowParticipantModal(
-        false
-      );
+      setShowParticipantModal(false);
     };
 
-    reader.readAsBinaryString(
-      file
-    );
+    reader.readAsBinaryString(file);
   };
 
   return (
@@ -371,7 +325,7 @@ export default function Organization() {
           paddingRight: "30px",
         }}
       >
-        {/* HEADER */}
+        {/* PAGE HEADER */}
 
         <div
           style={{
@@ -399,10 +353,6 @@ export default function Organization() {
           >
             <button
               onClick={() => {
-                setEditingParticipant(
-                  null
-                );
-
                 setParticipantMode(
                   "single"
                 );
@@ -427,7 +377,7 @@ export default function Organization() {
           </div>
         </div>
 
-        {/* TABLE */}
+        {/* ORGANIZATION TABLE */}
 
         <div style={card}>
           <table
@@ -490,13 +440,11 @@ export default function Organization() {
                         style={{
                           display:
                             "flex",
-                          gap: "15px",
+                          gap: "10px",
                         }}
                       >
                         <button
-                          style={
-                            viewBtn
-                          }
+                          style={viewBtn}
                           onClick={() => {
                             setSelectedOrg(
                               org
@@ -511,9 +459,7 @@ export default function Organization() {
                         </button>
 
                         <button
-                          style={
-                            deleteBtn
-                          }
+                          style={deleteBtn}
                           onClick={() =>
                             handleDeleteOrganization(
                               org.id
@@ -530,200 +476,6 @@ export default function Organization() {
             </tbody>
           </table>
         </div>
-
-        {/* PARTICIPANT VIEW */}
-
-        {showParticipantsView &&
-          selectedOrg && (
-            <div style={overlay}>
-              <div
-                style={{
-                  ...modal,
-                  width: "900px",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent:
-                      "space-between",
-                    alignItems:
-                      "center",
-                    marginBottom:
-                      "20px",
-                  }}
-                >
-                  <h2>
-                    Participants -
-                    {
-                      selectedOrg.organizationName
-                    }
-                  </h2>
-
-                  <button
-                    onClick={() =>
-                      setShowParticipantsView(
-                        false
-                      )
-                    }
-                    style={cancelBtn}
-                  >
-                    Close
-                  </button>
-                </div>
-
-                <table
-                  style={{
-                    width: "100%",
-                    borderCollapse:
-                      "collapse",
-                  }}
-                >
-                  <thead>
-                    <tr>
-                      <th
-                        style={
-                          tableHeader
-                        }
-                      >
-                        Name
-                      </th>
-
-                      <th
-                        style={
-                          tableHeader
-                        }
-                      >
-                        Email
-                      </th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {participants
-                      .filter(
-                        (p) =>
-                          p.organization ===
-                          selectedOrg.organizationName
-                      )
-                      .map((p) => (
-                        <tr
-                          key={p.id}
-                        >
-                          <td
-                            style={
-                              tableCell
-                            }
-                          >
-                            {
-                              p.firstName
-                            }{" "}
-                            {
-                              p.lastName
-                            }
-                          </td>
-
-                          <td
-                            style={
-                              tableCell
-                            }
-                          >
-                            {
-                              p.email
-                            }
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-        {/* CREATE ORG MODAL */}
-
-        {showOrgModal && (
-          <div style={overlay}>
-            <div style={modal}>
-              <h2>Create Organization</h2>
-
-              <input
-                type="text"
-                placeholder="Organization Name"
-                value={
-                  orgForm.organizationName
-                }
-                onChange={(e) =>
-                  setOrgForm({
-                    ...orgForm,
-                    organizationName:
-                      e.target.value,
-                  })
-                }
-                style={inputStyle}
-              />
-
-              <input
-                type="text"
-                placeholder="Contact Person"
-                value={
-                  orgForm.contactPerson
-                }
-                onChange={(e) =>
-                  setOrgForm({
-                    ...orgForm,
-                    contactPerson:
-                      e.target.value,
-                  })
-                }
-                style={inputStyle}
-              />
-
-              <input
-                type="email"
-                placeholder="Email"
-                value={orgForm.email}
-                onChange={(e) =>
-                  setOrgForm({
-                    ...orgForm,
-                    email:
-                      e.target.value,
-                  })
-                }
-                style={inputStyle}
-              />
-
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent:
-                    "flex-end",
-                  gap: "10px",
-                }}
-              >
-                <button
-                  onClick={() =>
-                    setShowOrgModal(
-                      false
-                    )
-                  }
-                  style={cancelBtn}
-                >
-                  Cancel
-                </button>
-
-                <button
-                  onClick={
-                    handleCreateOrganization
-                  }
-                  style={saveBtn}
-                >
-                  Save
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -731,40 +483,12 @@ export default function Organization() {
 
 /* ================= STYLES ================= */
 
-const overlay: any = {
-  position: "fixed",
-  top: 0,
-  left: 0,
-  width: "100%",
-  height: "100%",
-  background:
-    "rgba(0,0,0,0.5)",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  zIndex: 999,
-};
-
-const modal: any = {
-  background: "white",
-  padding: "30px",
-  borderRadius: "18px",
-};
-
 const card: any = {
   background: "white",
   padding: "30px",
   borderRadius: "18px",
   boxShadow:
     "0 2px 10px rgba(0,0,0,0.06)",
-};
-
-const inputStyle: any = {
-  width: "100%",
-  padding: "14px",
-  marginBottom: "15px",
-  border: "1px solid #d1d5db",
-  borderRadius: "8px",
 };
 
 const saveBtn: any = {
@@ -775,15 +499,6 @@ const saveBtn: any = {
   borderRadius: "8px",
   cursor: "pointer",
   fontWeight: "600",
-};
-
-const cancelBtn: any = {
-  background: "#6b7280",
-  color: "white",
-  border: "none",
-  padding: "12px 18px",
-  borderRadius: "8px",
-  cursor: "pointer",
 };
 
 const deleteBtn: any = {
