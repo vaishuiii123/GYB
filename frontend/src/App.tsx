@@ -4,10 +4,14 @@ import { loginRequest } from "./authConfig";
 function App() {
   const { instance, accounts } = useMsal();
 
-  const handleLogin = () => {
-    instance.loginPopup(loginRequest);
-  };
-
+ const handleLogin = async () => {
+  try {
+    await instance.loginPopup(loginRequest);
+  } catch (error) {
+    console.error(error);
+  }
+};
+  
   const handleLogout = () => {
     instance.logoutPopup();
   };
