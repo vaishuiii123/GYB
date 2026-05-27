@@ -1,70 +1,43 @@
-import { useState } from "react";
+<div
+  style={{
+    marginBottom: "25px",
+  }}
+>
+  <label
+    style={{
+      display: "block",
+      marginBottom: "10px",
+      fontWeight: "600",
+      color: "#374151",
+      fontSize: "15px",
+    }}
+  >
+    Email Address
+  </label>
 
-export default function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (email === "admin@test.com" && password === "1234") {
-      window.location.href = "/GYB/#/dashboard";
-    } else {
-      alert("Invalid Credentials");
-    }
-  };
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-indigo-200">
-      <div className="bg-white shadow-2xl rounded-2xl p-10 w-full max-w-md">
-        
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-800">
-            Welcome Back
-          </h1>
-          <p className="text-gray-500 mt-2">
-            Login to continue
-          </p>
-        </div>
-
-        <form onSubmit={handleLogin}>
-          <div className="mb-5">
-            <label className="block text-gray-700 mb-2">
-              Email
-            </label>
-
-            <input
-              type="email"
-              placeholder="Enter your email"
-              className="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-
-          <div className="mb-6">
-            <label className="block text-gray-700 mb-2">
-              Password
-            </label>
-
-            <input
-              type="password"
-              placeholder="Enter your password"
-              className="w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 transition-all text-white py-3 rounded-xl font-semibold"
-          >
-            Login
-          </button>
-        </form>
-
-      </div>
-    </div>
-  );
-}
+  <div
+    style={{
+      position: "relative",
+    }}
+  >
+    <input
+      type="email"
+      placeholder="admin@test.com"
+      value={email}
+      onChange={(e) =>
+        setEmail(e.target.value)
+      }
+      style={{
+        width: "100%",
+        padding: "16px 18px",
+        borderRadius: "14px",
+        border: "1px solid #d1d5db",
+        fontSize: "16px",
+        outline: "none",
+        boxSizing: "border-box",
+        background: "#f9fafb",
+        transition: "0.3s",
+      }}
+    />
+  </div>
+</div>
