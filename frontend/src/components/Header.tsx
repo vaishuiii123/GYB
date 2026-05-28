@@ -90,7 +90,11 @@ export default function Header() {
           Admin
         </span>
 
+         const handleLogout = () => {
+    instance.logoutRedirect();
+  };
         <button
+          onClick={handleLogout}
           style={{
             background: "#8B0022",
             color: "white",
