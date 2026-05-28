@@ -1,4 +1,17 @@
+import { useMsal } from "@azure/msal-react";
+
 export default function Header() {
+    const { instance } = useMsal();
+    const handleLogout = async () => {
+    try {
+      await instance.logoutRedirect({
+        postLogoutRedirectUri:
+          "https://gentle-sea-0636fbe10.7.azurestaticapps.net",
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  };
   return (
     <div
       style={{
@@ -89,10 +102,6 @@ export default function Header() {
         >
           Admin
         </span>
-
-         const handleLogout = () => {
-    instance.logoutRedirect();
-  };
         <button
           onClick={handleLogout}
           style={{
