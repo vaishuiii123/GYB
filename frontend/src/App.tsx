@@ -2,6 +2,7 @@ import { useMsal } from "@azure/msal-react";
 import { loginRequest } from "./authConfig";
 
 import Login from "./pages/Login";
+import Dashboard from "./pages/Dashboard";
 
 function App() {
   const { instance, accounts } = useMsal();
@@ -17,7 +18,7 @@ function App() {
     }
   };
 
-  return <Login onLogin={handleLogin} />;
+  return <Dashboard/>;
 }
 
 export default App;
