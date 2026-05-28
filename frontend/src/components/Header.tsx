@@ -4,12 +4,15 @@ export default function Header() {
   const { instance } = useMsal();
 
   const handleLogout = async () => {
-  localStorage.clear();
+  const currentAccount =
+    instance.getActiveAccount();
 
-  await instance.logoutPopup();
+  await instance.logoutRedirect({
+    account: currentAccount || undefined,
 
-  window.location.href =
-    "https://gentle-sea-0636fbe10.7.azurestaticapps.net";
+    postLogoutRedirectUri:
+      "https://gentle-sea-0636fbe10.7.azurestaticapps.net",
+  });
 };
 
   return (
