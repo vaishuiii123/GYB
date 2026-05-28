@@ -1,53 +1,50 @@
-import { useMsal } from "@azure/msal-react";
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
+import { useMsal, useIsAuthenticated } from "@azure/msal-react";
+import { loginRequest } from "./authConfig";
 
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-import Organization from "./pages/Organization";
-import Template from "./pages/Template";
-import Workshop from "./pages/Workshop";
 
 function App() {
-  const { accounts } = useMsal();
+  const { instance } = useMsal();
 
-  if (accounts.length === 0) {
+  const isAuthenticated = useIsAuthenticated();
+
+  const handleLogout = () => {
+    instance.logoutPopup();
+  };
+
+  if (!isAuthenticated) {
     return <Login />;
   }
 
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route
-          path="/"
-          element={<Navigate to="/dashboard" />}
-        />
+    <>
+      <div
+        style={{
+          position: "fixed",
+          top: "15px",
+          right: "20px",
+          zIndex: 9999,
+        }}
+      >
+        <button
+          onClick={handleLogout}
+          style={{
+            background: "#7a0019",
+            color: "white",
+            border: "none",
+            padding: "10px 18px",
+            borderRadius: "10px",
+            cursor: "pointer",
+            fontWeight: "600",
+          }}
+        >
+          Logout
+        </button>
+      </div>
 
-        <Route
-          path="/dashboard"
-          element={<Dashboard />}
-        />
-
-        <Route
-          path="/organization"
-          element={<Organization />}
-        />
-
-        <Route
-          path="/template"
-          element={<Template />}
-        />
-
-        <Route
-          path="/workshop"
-          element={<Workshop />}
-        />
-      </Routes>
-    </BrowserRouter>
+      <Dashboard />
+    </>
   );
 }
 
