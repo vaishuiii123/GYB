@@ -17,11 +17,7 @@ function App() {
     }
   };
 
-  return (
-    <div>
-      <h1>Dashboard Working</h1>
-    </div>
-  );
+  return <Login onLogin={handleLogin} />;
 }
 
 export default App;
