@@ -10,7 +10,7 @@ export default function Dashboard() {
       }}
     >
       {/* Header */}
-      <Header />
+
 
       {/* Sidebar */}
       <Sidebar />
