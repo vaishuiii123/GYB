@@ -6,7 +6,10 @@ export default function Login() {
 
   const handleLogin = async () => {
     try {
-      await instance.loginPopup(loginRequest);
+await instance.loginPopup({
+  ...loginRequest,
+  prompt: "select_account",
+});
     } catch (error) {
       console.error(error);
     }
