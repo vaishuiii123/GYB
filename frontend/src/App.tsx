@@ -4,6 +4,8 @@ import { loginRequest } from "./authConfig";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 
+import Organization from "./pages/Organization";
+
 function App() {
   const { instance, accounts } = useMsal();
 
@@ -18,7 +20,7 @@ function App() {
     }
   };
 
-  return <Dashboard/>;
+  return <Organization/>;
 }
 
 export default App;
