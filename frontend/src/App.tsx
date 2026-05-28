@@ -36,10 +36,8 @@ function App() {
   // LOGIN SCREEN
 
   if (accounts.length === 0) {
-    return (
-      <Login onLogin={handleLogin} />
-    );
-  }
+  return <Login />;
+}
 
   // MAIN APP
 
