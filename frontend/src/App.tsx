@@ -41,9 +41,7 @@ function App() {
       <Routes>
         <Route
           path="/"
-          element={
-            <Navigate to="/dashboard" />
-          }
+          element={<Navigate to="/dashboard" />}
         />
 
         <Route
@@ -67,7 +65,6 @@ function App() {
         />
       </Routes>
     </HashRouter>
-    <Dashboard />
   );
 }
 
