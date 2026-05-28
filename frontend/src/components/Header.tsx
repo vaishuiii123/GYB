@@ -3,12 +3,14 @@ import { useMsal } from "@azure/msal-react";
 export default function Header() {
   const { instance } = useMsal();
 
-  const handleLogout = () => {
-    instance.logoutRedirect({
-      postLogoutRedirectUri:
-        "https://gentle-sea-0636fbe10.7.azurestaticapps.net",
-    });
-  };
+  const handleLogout = async () => {
+  localStorage.clear();
+
+  await instance.logoutPopup();
+
+  window.location.href =
+    "https://gentle-sea-0636fbe10.7.azurestaticapps.net";
+};
 
   return (
     <div
