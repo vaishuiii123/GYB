@@ -9,7 +9,10 @@ function App() {
 
   const handleLogin = async () => {
     try {
-      await instance.loginRedirect(loginRequest);
+      await instance.loginRedirect({
+        ...loginRequest,
+        prompt: "select_account",
+      });
     } catch (error) {
       console.error(error);
     }
