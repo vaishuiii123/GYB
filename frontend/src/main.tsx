@@ -1,32 +1,27 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import App from "./App";
-
-import { BrowserRouter } from "react-router-dom";
 
 import { PublicClientApplication } from "@azure/msal-browser";
+
 import { MsalProvider } from "@azure/msal-react";
+
+import App from "./App";
+
 import { msalConfig } from "./authConfig";
 
-const msalInstance = new PublicClientApplication(msalConfig);
+import "./index.css";
 
-msalInstance.initialize().then(async () => {
-  const response =
-    await msalInstance.handleRedirectPromise();
+const msalInstance =
+  new PublicClientApplication(msalConfig);
 
-  if (response) {
-    msalInstance.setActiveAccount(response.account);
-  }
-
+msalInstance.initialize().then(() => {
   ReactDOM.createRoot(
     document.getElementById("root")!
   ).render(
     <React.StrictMode>
-      <BrowserRouter>
-        <MsalProvider instance={msalInstance}>
-          <App />
-        </MsalProvider>
-      </BrowserRouter>
+      <MsalProvider instance={msalInstance}>
+        <App />
+      </MsalProvider>
     </React.StrictMode>
   );
 });
