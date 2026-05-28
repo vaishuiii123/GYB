@@ -1,17 +1,15 @@
 import { useMsal } from "@azure/msal-react";
 
 export default function Header() {
-    const { instance } = useMsal();
-    const handleLogout = async () => {
-    try {
-      await instance.logoutRedirect({
-        postLogoutRedirectUri:
-          "https://gentle-sea-0636fbe10.7.azurestaticapps.net",
-      });
-    } catch (error) {
-      console.error(error);
-    }
+  const { instance } = useMsal();
+
+  const handleLogout = () => {
+    instance.logoutRedirect({
+      postLogoutRedirectUri:
+        "https://gentle-sea-0636fbe10.7.azurestaticapps.net",
+    });
   };
+
   return (
     <div
       style={{
@@ -19,14 +17,11 @@ export default function Header() {
         width: "100%",
         background: "white",
         borderBottom: "1px solid #e5e7eb",
-
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-
         padding: "0 30px",
         boxSizing: "border-box",
-
         position: "fixed",
         top: 0,
         left: 0,
@@ -48,11 +43,9 @@ export default function Header() {
             height: "45px",
             background: "#8B0022",
             borderRadius: "12px",
-
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-
             color: "white",
             fontSize: "20px",
             fontWeight: "600",
@@ -67,7 +60,6 @@ export default function Header() {
               fontSize: "20px",
               fontWeight: "600",
               color: "#111827",
-              lineHeight: 1,
             }}
           >
             KNAV Portal
@@ -87,37 +79,20 @@ export default function Header() {
 
       {/* RIGHT */}
 
-      <div
+      <button
+        onClick={handleLogout}
         style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "20px",
+          background: "#8B0022",
+          color: "white",
+          border: "none",
+          padding: "10px 20px",
+          borderRadius: "8px",
+          cursor: "pointer",
+          fontWeight: "600",
         }}
       >
-        <span
-          style={{
-            fontSize: "14px",
-            fontWeight: "500",
-          }}
-        >
-          Admin
-        </span>
-        <button
-          onClick={handleLogout}
-          style={{
-            background: "#8B0022",
-            color: "white",
-            border: "none",
-            padding: "8px 20px",
-            borderRadius: "8px",
-            cursor: "pointer",
-            fontWeight: "600",
-            fontSize: "14px",
-          }}
-        >
-          Logout
-        </button>
-      </div>
+        Logout
+      </button>
     </div>
   );
 }
