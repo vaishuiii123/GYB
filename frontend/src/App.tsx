@@ -30,7 +30,7 @@ function App() {
   };
 
   const handleLogout = () => {
-    instance.logoutRedirect();
+    instance.logoutPopup();
   };
 
   // LOGIN SCREEN
