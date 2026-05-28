@@ -1,45 +1,31 @@
-import { NavLink } from "react-router-dom";
+type SidebarProps = {
+  activePage: string;
+  setActivePage: (page: string) => void;
+};
 
-export default function Sidebar() {
+export default function Sidebar({
+  activePage,
+  setActivePage,
+}: SidebarProps) {
   const menuItems = [
-    {
-      name: "Dashboard",
-      path: "/dashboard",
-    },
-    {
-      name: "Organization",
-      path: "/organization",
-    },
-    {
-      name: "Template",
-      path: "/template",
-    },
-    {
-      name: "Workshop",
-      path: "/workshop",
-    },
+    "Dashboard",
+    "Organization",
+    "Template",
+    "Workshop",
   ];
 
   return (
     <div
       style={{
-        width: "240px",
+        width: "250px",
         background: "white",
-
         position: "fixed",
-        top: "70px",
+        top: "80px",
         left: 0,
-
-        height: "calc(100vh - 70px)",
-
-        borderRight: "1px solid #e5e7eb",
-
-        padding: "25px 18px",
+        height: "100vh",
+        padding: "25px 20px",
         boxSizing: "border-box",
-
-        overflowY: "auto",
-
-        zIndex: 999,
+        borderRight: "1px solid #e5e7eb",
       }}
     >
       <div
@@ -50,38 +36,37 @@ export default function Sidebar() {
         }}
       >
         {menuItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            style={({ isActive }) => ({
-              textDecoration: "none",
+          <button
+            key={item}
+            onClick={() => setActivePage(item)}
+            style={{
+              background:
+                activePage === item
+                  ? "#8B0022"
+                  : "transparent",
 
-              background: isActive
-                ? "#8B0022"
-                : "transparent",
+              color:
+                activePage === item
+                  ? "white"
+                  : "#111827",
 
-              color: isActive
-                ? "white"
-                : "#111827",
+              border: "none",
 
               padding: "16px 20px",
 
               borderRadius: "12px",
 
-              fontWeight: isActive
-                ? "600"
-                : "500",
-
               fontSize: "18px",
 
-              transition:
-                "all 0.2s ease",
+              fontWeight: "600",
 
-              display: "block",
-            })}
+              cursor: "pointer",
+
+              textAlign: "left",
+            }}
           >
-            {item.name}
-          </NavLink>
+            {item}
+          </button>
         ))}
       </div>
     </div>
