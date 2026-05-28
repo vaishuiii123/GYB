@@ -1,4 +1,6 @@
 import { useState } from "react";
+import Header from "../components/Header";
+import Sidebar from "../components/Sidebar";
 
 export default function Template() {
   const [templates, setTemplates] = useState<any[]>([]);
@@ -46,12 +48,12 @@ export default function Template() {
   return (
     <div
       style={{
-        padding: "40px",
-        background: "#f5f5f5",
+        background: "#f3f4f6",
         minHeight: "100vh",
       }}
     >
-      {/* HEADER */}
+      <Header />
+      <Sidebar />
 
       <div
         style={{
