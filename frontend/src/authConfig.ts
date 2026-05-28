@@ -5,7 +5,11 @@ export const msalConfig = {
     redirectUri: "https://gentle-sea-0636fbe10.7.azurestaticapps.net"
   }
 };
-
+  cache: {
+    cacheLocation: "localStorage",
+    storeAuthStateInCookie: true,
+  },
+};
 export const loginRequest = {
   scopes: ["User.Read"]
 };
