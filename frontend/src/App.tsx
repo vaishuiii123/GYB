@@ -18,9 +18,7 @@ function App() {
     }
   };
 
-  const handleLogout = () => {
-    instance.logoutRedirect();
-  };
+ 
 
   if (accounts.length === 0) {
     return <Login onLogin={handleLogin} />;
