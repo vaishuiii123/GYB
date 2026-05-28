@@ -42,7 +42,7 @@ function App() {
         <Route
           path="/"
           element={
-            <Navigate to="/dashboard" />
+            <Navigate to="/organization" />
           }
         />
 
