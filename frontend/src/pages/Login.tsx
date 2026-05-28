@@ -6,13 +6,18 @@ export default function Login() {
 
   const handleLogin = async () => {
     try {
-      await instance.loginPopup(loginRequest);
+      await instance.loginPopup({
+        ...loginRequest,
+        prompt: "select_account",
+      });
+
+      window.location.reload();
     } catch (error) {
       console.error(error);
     }
   };
 
-  return (
+ return (
     <div
       style={{
         height: "100vh",
@@ -84,16 +89,6 @@ export default function Login() {
         >
           Login with Azure
         </button>
-
-        <p
-          style={{
-            marginTop: "35px",
-            color: "#94a3b8",
-            fontSize: "14px",
-          }}
-        >
-          © 2026 KNAV Portal
-        </p>
       </div>
     </div>
   );
