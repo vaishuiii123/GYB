@@ -28,13 +28,9 @@ function App() {
     }
   };
 
-  // SHOW LOGIN PAGE
-
   if (accounts.length === 0) {
     return <Login onLogin={handleLogin} />;
   }
-
-  // SHOW APPLICATION
 
   return (
     <HashRouter>
