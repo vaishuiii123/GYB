@@ -23,7 +23,7 @@ export default function Sidebar() {
   return (
     <div
       style={{
-        width: "250px",
+        width: "240px",
         background: "white",
         position: "fixed",
         top: "80px",
@@ -33,10 +33,10 @@ export default function Sidebar() {
         padding: "25px 20px",
         boxSizing: "border-box",
         overflowY: "auto",
-        zIndex: 999,
       }}
     >
-      <div
+
+       <div
         style={{
           display: "flex",
           flexDirection: "column",
@@ -49,27 +49,18 @@ export default function Sidebar() {
             to={item.path}
             style={({ isActive }) => ({
               textDecoration: "none",
-
               background: isActive
                 ? "#8B0022"
                 : "transparent",
-
               color: isActive
                 ? "white"
                 : "#111827",
-
               padding: "16px 20px",
-
               borderRadius: "12px",
-
               fontWeight: isActive
                 ? "600"
                 : "500",
-
               fontSize: "18px",
-
-              transition: "all 0.2s ease",
-
               display: "block",
             })}
           >
