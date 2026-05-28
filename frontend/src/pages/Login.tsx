@@ -5,12 +5,12 @@ export default function Login() {
   const { instance } = useMsal();
 
   const handleLogin = async () => {
-    try {
-      await instance.loginPopup(loginRequest);
-    } catch (error) {
-      console.error(error);
-    }
-  };
+  try {
+    await instance.loginRedirect(loginRequest);
+  } catch (error) {
+    console.error(error);
+  }
+};
 
   return (
     <button onClick={handleLogin}>
