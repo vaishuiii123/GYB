@@ -23,18 +23,18 @@ export default function Sidebar() {
   return (
     <div
       style={{
-        width: "250px",
+        width: "240px",
         background: "white",
 
         position: "fixed",
-        top: "60px",
+        top: "70px",
         left: 0,
 
-        height: "calc(100vh - 60px)",
+        height: "calc(100vh - 70px)",
 
         borderRight: "1px solid #e5e7eb",
 
-        padding: "25px 20px",
+        padding: "25px 18px",
         boxSizing: "border-box",
 
         overflowY: "auto",
