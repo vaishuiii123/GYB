@@ -17,10 +17,6 @@ function App() {
     }
   };
 
-  if (accounts.length === 0) {
-    return <Login onLogin={handleLogin} />;
-  }
-
   return (
     <div>
       <h1>Dashboard Working</h1>
