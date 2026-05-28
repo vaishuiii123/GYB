@@ -28,30 +28,7 @@ function App() {
 
   return (
     <>
-      <div
-        style={{
-          position: "fixed",
-          top: "15px",
-          right: "20px",
-          zIndex: 9999,
-        }}
-      >
-        <button
-          onClick={handleLogout}
-          style={{
-            background: "#7a0019",
-            color: "white",
-            border: "none",
-            padding: "10px 18px",
-            borderRadius: "10px",
-            cursor: "pointer",
-            fontWeight: "600",
-          }}
-        >
-          Logout
-        </button>
-      </div>
-
+      
       <Dashboard />
     </>
   );
