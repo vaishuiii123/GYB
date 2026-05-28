@@ -1,23 +1,20 @@
-import { useMsal } from "@azure/msal-react";
-import { loginRequest } from "./authConfig";
+import React from "react";
+import ReactDOM from "react-dom/client";
 
-import Login from "./pages/Login";
+import { PublicClientApplication } from "@azure/msal-browser";
+import { MsalProvider } from "@azure/msal-react";
 
-function App() {
-  const { instance, accounts } = useMsal();
+import App from "./App";
+import { msalConfig } from "./authConfig";
 
-  const handleLogin = async () => {
-    await instance.loginRedirect({
-      ...loginRequest,
-      prompt: "select_account",
-    });
-  };
+const msalInstance = new PublicClientApplication(msalConfig);
 
-  if (accounts.length === 0) {
-    return <Login onLogin={handleLogin} />;
-  }
-
-  return <h1>Dashboard Working</h1>;
-}
-
-export default App;
+ReactDOM.createRoot(
+  document.getElementById("root") as HTMLElement
+).render(
+  <React.StrictMode>
+    <MsalProvider instance={msalInstance}>
+      <App />
+    </MsalProvider>
+  </React.StrictMode>
+);
