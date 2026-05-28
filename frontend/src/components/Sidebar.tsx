@@ -23,20 +23,19 @@ export default function Sidebar() {
   return (
     <div
       style={{
-        width: "240px",
+        width: "250px",
         background: "white",
         position: "fixed",
-        top: "80px",
+        top: "70px",
         left: 0,
-        height: "calc(100vh - 80px)",
+        height: "calc(100vh - 70px)",
         borderRight: "1px solid #e5e7eb",
         padding: "25px 20px",
         boxSizing: "border-box",
         overflowY: "auto",
       }}
     >
-
-       <div
+      <div
         style={{
           display: "flex",
           flexDirection: "column",
@@ -49,17 +48,11 @@ export default function Sidebar() {
             to={item.path}
             style={({ isActive }) => ({
               textDecoration: "none",
-              background: isActive
-                ? "#8B0022"
-                : "transparent",
-              color: isActive
-                ? "white"
-                : "#111827",
+              background: isActive ? "#8B0022" : "transparent",
+              color: isActive ? "white" : "#111827",
               padding: "16px 20px",
               borderRadius: "12px",
-              fontWeight: isActive
-                ? "600"
-                : "500",
+              fontWeight: isActive ? "600" : "500",
               fontSize: "18px",
               display: "block",
             })}
