@@ -6,16 +6,8 @@ export default function Login({
   onLogin,
 }: LoginProps) {
   return (
-    <div
-      style={{
-        height: "100vh",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        background: "#f3f4f6",
-      }}
-    >
-      <input
+
+     <input
   id="username"
   type="text"
   placeholder="Enter Username"
@@ -27,6 +19,16 @@ export default function Login({
     fontSize: "16px",
   }}
 />
+    <div
+      style={{
+        height: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        background: "#f3f4f6",
+      }}
+    >
+     
       <button
         onClick={onLogin}
         style={{
