@@ -53,7 +53,7 @@ export default function Sidebar() {
               padding: "10px 20px",
               borderRadius: "12px",
               fontWeight: isActive ? "600" : "500",
-              fontSize: "18px",
+              fontSize: "15px",
               display: "block",
             })}
           >
