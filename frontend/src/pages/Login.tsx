@@ -23,10 +23,11 @@ export default function Login({
       alignItems: "center",
     }}
   >
-       <input
-  id="username"
-  type="text"
-  placeholder="Enter Username"
+       
+<input
+  id="email"
+  type="email"
+  placeholder="Enter Email ID"
   style={{
     width: "300px",
     padding: "12px",
@@ -35,6 +36,7 @@ export default function Login({
     fontSize: "16px",
   }}
 />
+
      
       <button
         onClick={onLogin}
