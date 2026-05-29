@@ -26,7 +26,7 @@ export default function Sidebar() {
         width: "200px",
         background: "white",
         position: "fixed",
-        top: "70px",
+        top: "50px",
         left: 0,
         height: "calc(100vh - 70px)",
         borderRight: "1px solid #e5e7eb",
