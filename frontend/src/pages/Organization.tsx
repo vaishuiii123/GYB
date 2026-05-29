@@ -320,8 +320,8 @@ export default function Organization() {
       <div
         style={{
           marginLeft: "250px",
-          paddingTop: "90px",
-          paddingLeft: "30px",
+          paddingTop: "50px",
+          paddingLeft: "10px",
           paddingRight: "30px",
         }}
       >
