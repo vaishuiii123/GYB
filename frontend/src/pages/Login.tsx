@@ -6,8 +6,24 @@ export default function Login({
   onLogin,
 }: LoginProps) {
   return (
-
-     <input
+    <div
+      style={{
+        height: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        background: "#f3f4f6",
+      }}
+    >
+       <div
+    style={{
+      display: "flex",
+      flexDirection: "column",
+      gap: "15px",
+      alignItems: "center",
+    }}
+  >
+       <input
   id="username"
   type="text"
   placeholder="Enter Username"
@@ -19,15 +35,6 @@ export default function Login({
     fontSize: "16px",
   }}
 />
-    <div
-      style={{
-        height: "100vh",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        background: "#f3f4f6",
-      }}
-    >
      
       <button
         onClick={onLogin}
@@ -44,5 +51,7 @@ export default function Login({
         Login with Azure
       </button>
     </div>
+   </div>
+
   );
 }
