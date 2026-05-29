@@ -319,7 +319,7 @@ export default function Organization() {
 
       <div
         style={{
-          marginLeft: "250px",
+          marginLeft: "150px",
           paddingTop: "50px",
           paddingLeft: "10px",
           paddingRight: "30px",
