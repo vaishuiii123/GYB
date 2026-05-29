@@ -39,7 +39,7 @@ export default function Sidebar() {
         style={{
           display: "flex",
           flexDirection: "column",
-          gap: "14px",
+          gap: "10px",
         }}
       >
         {menuItems.map((item) => (
