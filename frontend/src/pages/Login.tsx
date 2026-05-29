@@ -15,6 +15,18 @@ export default function Login({
         background: "#f3f4f6",
       }}
     >
+      <input
+  id="username"
+  type="text"
+  placeholder="Enter Username"
+  style={{
+    width: "300px",
+    padding: "12px",
+    border: "1px solid #d1d5db",
+    borderRadius: "10px",
+    fontSize: "16px",
+  }}
+/>
       <button
         onClick={onLogin}
         style={{
