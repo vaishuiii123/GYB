@@ -23,7 +23,7 @@ export default function Sidebar() {
   return (
     <div
       style={{
-        width: "250px",
+        width: "200px",
         background: "white",
         position: "fixed",
         top: "70px",
