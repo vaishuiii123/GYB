@@ -1,23 +1,30 @@
 import { TableClient } from "@azure/data-tables";
 
-export async function GET() {
+export async function POST(request) {
   try {
+    const { email } = await request.json();
+
     const client = TableClient.fromConnectionString(
       process.env.AZURE_STORAGE_CONNECTION_STRING,
-      "Users"
+      "AdminMailID"
     );
 
-    const users = [];
+    let isAdmin = false;
 
     for await (const entity of client.listEntities()) {
-      users.push(entity);
+      if (
+        entity.Email &&
+        entity.Email.toLowerCase() === email.toLowerCase()
+      ) {
+        isAdmin = true;
+        break;
+      }
     }
 
     return new Response(
       JSON.stringify({
         success: true,
-        count: users.length,
-        users
+        isAdmin
       }),
       {
         headers: {
@@ -32,6 +39,7 @@ export async function GET() {
         error: error.message
       }),
       {
+        status: 500,
         headers: {
           "Content-Type": "application/json"
         }
