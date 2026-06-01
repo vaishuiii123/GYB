@@ -477,19 +477,47 @@ export default function Organization() {
             </tbody>
           </table>
 
-          {showOrgModal && (
+         {showOrgModal && (
   <div
     style={{
       position: "fixed",
-      top: "100px",
-      left: "100px",
-      width: "500px",
-      height: "300px",
-      background: "red",
-      zIndex: 999999,
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: "rgba(0,0,0,0.5)",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 99999,
     }}
   >
-    TEST MODAL
+    <div
+      style={{
+        background: "white",
+        width: "500px",
+        padding: "30px",
+        borderRadius: "12px",
+      }}
+    >
+      <h2>Create Organization</h2>
+
+      <input
+        type="text"
+        placeholder="Organization Name"
+      />
+
+      <br />
+      <br />
+
+      <button
+        onClick={() =>
+          setShowOrgModal(false)
+        }
+      >
+        Close
+      </button>
+    </div>
   </div>
 )}
         </div>
