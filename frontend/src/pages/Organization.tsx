@@ -334,12 +334,12 @@ export default function Organization() {
               "space-between",
             alignItems: "center",
             marginBottom: "30px",
-            paddingLeft: "10px",
+            paddingLeft: "20px",
           }}
         >
           <h1
             style={{
-              fontSize: "40px",
+              fontSize: "30px",
               fontWeight: "700",
             }}
           >
