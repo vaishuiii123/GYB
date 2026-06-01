@@ -369,11 +369,8 @@ export default function Organization() {
               Add Participant
             </button>
 
-            <button
-  onClick={() => {
-    alert("Button Clicked");
-    setShowOrgModal(true);
-  }}
+           <button
+  onClick={() => setShowOrgModal(true)}
   style={saveBtn}
 >
   Create Organization
@@ -479,6 +476,22 @@ export default function Organization() {
               )}
             </tbody>
           </table>
+
+          {showOrgModal && (
+  <div
+    style={{
+      position: "fixed",
+      top: "100px",
+      left: "100px",
+      width: "500px",
+      height: "300px",
+      background: "red",
+      zIndex: 999999,
+    }}
+  >
+    TEST MODAL
+  </div>
+)}
         </div>
       </div>
     </div>
