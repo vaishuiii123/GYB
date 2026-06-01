@@ -12,6 +12,7 @@ export default function Login({
   const [error, setError] = useState("");
 
   const handleLogin = async () => {
+
     try {
 
       setError("");
@@ -31,12 +32,18 @@ export default function Login({
       if (data.isAdmin) {
         onLogin();
       } else {
-        setError("Email is not authorized.");
+        setError(
+          "You are not authorized to access this application."
+        );
       }
 
     } catch (err) {
-      setError("Unable to validate email.");
+
       console.error(err);
+
+      setError(
+        "Unable to validate email."
+      );
     }
   };
 
@@ -62,14 +69,17 @@ export default function Login({
         <input
           id="email"
           type="email"
-          placeholder="Enter Email"
+          placeholder="Enter Email ID"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) =>
+            setEmail(e.target.value)
+          }
           style={{
             width: "300px",
             padding: "12px",
-            borderRadius: "8px",
-            border: "1px solid #ccc",
+            border: "1px solid #d1d5db",
+            borderRadius: "10px",
+            fontSize: "16px",
           }}
         />
 
