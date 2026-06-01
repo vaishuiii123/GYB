@@ -30,19 +30,14 @@ export default function Login({
 
       const data = await response.json();
 
-      if (data.isAdmin) {
+ if (data.isAdmin) {
 
-  setIsAuthorized(true);
-
-  onLogin();
+    window.location.href = "/#/dashboard";
 
 } else {
 
-  setIsAuthorized(false);
+    setMessage("✗ Email not found");
 
-  setMessage(
-    "✗ Email not found"
-  );
 }
 
     } catch (err) {
