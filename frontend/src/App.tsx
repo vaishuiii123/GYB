@@ -24,7 +24,7 @@ function App() {
         //prompt: "select_account",
           await instance.loginRedirect(loginRequest);
 
-      });
+      }
     } catch (error) {
       console.error(error);
     }
