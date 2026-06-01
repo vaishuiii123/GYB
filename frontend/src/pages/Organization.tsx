@@ -334,7 +334,7 @@ export default function Organization() {
               "space-between",
             alignItems: "center",
             marginBottom: "30px",
-            paddingLeft: "20px",
+            paddingLeft: "100px",
           }}
         >
           <h1
