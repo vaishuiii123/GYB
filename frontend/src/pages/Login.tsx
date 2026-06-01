@@ -27,15 +27,11 @@ export default function Login({
 <input
   id="email"
   type="email"
-  placeholder="Enter Email ID"
-  style={{
-    width: "300px",
-    padding: "12px",
-    border: "1px solid #d1d5db",
-    borderRadius: "10px",
-    fontSize: "16px",
-  }}
 />
+
+<button onClick={onLogin}>
+  Login with Azure
+</button>
 
      
       <button
