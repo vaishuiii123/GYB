@@ -493,41 +493,62 @@ export default function Organization() {
         }
       />
 
-      <input
-        type="text"
-        placeholder="Password"
-        value={participantForm.password}
-        onChange={(e) =>
-          setParticipantForm({
-            ...participantForm,
-            password: e.target.value,
-          })
-        }
-      />
-
       <div
-        style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          gap: "10px",
-          marginTop: "10px",
-        }}
-      >
-        <button
-          onClick={() =>
-            setShowParticipantModal(false)
-          }
-        >
-          Cancel
-        </button>
+  style={{
+    display: "flex",
+    gap: "10px",
+  }}
+>
+  <input
+    type="text"
+    placeholder="Password"
+    value={participantForm.password}
+    readOnly
+    style={{
+      flex: 1,
+      padding: "10px",
+      border: "1px solid #ccc",
+      borderRadius: "6px",
+    }}
+  />
 
-        <button
-          onClick={handleAddParticipant}
-          style={saveBtn}
-        >
-          Generate
-        </button>
-      </div>
+  <button
+    type="button"
+    onClick={generatePassword}
+    style={saveBtn}
+  >
+    Generate
+  </button>
+</div>
+      <div
+  style={{
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: "10px",
+    marginTop: "20px",
+  }}
+>
+  <button
+    onClick={() =>
+      setShowParticipantModal(false)
+    }
+    style={{
+      padding: "10px 20px",
+      border: "1px solid #ccc",
+      borderRadius: "6px",
+      cursor: "pointer",
+    }}
+  >
+    Cancel
+  </button>
+
+  <button
+    onClick={handleAddParticipant}
+    style={saveBtn}
+  >
+    Save Participant
+  </button>
+</div>
     </div>
   </div>
 )}
