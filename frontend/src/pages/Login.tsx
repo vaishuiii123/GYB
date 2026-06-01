@@ -32,20 +32,18 @@ export default function Login({
 
       if (data.isAdmin) {
 
-        setIsAuthorized(true);
+  setIsAuthorized(true);
 
-        setMessage(
-          "✓ Email exists in AdminMailID"
-        );
+  onLogin();
 
-      } else {
+} else {
 
-        setIsAuthorized(false);
+  setIsAuthorized(false);
 
-        setMessage(
-          "✗ Email not found"
-        );
-      }
+  setMessage(
+    "✗ Email not found"
+  );
+}
 
     } catch (err) {
 
