@@ -9,9 +9,10 @@ export default function Login({
 }: LoginProps) {
 
   const [email, setEmail] = useState("");
-  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+const [isAuthorized, setIsAuthorized] = useState(false);
 
-  const handleLogin = async () => {
+  const checkEmail = async () => {
 
     try {
 
@@ -30,20 +31,27 @@ export default function Login({
       const data = await response.json();
 
       if (data.isAdmin) {
-        onLogin();
-      } else {
-        setError(
-          "You are not authorized to access this application."
-        );
-      }
 
-    } catch (err) {
+  setIsAuthorized(true);
+
+  setMessage(
+    "✓ Email exists in AdminMailID"
+  );
+
+} else {
+
+  setIsAuthorized(false);
+
+  setMessage(
+    "✗ Email not found"
+  );
+}catch (err) {
 
       console.error(err);
 
-      setError(
-        "Unable to validate email."
-      );
+    setMessage(
+  "Unable to validate email."
+);
     }
   };
 
@@ -83,17 +91,35 @@ export default function Login({
           }}
         />
 
-        {error && (
-          <div
-            style={{
-              color: "red",
-              fontSize: "14px",
-            }}
-          >
-            {error}
-          </div>
-        )}
+       {message && (
+  <div
+    style={{
+      color: message.includes("✓")
+        ? "green"
+        : "red",
+      fontSize: "14px",
+    }}
+  >
+    {message}
+  </div>
+)}
 
+        <button
+  onClick={checkEmail}
+  style={{
+    background: "#2563eb",
+    color: "white",
+    border: "none",
+    padding: "14px 30px",
+    borderRadius: "10px",
+    fontSize: "18px",
+    cursor: "pointer",
+  }}
+>
+  Check Email
+</button>
+
+        
         <button
           onClick={handleLogin}
           style={{
