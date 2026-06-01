@@ -307,6 +307,8 @@ export default function Organization() {
     reader.readAsBinaryString(file);
   };
 
+  console.log("showOrgModal =", showOrgModal);
+
   return (
     <div
       style={{
