@@ -321,7 +321,7 @@ export default function Organization() {
         style={{
           marginLeft: "150px",
           paddingTop: "50px",
-          paddingLeft: "10px",
+          paddingLeft: "100px",
           paddingRight: "30px",
         }}
       >
