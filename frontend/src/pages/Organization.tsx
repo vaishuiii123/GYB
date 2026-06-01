@@ -368,13 +368,14 @@ export default function Organization() {
             </button>
 
             <button
-              onClick={() =>
-                setShowOrgModal(true)
-              }
-              style={saveBtn}
-            >
-              Create Organization
-            </button>
+  onClick={() => {
+    alert("Button Clicked");
+    setShowOrgModal(true);
+  }}
+  style={saveBtn}
+>
+  Create Organization
+</button>
           </div>
         </div>
 
