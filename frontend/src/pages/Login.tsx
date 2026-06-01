@@ -32,7 +32,8 @@ export default function Login({
 
  if (data.isAdmin) {
 
-    window.location.href = "/#/dashboard";
+        onLogin();
+
 
 } else {
 
