@@ -166,6 +166,26 @@ export default function Organization() {
     setShowParticipantModal(false);
   };
 
+  const generatePassword = () => {
+  const first =
+    participantForm.firstName
+      ?.substring(0, 1)
+      .toLowerCase() || "";
+
+  const last =
+    participantForm.lastName
+      ?.substring(0, 1)
+      .toLowerCase() || "";
+
+  const password =
+    `${first}${last}123`;
+
+  setParticipantForm({
+    ...participantForm,
+    password,
+  });
+};
+
   // ================= DELETE =================
 
   const handleDeleteOrganization = (
@@ -355,20 +375,162 @@ export default function Organization() {
             }}
           >
             <button
-              onClick={() => {
-                setParticipantMode(
-                  "single"
-                );
+  onClick={() =>
+    setShowParticipantModal(true)
+  }
+  style={saveBtn}
+>
+  Add Participant
+</button>
+            {showParticipantModal && (
+  <div
+    style={{
+      position: "fixed",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: "rgba(0,0,0,0.5)",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 99999,
+    }}
+  >
+    <div
+      style={{
+        background: "white",
+        padding: "30px",
+        borderRadius: "12px",
+        width: "600px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "15px",
+      }}
+    >
+      <h2>Add New Participant</h2>
 
-                setShowParticipantModal(
-                  true
-                );
-              }}
-              style={saveBtn}
-            >
-              Add Participant
-            </button>
+      <select
+        value={participantForm.organization}
+        onChange={(e) =>
+          setParticipantForm({
+            ...participantForm,
+            organization: e.target.value,
+          })
+        }
+      >
+        <option value="">
+          Select Organization
+        </option>
 
+        {organizations.map((org) => (
+          <option
+            key={org.id}
+            value={org.organizationName}
+          >
+            {org.organizationName}
+          </option>
+        ))}
+      </select>
+
+      <input
+        type="text"
+        placeholder="First Name"
+        value={participantForm.firstName}
+        onChange={(e) =>
+          setParticipantForm({
+            ...participantForm,
+            firstName: e.target.value,
+          })
+        }
+      />
+
+      <input
+        type="text"
+        placeholder="Middle Name"
+        value={participantForm.middleName}
+        onChange={(e) =>
+          setParticipantForm({
+            ...participantForm,
+            middleName: e.target.value,
+          })
+        }
+      />
+
+      <input
+        type="text"
+        placeholder="Last Name"
+        value={participantForm.lastName}
+        onChange={(e) =>
+          setParticipantForm({
+            ...participantForm,
+            lastName: e.target.value,
+          })
+        }
+      />
+
+      <input
+        type="email"
+        placeholder="Email"
+        value={participantForm.email}
+        onChange={(e) =>
+          setParticipantForm({
+            ...participantForm,
+            email: e.target.value,
+          })
+        }
+      />
+
+      <input
+        type="text"
+        placeholder="Phone"
+        value={participantForm.phone}
+        onChange={(e) =>
+          setParticipantForm({
+            ...participantForm,
+            phone: e.target.value,
+          })
+        }
+      />
+
+      <input
+        type="text"
+        placeholder="Password"
+        value={participantForm.password}
+        onChange={(e) =>
+          setParticipantForm({
+            ...participantForm,
+            password: e.target.value,
+          })
+        }
+      />
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          gap: "10px",
+          marginTop: "10px",
+        }}
+      >
+        <button
+          onClick={() =>
+            setShowParticipantModal(false)
+          }
+        >
+          Cancel
+        </button>
+
+        <button
+          onClick={handleAddParticipant}
+          style={saveBtn}
+        >
+          Generate
+        </button>
+      </div>
+    </div>
+  </div>
+)}
            <button
   onClick={() => setShowOrgModal(true)}
   style={saveBtn}
