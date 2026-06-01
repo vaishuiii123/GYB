@@ -102,34 +102,72 @@ export default function Organization() {
   // ================= CREATE ORGANIZATION =================
 
   const handleCreateOrganization =
-    () => {
-      if (
-        !orgForm.organizationName ||
-        !orgForm.contactPerson ||
-        !orgForm.email
-      ) {
-        alert("Please fill all fields");
-        return;
+  async () => {
+
+    if (
+      !orgForm.organizationName ||
+      !orgForm.contactPerson ||
+      !orgForm.email
+    ) {
+      alert("Please fill all fields");
+      return;
+    }
+
+    try {
+
+      const response =
+        await fetch(
+          "/api/create-organization",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify({
+              organizationName:
+                orgForm.organizationName,
+
+              contactPerson:
+                orgForm.contactPerson,
+
+              email:
+                orgForm.email,
+            }),
+          }
+        );
+
+      const data =
+        await response.json();
+
+      if (data.success) {
+
+        alert(
+          "Organization created successfully"
+        );
+
+        setOrgForm({
+          organizationName: "",
+          contactPerson: "",
+          email: "",
+        });
+
+        setShowOrgModal(false);
+
+      } else {
+
+        alert(data.error);
       }
 
-      const newOrg = {
-        id: Date.now(),
-        ...orgForm,
-      };
+    } catch (err) {
 
-      setOrganizations([
-        ...organizations,
-        newOrg,
-      ]);
+      console.error(err);
 
-      setOrgForm({
-        organizationName: "",
-        contactPerson: "",
-        email: "",
-      });
-
-      setShowOrgModal(false);
-    };
+      alert(
+        "Failed to create organization"
+      );
+    }
+  };
 
   // ================= ADD PARTICIPANT =================
 
