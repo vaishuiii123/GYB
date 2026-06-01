@@ -10,17 +10,18 @@ module.exports = async function (context, req) {
       "AdminMailID"
     );
 
-    let isAdmin = false;
+   const entities = client.listEntities({
+  queryOptions: {
+    filter: `Email eq '${email}'`
+  }
+});
 
-    for await (const entity of client.listEntities()) {
-      if (
-        entity.Email &&
-        entity.Email.toLowerCase() === email.toLowerCase()
-      ) {
-        isAdmin = true;
-        break;
-      }
-    }
+let isAdmin = false;
+
+for await (const entity of entities) {
+  isAdmin = true;
+  break; // we only need one match
+}
 
     return {
       status: 200,
