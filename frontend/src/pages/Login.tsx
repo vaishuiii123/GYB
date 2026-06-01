@@ -10,13 +10,13 @@ export default function Login({
 
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
-const [isAuthorized, setIsAuthorized] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState(false);
 
   const checkEmail = async () => {
 
     try {
 
-      setError("");
+      setMessage("");
 
       const response = await fetch("/api/check-email", {
         method: "POST",
@@ -32,26 +32,30 @@ const [isAuthorized, setIsAuthorized] = useState(false);
 
       if (data.isAdmin) {
 
-  setIsAuthorized(true);
+        setIsAuthorized(true);
 
-  setMessage(
-    "✓ Email exists in AdminMailID"
-  );
+        setMessage(
+          "✓ Email exists in AdminMailID"
+        );
 
-} else {
+      } else {
 
-  setIsAuthorized(false);
+        setIsAuthorized(false);
 
-  setMessage(
-    "✗ Email not found"
-  );
-}catch (err) {
+        setMessage(
+          "✗ Email not found"
+        );
+      }
+
+    } catch (err) {
 
       console.error(err);
 
-    setMessage(
-  "Unable to validate email."
-);
+      setIsAuthorized(false);
+
+      setMessage(
+        "Unable to validate email."
+      );
     }
   };
 
@@ -91,37 +95,37 @@ const [isAuthorized, setIsAuthorized] = useState(false);
           }}
         />
 
-       {message && (
-  <div
-    style={{
-      color: message.includes("✓")
-        ? "green"
-        : "red",
-      fontSize: "14px",
-    }}
-  >
-    {message}
-  </div>
-)}
+        {message && (
+          <div
+            style={{
+              color: message.includes("✓")
+                ? "green"
+                : "red",
+              fontSize: "14px",
+            }}
+          >
+            {message}
+          </div>
+        )}
 
         <button
-  onClick={checkEmail}
-  style={{
-    background: "#2563eb",
-    color: "white",
-    border: "none",
-    padding: "14px 30px",
-    borderRadius: "10px",
-    fontSize: "18px",
-    cursor: "pointer",
-  }}
->
-  Check Email
-</button>
+          onClick={checkEmail}
+          style={{
+            background: "#2563eb",
+            color: "white",
+            border: "none",
+            padding: "14px 30px",
+            borderRadius: "10px",
+            fontSize: "18px",
+            cursor: "pointer",
+          }}
+        >
+          Check Email
+        </button>
 
-        
         <button
-          onClick={handleLogin}
+          onClick={onLogin}
+          disabled={!isAuthorized}
           style={{
             background: "#8B0022",
             color: "white",
@@ -129,7 +133,10 @@ const [isAuthorized, setIsAuthorized] = useState(false);
             padding: "14px 30px",
             borderRadius: "10px",
             fontSize: "18px",
-            cursor: "pointer",
+            cursor: isAuthorized
+              ? "pointer"
+              : "not-allowed",
+            opacity: isAuthorized ? 1 : 0.5,
           }}
         >
           Login with Azure
