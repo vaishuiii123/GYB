@@ -477,7 +477,7 @@ export default function Organization() {
             </tbody>
           </table>
 
-         {showOrgModal && (
+        {showOrgModal && (
   <div
     style={{
       position: "fixed",
@@ -495,9 +495,12 @@ export default function Organization() {
     <div
       style={{
         background: "white",
-        width: "500px",
         padding: "30px",
         borderRadius: "12px",
+        width: "500px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "15px",
       }}
     >
       <h2>Create Organization</h2>
@@ -505,18 +508,83 @@ export default function Organization() {
       <input
         type="text"
         placeholder="Organization Name"
+        value={orgForm.organizationName}
+        onChange={(e) =>
+          setOrgForm({
+            ...orgForm,
+            organizationName: e.target.value,
+          })
+        }
+        style={{
+          padding: "10px",
+          border: "1px solid #ccc",
+          borderRadius: "6px",
+        }}
       />
 
-      <br />
-      <br />
-
-      <button
-        onClick={() =>
-          setShowOrgModal(false)
+      <input
+        type="text"
+        placeholder="Contact Person"
+        value={orgForm.contactPerson}
+        onChange={(e) =>
+          setOrgForm({
+            ...orgForm,
+            contactPerson: e.target.value,
+          })
         }
+        style={{
+          padding: "10px",
+          border: "1px solid #ccc",
+          borderRadius: "6px",
+        }}
+      />
+
+      <input
+        type="email"
+        placeholder="Email"
+        value={orgForm.email}
+        onChange={(e) =>
+          setOrgForm({
+            ...orgForm,
+            email: e.target.value,
+          })
+        }
+        style={{
+          padding: "10px",
+          border: "1px solid #ccc",
+          borderRadius: "6px",
+        }}
+      />
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          gap: "10px",
+          marginTop: "10px",
+        }}
       >
-        Close
-      </button>
+        <button
+          onClick={() =>
+            setShowOrgModal(false)
+          }
+          style={{
+            padding: "10px 20px",
+            borderRadius: "6px",
+            border: "1px solid #ccc",
+            cursor: "pointer",
+          }}
+        >
+          Cancel
+        </button>
+
+        <button
+          onClick={handleCreateOrganization}
+          style={saveBtn}
+        >
+          Save
+        </button>
+      </div>
     </div>
   </div>
 )}
