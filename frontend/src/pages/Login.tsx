@@ -1,56 +1,51 @@
 import { useState } from "react";
 
 type LoginProps = {
-  onLogin: (user: any) => void;
+  onLogin: (user?: any) => void;
 };
 
-export default function Login({
-  onLogin,
-}: LoginProps) {
-
+export default function Login({ onLogin }: LoginProps) {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [isAuthorized, setIsAuthorized] = useState(false);
 
- const checkEmail = async () => {
-  try {
-    setMessage("");
+  const checkEmail = async () => {
+    try {
+      setMessage("");
 
-    const response = await fetch("/api/check-email", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email,
-      }),
-    });
+      const response = await fetch("/api/check-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
 
-    const data = await response.json();
+      const data = await response.json();
 
-    console.log("API Response:", data);
+      console.log("API Response:", data);
 
       if (data.found) {
-          // ✅ enable login button
-          setIsAuthorized(true);
-          setMessage("✓ Email verified");
-          // ✅ only pass user to App (no login yet)
-          onLogin({
-            name: data.name,
-            role: data.role,
-            email: email
-          });
+        setIsAuthorized(true);
+        setMessage("✓ Email verified");
+
+        // Pass user details to App.tsx
+        onLogin({
+          name: data.name,
+          role: data.role,
+          email: email,
+        });
       } else {
+        setIsAuthorized(false);
         setMessage("✗ Email not found");
       }
-  } catch (err) {
+    } catch (err) {
+      console.error(err);
+      setIsAuthorized(false);
+      setMessage("Unable to validate email.");
+    }
+  };
 
-    console.error(err);
-
-    setMessage("Unable to validate email.");
-
-  }
-};
   return (
     <div
       style={{
@@ -69,15 +64,12 @@ export default function Login({
           alignItems: "center",
         }}
       >
-
         <input
           id="email"
           type="email"
           placeholder="Enter Email ID"
           value={email}
-          onChange={(e) =>
-            setEmail(e.target.value)
-          }
+          onChange={(e) => setEmail(e.target.value)}
           style={{
             width: "300px",
             padding: "12px",
@@ -90,9 +82,7 @@ export default function Login({
         {message && (
           <div
             style={{
-              color: message.includes("✓")
-                ? "green"
-                : "red",
+              color: message.includes("✓") ? "green" : "red",
               fontSize: "14px",
             }}
           >
@@ -115,24 +105,23 @@ export default function Login({
           Check Email
         </button>
 
-        
         <button
-      onClick={() => onLogin(null)} 
-      disabled={!isAuthorized}
-      style={{
-        background: "#8B0022",
-        color: "white",
-        border: "none",
-        padding: "14px 30px",
-        borderRadius: "10px",
-        fontSize: "18px",
-        cursor: isAuthorized ? "pointer" : "not-allowed",
-        opacity: isAuthorized ? 1 : 0.5,
-      }}
-    >
-      Login with Azure
-    </button>
-          </div>
+          onClick={() => onLogin()}
+          disabled={!isAuthorized}
+          style={{
+            background: "#8B0022",
+            color: "white",
+            border: "none",
+            padding: "14px 30px",
+            borderRadius: "10px",
+            fontSize: "18px",
+            cursor: isAuthorized ? "pointer" : "not-allowed",
+            opacity: isAuthorized ? 1 : 0.5,
+          }}
+        >
+          Login with Azure
+        </button>
+      </div>
     </div>
   );
 }
