@@ -32,6 +32,21 @@ function App() {
           element={<Dashboard user={currentUser} />}
         />
 
+          <Route
+          path="/organization"
+          element={<Organization user={currentUser} />}
+        /> 
+
+        <Route
+          path="/template"
+          element={<Template />}
+        />
+
+        <Route
+          path="/workshop"
+          element={<Workshop />}
+        />
+
       </Routes>
     </HashRouter>
   );
