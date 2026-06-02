@@ -97,7 +97,7 @@ export default function Organization({ user }: PageProps) {
       <Header user={user} />
       <Sidebar />
 
-      <div style={{ marginLeft: "200px", padding: "20px" }}>
+      <div style={{ marginLeft: "20px", padding: "20px" }}>
 
         {/* HEADER */}
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px" }}>
