@@ -1,6 +1,6 @@
 import { useMsal } from "@azure/msal-react";
 
-export default function Header() {
+export default function Header({ user }: any) {
   const { instance } = useMsal();
 
   const handleLogout = async () => {
@@ -82,22 +82,36 @@ export default function Header() {
         </div>
       </div>
 
-      {/* RIGHT */}
+     {/* RIGHT */}
 
-      <button
-        onClick={handleLogout}
-        style={{
-          background: "#8B0022",
-          color: "white",
-          border: "none",
-          padding: "10px 20px",
-          borderRadius: "8px",
-          cursor: "pointer",
-          fontWeight: "600",
-        }}
-      >
-        Logout
-      </button>
-    </div>
+<div
+  style={{
+    display: "flex",
+    alignItems: "center",
+    gap: "15px",
+  }}
+>
+  {/* ✅ USER NAME */}
+  <div style={{ fontWeight: "600", color: "#111827" }}>
+    {user?.name || "User"}
+  </div>
+
+  {/* LOGOUT */}
+  <button
+    onClick={handleLogout}
+    style={{
+      background: "#8B0022",
+      color: "white",
+      border: "none",
+      padding: "10px 20px",
+      borderRadius: "8px",
+      cursor: "pointer",
+      fontWeight: "600",
+    }}
+  >
+    Logout
+  </button>
+</div>
+``    </div>
   );
 }
