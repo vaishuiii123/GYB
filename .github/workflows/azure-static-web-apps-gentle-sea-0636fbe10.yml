@@ -1,12 +1,9 @@
-name: Azure Static Web Apps CI/CD
+I want to reduce the minutes which takes to run a workflow in github can you make changes in this code for the same name: Azure Static Web Apps CI/CD
 
 on:
   push:
     branches:
       - main
-    paths:
-      - 'frontend/**'
-      - 'api/**'
   pull_request:
     types: [opened, synchronize, reopened, closed]
     branches:
@@ -17,60 +14,32 @@ jobs:
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
     runs-on: ubuntu-latest
     name: Build and Deploy Job
-
     steps:
-      # ✅ Faster checkout
       - uses: actions/checkout@v3
         with:
-          fetch-depth: 1   # shallow clone (faster)
-          submodules: false
+          submodules: true
           lfs: false
-
-      # ✅ Cache node modules (VERY IMPORTANT for speed)
-      - name: Cache node modules
-        uses: actions/cache@v3
-        with:
-          path: |
-            frontend/node_modules
-            api/node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('frontend/package-lock.json', 'api/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
-      # ✅ Install dependencies manually (controlled + cached)
-      - name: Install dependencies (Frontend)
-        working-directory: ./frontend
-        run: npm ci
-
-      - name: Install dependencies (API)
-        working-directory: ./api
-        run: npm ci
-
-      # ✅ Build manually (faster debugging + control)
-      - name: Build frontend
-        working-directory: ./frontend
-        run: npm run build
-
-      # ✅ Deploy only (skip internal build by Azure action)
-      - name: Deploy to Azure
+      - name: Build And Deploy
+        id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_GENTLE_SEA_0636FBE10 }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }} # Used for Github integrations (i.e. PR comments)
           action: "upload"
-          app_location: "./frontend"
-          api_location: "api"
-          output_location: "dist"
-          skip_app_build: true   # ✅ BIG SPEED BOOST
-          skip_api_build: true   # ✅ BIG SPEED BOOST
+          ###### Repository/Build Configurations - These values can be configured to match your app requirements. ######
+          # For more information regarding Static Web App workflow configurations, please visit: https://aka.ms/swaworkflowconfig
+          app_location: "./frontend" # App source code path
+          api_location: "api" # Api source code path - optional
+          output_location: "dist" # Built app content directory - optional
+          ###### End of Repository/Build Configurations ######
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
     runs-on: ubuntu-latest
     name: Close Pull Request Job
-
     steps:
       - name: Close Pull Request
+        id: closepullrequest
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_GENTLE_SEA_0636FBE10 }}
