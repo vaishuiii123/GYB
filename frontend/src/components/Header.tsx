@@ -23,22 +23,21 @@ export default function Header({ user }: any) {
 
   return (
     <div
-      style={{
-        height: "60px",
-        width: "100%",
-        background: "white",
-        borderBottom: "1px solid #e5e7eb",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "0 30px",
-        boxSizing: "border-box",
-        position: "fixed",
-        top: 0,
-        left: 0,
-        zIndex: 1000,
-      }}
-    >
+  style={{
+    height: "60px",
+    width: "100%",
+    background: "linear-gradient(90deg, #93c5fd, #60a5fa)", // ✅ light blue
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "0 30px",
+    boxSizing: "border-box",
+    position: "fixed",
+    top: 0,
+    left: 0,
+    zIndex: 1000,
+  }}
+>
       {/* LEFT */}
       <div
         style={{
@@ -51,7 +50,8 @@ export default function Header({ user }: any) {
           style={{
             width: "45px",
             height: "45px",
-            background: "#8B0022",
+            background: "#2563eb",
+            color: "white",
             borderRadius: "12px",
             display: "flex",
             alignItems: "center",
@@ -66,24 +66,24 @@ export default function Header({ user }: any) {
 
         <div>
           <div
-            style={{
-              fontSize: "20px",
-              fontWeight: "600",
-              color: "#111827",
-            }}
-          >
-            KNAV Portal
-          </div>
+  style={{
+    fontSize: "20px",
+    fontWeight: "600",
+    color: "white", // ✅ changed
+  }}
+>
+  KNAV Portal
+</div>
 
-          <div
-            style={{
-              fontSize: "13px",
-              color: "#6b7280",
-              marginTop: "5px",
-            }}
-          >
-            Workshop Management System
-          </div>
+<div
+  style={{
+    fontSize: "13px",
+    color: "#e0f2fe", // ✅ light text for contrast
+    marginTop: "5px",
+  }}
+>
+  Workshop Management System
+</div>
         </div>
       </div>
 
@@ -91,15 +91,17 @@ export default function Header({ user }: any) {
      
 <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
   
-  <div style={{ fontWeight: "600" }}>
-    {user?.name || "User"}
+  <div style={{ fontWeight: "600", color: "white" }}>
+  {user?.name || "User"}
+</div>
+
   </div>
 
   <button
           onClick={handleLogout}
           style={{
-            background: "#8B0022",
-            color: "white",
+            background: "white",
+            color: "#2563eb",
             border: "none",
             padding: "10px 20px",
             borderRadius: "8px",
