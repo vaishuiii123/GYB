@@ -4,7 +4,11 @@ import * as XLSX from "xlsx";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
 
-export default function Organization() {
+type PageProps = {
+  user?: any;
+};
+
+export default function Organization({ user }: PageProps) {
   // ================= ORGANIZATIONS =================
 
   const [organizations, setOrganizations] =
@@ -374,7 +378,7 @@ export default function Organization() {
         minHeight: "100vh",
       }}
     >
-      <Header />
+      <Header user={user} />
       <Sidebar />
 
       <div
