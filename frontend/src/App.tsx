@@ -32,20 +32,18 @@ function App() {
   if (accounts.length === 0) {
   return <Login onLogin={handleLogin} />;
 }
-  }
+  
 
   // APPLICATION
   return (
     <HashRouter>
       <Routes>
-        <Route
-  path="/organization"
-  element={
-    <Organization
-    />
-  }
-/>
 
+        <Route 
+          path="*" 
+          element={<Navigate to="/dashboard" />} 
+        />
+        
         <Route
           path="/dashboard"
           element={<Dashboard />}
