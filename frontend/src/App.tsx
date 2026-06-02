@@ -9,9 +9,9 @@ import {
 
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-import Organization from "./pages/Organization";
-import Template from "./pages/Template";
-import Workshop from "./pages/Workshop";
+//import Organization from "./pages/Organization";
+//import Template from "./pages/Template";
+//import Workshop from "./pages/Workshop";
 
 function App() {
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -39,21 +39,7 @@ function App() {
         />
 
         {/* For now keep others simple */}
-        <Route
-          path="/organization"
-          element={<Organization />}
-        />
-
-        <Route
-          path="/template"
-          element={<Template />}
-        />
-
-        <Route
-          path="/workshop"
-          element={<Workshop />}
-        />
-
+      
       </Routes>
     </HashRouter>
   );
