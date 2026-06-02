@@ -1,7 +1,7 @@
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
 
-export default function Dashboard() {
+export default function Dashboard({ user }: any) {
   return (
     <div
       style={{
