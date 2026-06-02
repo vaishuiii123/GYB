@@ -41,27 +41,27 @@ function App() {
 
         <Route 
           path="*" 
-          element={<Navigate to="/dashboard" />} 
+          element={<Navigate to="/dashboard" user={currentUser} />} 
         />
         
         <Route
           path="/dashboard"
-          element={<Dashboard />}
+          element={<Dashboard  user={currentUser} />}
         />
 
         <Route
           path="/organization"
-          element={<Organization />}
+          element={<Organization user={currentUser} />}
         />
 
         <Route
           path="/template"
-          element={<Template />}
+          element={<Template user={currentUser} />}
         />
 
         <Route
           path="/workshop"
-          element={<Workshop />}
+          element={<Workshop user={currentUser} />}
         />
       </Routes>
     </HashRouter>
