@@ -1,19 +1,25 @@
 import { useMsal } from "@azure/msal-react";
 
-export default function Header({ user }: any) {
+type HeaderProps = {
+  user?: {
+    name?: string;
+    role?: string;
+    email?: string;
+  } | null;
+};
+
+export default function Header({ user }: HeaderProps) {
   const { instance } = useMsal();
 
   const handleLogout = async () => {
-  const currentAccount =
-    instance.getActiveAccount();
+    const currentAccount = instance.getActiveAccount();
 
-  await instance.logoutRedirect({
-    account: currentAccount || undefined,
-
-    postLogoutRedirectUri:
-      "https://gentle-sea-0636fbe10.7.azurestaticapps.net",
-  });
-};
+    await instance.logoutRedirect({
+      account: currentAccount || undefined,
+      postLogoutRedirectUri:
+        "https://gentle-sea-0636fbe10.7.azurestaticapps.net",
+    });
+  };
 
   return (
     <div
@@ -34,7 +40,6 @@ export default function Header({ user }: any) {
       }}
     >
       {/* LEFT */}
-
       <div
         style={{
           display: "flex",
@@ -82,36 +87,38 @@ export default function Header({ user }: any) {
         </div>
       </div>
 
-     {/* RIGHT */}
+      {/* RIGHT */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "15px",
+        }}
+      >
+        <div
+          style={{
+            color: "#111827",
+            fontWeight: "600",
+          }}
+        >
+          {user?.name || "User"}
+        </div>
 
-<div
-  style={{
-    display: "flex",
-    alignItems: "center",
-    gap: "15px",
-  }}
->
-  {/* ✅ USER NAME */}
-  <div style={{ fontWeight: "600", color: "#111827" }}>
-    {user?.name || "User"}
-  </div>
-
-  {/* LOGOUT */}
-  <button
-    onClick={handleLogout}
-    style={{
-      background: "#8B0022",
-      color: "white",
-      border: "none",
-      padding: "10px 20px",
-      borderRadius: "8px",
-      cursor: "pointer",
-      fontWeight: "600",
-    }}
-  >
-    Logout
-  </button>
-</div>
-``    </div>
+        <button
+          onClick={handleLogout}
+          style={{
+            background: "#8B0022",
+            color: "white",
+            border: "none",
+            padding: "10px 20px",
+            borderRadius: "8px",
+            cursor: "pointer",
+            fontWeight: "600",
+          }}
+        >
+          Logout
+        </button>
+      </div>
+    </div>
   );
 }
