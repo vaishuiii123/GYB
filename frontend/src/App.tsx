@@ -30,9 +30,8 @@ function App() {
 
   // LOGIN PAGE
   if (accounts.length === 0) {
-    return <Login
-  onLogin={handleEmailLogin}
-/>;
+  return <Login onLogin={handleLogin} />;
+}
   }
 
   // APPLICATION
@@ -43,7 +42,6 @@ function App() {
   path="/organization"
   element={
     <Organization
-      currentUser={currentUser}
     />
   }
 />
