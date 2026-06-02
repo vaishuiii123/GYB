@@ -8,7 +8,7 @@ type HeaderProps = {
   } | null;
 };
 
-export default function Header({ user }: HeaderProps) {
+export default function Header({ user }: any) {
   const { instance } = useMsal();
 
   const handleLogout = async () => {
@@ -88,23 +88,14 @@ export default function Header({ user }: HeaderProps) {
       </div>
 
       {/* RIGHT */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "15px",
-        }}
-      >
-        <div
-          style={{
-            color: "#111827",
-            fontWeight: "600",
-          }}
-        >
-          {user?.name || "User"}
-        </div>
+     
+<div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+  
+  <div style={{ fontWeight: "600" }}>
+    {user?.name || "User"}
+  </div>
 
-        <button
+  <button
           onClick={handleLogout}
           style={{
             background: "#8B0022",
