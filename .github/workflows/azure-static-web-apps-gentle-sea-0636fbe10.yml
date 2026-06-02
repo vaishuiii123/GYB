@@ -1,46 +1,64 @@
-I want to reduce the minutes which takes to run a workflow in github can you make changes in this code for the same name: Azure Static Web Apps CI/CD
+name: Azure Static Web Apps CI/CD
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    types: [opened, synchronize, reopened, closed]
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
   build_and_deploy_job:
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     name: Build and Deploy Job
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: true
-          lfs: false
-      - name: Build And Deploy
-        id: builddeploy
-        uses: Azure/static-web-apps-deploy@v1
-        with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_GENTLE_SEA_0636FBE10 }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }} # Used for Github integrations (i.e. PR comments)
-          action: "upload"
-          ###### Repository/Build Configurations - These values can be configured to match your app requirements. ######
-          # For more information regarding Static Web App workflow configurations, please visit: https://aka.ms/swaworkflowconfig
-          app_location: "./frontend" # App source code path
-          api_location: "api" # Api source code path - optional
-          output_location: "dist" # Built app content directory - optional
-          ###### End of Repository/Build Configurations ######
 
-  close_pull_request_job:
-    if: github.event_name == 'pull_request' && github.event.action == 'closed'
-    runs-on: ubuntu-latest
-    name: Close Pull Request Job
     steps:
-      - name: Close Pull Request
-        id: closepullrequest
+      # ✅ Checkout
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # ✅ Setup Node
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      # ✅ Cache frontend dependencies
+      - name: Cache frontend node modules
+        uses: actions/cache@v3
+        with:
+          path: frontend/node_modules
+          key: ${{ runner.os }}-frontend-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-frontend-
+
+      # ✅ Cache API dependencies
+      - name: Cache API node modules
+        uses: actions/cache@v3
+        with:
+          path: api/node_modules
+          key: ${{ runner.os }}-api-${{ hashFiles('api/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-api-
+
+      # ✅ Install frontend
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm install
+
+      # ✅ Build frontend
+      - name: Build frontend
+        working-directory: ./frontend
+        run: npm run build
+
+      # ✅ Install API (NO BUILD needed usually)
+      - name: Install API dependencies
+        working-directory: ./api
+        run: npm install
+
+      # ✅ Deploy (skip frontend build only)
+      - name: Deploy to Azure Static Web Apps
         uses: Azure/static-web-apps-deploy@v1
         with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_GENTLE_SEA_0636FBE10 }}
-          action: "close"
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_VICTORIOUS_FOREST_03DF5981E }}
+          action: "upload"
+          app_location: "./frontend"
+          api_location: "./api"
+          output_location: "dist"
+          skip_app_build: true
