@@ -65,7 +65,7 @@ export default function Login({ onLogin }: LoginProps) {
     <div
       style={{
         background: "white",
-        padding: "30px",
+        padding: "40px",
         borderRadius: "15px",
         boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
         width: "350px",
