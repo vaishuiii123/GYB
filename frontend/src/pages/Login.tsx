@@ -105,7 +105,7 @@ export default function Login({ onLogin }: LoginProps) {
           Check Email
         </button>
 
-        //<button
+        
          // onClick={() => onLogin()}
           //disabled={!isAuthorized}
           //style={{
