@@ -1,4 +1,5 @@
 import { useMsal } from "@azure/msal-react";
+import { useState } from "react";
 import { loginRequest } from "./authConfig";
 
 import {
@@ -16,7 +17,9 @@ import Workshop from "./pages/Workshop";
 
 function App() {
   const { instance, accounts } = useMsal();
-
+  const [currentUser, setCurrentUser] =
+  useState<any>(null);
+  
   const handleLogin = async () => {
     try {
       await instance.loginRedirect(loginRequest);
