@@ -11,17 +11,7 @@ type PageProps = {
 export default function Organization({ user }: PageProps) {
   // ================= ORGANIZATIONS =================
 
-  const [organizations, setOrganizations] =
-    useState<any[]>(() => {
-      const saved =
-        localStorage.getItem(
-          "organizations"
-        );
-
-      return saved
-        ? JSON.parse(saved)
-        : [];
-    });
+  const [organizations, setOrganizations] = useState<any[]>([]);
 
   // ================= PARTICIPANTS =================
 
@@ -37,15 +27,27 @@ export default function Organization({ user }: PageProps) {
         : [];
     });
 
-  // ================= SAVE STORAGE =================
+  // =================  FETCH DATA FROM TABLE =================
 
-  useEffect(() => {
-    localStorage.setItem(
-      "organizations",
-      JSON.stringify(organizations)
-    );
-  }, [organizations]);
+const fetchOrganizations = async () => {
+  try {
+    const response = await fetch("/api/get-organizations");
+    const data = await response.json();
 
+    if (data.success) {
+      setOrganizations(data.organizations);
+    } else {
+      console.error(data.error);
+    }
+  } catch (err) {
+    console.error("Failed to fetch organizations", err);
+  }
+};
+
+useEffect(() => {
+  fetchOrganizations();
+}, []);
+  
   useEffect(() => {
     localStorage.setItem(
       "participants",
@@ -105,39 +107,78 @@ export default function Organization({ user }: PageProps) {
 
   // ================= CREATE ORGANIZATION =================
 
-  const handleCreateOrganization =
-  async () => {
+  const handleCreateOrganization = async () => {
+  if (
+    !orgForm.organizationName ||
+    !orgForm.contactPerson ||
+    !orgForm.email
+  ) {
+    alert("Please fill all fields");
+    return;
+  }
 
-    if (
-      !orgForm.organizationName ||
-      !orgForm.contactPerson ||
-      !orgForm.email
-    ) {
-      alert("Please fill all fields");
-      return;
+  try {
+    const response = await fetch("/api/create-organization", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        organizationName: orgForm.organizationName,
+        contactPerson: orgForm.contactPerson,
+        email: orgForm.email,
+        createdBy: user?.name || "",
+      }),
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      alert("Organization created successfully ✅");
+
+      setOrgForm({
+        organizationName: "",
+        contactPerson: "",
+        email: "",
+      });
+
+      setShowOrgModal(false);
+
+      // ✅ Refresh from Azure
+      fetchOrganizations();
+    } else {
+      alert(data.error || "Something went wrong");
     }
 
-    try {
+  } catch (err) {
+    console.error(err);
+    alert("Failed to create organization");
+  }
+};
 
-      const response =
-        await fetch(
-          "/api/create-organization",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-            body: JSON.stringify({
-              organizationName:
-                orgForm.organizationName,
+    const data = await response.json();
 
-              contactPerson:
-                orgForm.contactPerson,
+    if (data.success) {
+      alert("Organization created successfully");
 
-              email:
-                orgForm.email,
-            }),
+      setOrgForm({
+        organizationName: "",
+        contactPerson: "",
+        email: "",
+      });
+
+      setShowOrgModal(false);
+
+      // ✅ Reload organizations from Azure Table Storage
+      fetchOrganizations();
+    } else {
+      alert(data.error || "Failed to create organization");
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Failed to create organization");
+  }
+};
           }
         );
 
@@ -606,101 +647,85 @@ export default function Organization({ user }: PageProps) {
         {/* ORGANIZATION TABLE */}
 
         <div style={card}>
+
           <table
-            style={{
-              width: "100%",
-              borderCollapse:
-                "collapse",
-            }}
-          >
-            <thead>
-              <tr>
-                <th style={tableHeader}>
-                  Sr No.
-                </th>
+  style={{
+    width: "100%",
+    borderCollapse: "collapse",
+  }}
+>
+  <thead>
+    <tr>
+      <th style={tableHeader}>Sr No.</th>
+      <th style={tableHeader}>Organization Name</th>
+      <th style={tableHeader}>Contact Person</th>
+      <th style={tableHeader}>Email</th>
+      <th style={tableHeader}>Created By</th> {/* ✅ NEW COLUMN */}
+      <th style={tableHeader}>Action</th>
+    </tr>
+  </thead>
 
-                <th style={tableHeader}>
-                  Organization Name
-                </th>
+  <tbody>
+    {organizations.length === 0 ? (
+      <tr>
+        <td colSpan={6} style={{ textAlign: "center", padding: "20px" }}>
+          No organizations found
+        </td>
+      </tr>
+    ) : (
+      organizations.map((org, index) => (
+        <tr key={org.id || index}>
+          <td style={tableCell}>{index + 1}</td>
 
-                <th style={tableHeader}>
-                  Contact Person
-                </th>
+          <td style={tableCell}>
+            {org.organizationName || "-"}
+          </td>
 
-                <th style={tableHeader}>
-                  Email
-                </th>
+          <td style={tableCell}>
+            {org.contactPerson || "-"}
+          </td>
 
-                <th style={tableHeader}>
-                  Action
-                </th>
-              </tr>
-            </thead>
+          <td style={tableCell}>
+            {org.email || "-"}
+          </td>
 
-            <tbody>
-              {organizations.map(
-                (org, index) => (
-                  <tr key={org.id}>
-                    <td style={tableCell}>
-                      {index + 1}
-                    </td>
+          {/* ✅ SHOW CREATED BY */}
+          <td style={tableCell}>
+            {org.createdBy || "-"}
+          </td>
 
-                    <td style={tableCell}>
-                      {
-                        org.organizationName
-                      }
-                    </td>
+          <td style={tableCell}>
+            <div
+              style={{
+                display: "flex",
+                gap: "10px",
+              }}
+            >
+              <button
+                style={viewBtn}
+                onClick={() => {
+                  setSelectedOrg(org);
+                  setShowParticipantsView(true);
+                }}
+              >
+                View
+              </button>
 
-                    <td style={tableCell}>
-                      {
-                        org.contactPerson
-                      }
-                    </td>
-
-                    <td style={tableCell}>
-                      {org.email}
-                    </td>
-
-                    <td style={tableCell}>
-                      <div
-                        style={{
-                          display:
-                            "flex",
-                          gap: "10px",
-                        }}
-                      >
-                        <button
-                          style={viewBtn}
-                          onClick={() => {
-                            setSelectedOrg(
-                              org
-                            );
-
-                            setShowParticipantsView(
-                              true
-                            );
-                          }}
-                        >
-                          View
-                        </button>
-
-                        <button
-                          style={deleteBtn}
-                          onClick={() =>
-                            handleDeleteOrganization(
-                              org.id
-                            )
-                          }
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                )
-              )}
-            </tbody>
-          </table>
+              <button
+                style={deleteBtn}
+                onClick={() =>
+                  handleDeleteOrganization(org.id)
+                }
+              >
+                Delete
+              </button>
+            </div>
+          </td>
+        </tr>
+      ))
+    )}
+  </tbody>
+</table>
 
         {showOrgModal && (
   <div
