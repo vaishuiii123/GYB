@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 type LoginProps = {
-  onLogin: () => void;
+  onLogin: (user: any) => void;
 };
 
 export default function Login({
@@ -11,7 +11,6 @@ export default function Login({
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [isAuthorized, setIsAuthorized] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
 
  const checkEmail = async () => {
   try {
@@ -32,16 +31,14 @@ export default function Login({
     console.log("API Response:", data);
 
       if (data.found) {
-  
-        // Store user details if needed
-        setCurrentUser({
+
+  onLogin({
     name: data.name,
     role: data.role,
-    email: email});
-  
-        onLogin();
-  
-      } else {
+    email: email
+  });
+
+} else {
 
       setMessage("✗ Email not found");
 
