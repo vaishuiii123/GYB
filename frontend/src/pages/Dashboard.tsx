@@ -9,7 +9,7 @@ export default function Dashboard({ user }: any) {
         minHeight: "100vh",
       }}
     >
-      <Header />
+      <Header { user }: any />
       <Sidebar />
 
       <div
