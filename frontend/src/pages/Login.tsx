@@ -32,6 +32,12 @@ export default function Login({
 
       if (data.found) {
 
+  // ✅ enable login button
+  setIsAuthorized(true);
+
+  setMessage("✓ Email verified");
+
+  // ✅ only pass user to App (no login yet)
   onLogin({
     name: data.name,
     role: data.role,
@@ -39,10 +45,9 @@ export default function Login({
   });
 
 } else {
+  setMessage("✗ Email not found");
+}
 
-      setMessage("✗ Email not found");
-
-    }
 
   } catch (err) {
 
@@ -116,9 +121,10 @@ export default function Login({
           Check Email
         </button>
 
+        
         <button
-          onClick={onLogin}
-          disabled={!isAuthorized}
+          onClick={() => onLogin(null)} 
+          disabled={!isAuthorize
           style={{
             background: "#8B0022",
             color: "white",
