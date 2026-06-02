@@ -199,9 +199,9 @@ const card: any = {
 };
 
 const saveBtn: any = {
-  background: "#7a0019",
+  background: "#2F57C3",
   color: "white",
-  padding: "10px 15px",
+  padding: "5px 15px",
   border: "none",
   borderRadius: "6px",
 };
