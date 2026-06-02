@@ -8,6 +8,9 @@ import {
 
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import Organization from "./pages/Organization";
+import Template from "./pages/Template";
+import Workshop from "./pages/Workshop";
 
 function App() {
   const [currentUser, setCurrentUser] = useState<any>(null);
