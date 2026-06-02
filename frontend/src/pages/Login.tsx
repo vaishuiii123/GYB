@@ -12,47 +12,47 @@ export default function Login({
   const [message, setMessage] = useState("");
   const [isAuthorized, setIsAuthorized] = useState(false);
 
-  const checkEmail = async () => {
+ const checkEmail = async () => {
+  try {
+    setMessage("");
 
-    try {
+    const response = await fetch("/api/check-email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email,
+      }),
+    });
 
-      setMessage("");
+    const data = await response.json();
 
-      const response = await fetch("/api/check-email", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-        }),
-      });
+    console.log("API Response:", data);
 
-      const data = await response.json();
+    if (data.found) {
 
- if (data.isAdmin) {
+      // Store user details if needed
+      localStorage.setItem("role", data.role);
+      localStorage.setItem("name", data.name);
+      localStorage.setItem("email", email);
 
-        onLogin();
+      onLogin();
 
+    } else {
 
-} else {
+      setMessage("✗ Email not found");
 
-    setMessage("✗ Email not found");
-
-}
-
-    } catch (err) {
-
-      console.error(err);
-
-      setIsAuthorized(false);
-
-      setMessage(
-        "Unable to validate email."
-      );
     }
-  };
 
+  } catch (err) {
+
+    console.error(err);
+
+    setMessage("Unable to validate email.");
+
+  }
+};
   return (
     <div
       style={{
