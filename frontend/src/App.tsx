@@ -30,7 +30,9 @@ function App() {
 
   // LOGIN PAGE
   if (accounts.length === 0) {
-    return <Login onLogin={handleLogin} />;
+    return <Login
+  onLogin={handleEmailLogin}
+/>;
   }
 
   // APPLICATION
