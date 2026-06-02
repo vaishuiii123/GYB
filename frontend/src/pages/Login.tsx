@@ -11,7 +11,7 @@ export default function Login({
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [isAuthorized, setIsAuthorized] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
  const checkEmail = async () => {
   try {
