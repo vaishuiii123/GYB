@@ -97,7 +97,7 @@ export default function Organization({ user }: PageProps) {
       <Header user={user} />
       <Sidebar />
 
-      <div style={{ marginLeft: "250px", padding: "80px 30px 30px" }}>
+      <div style={{ marginLeft: "250px", padding: "30px" }}>
 
         {/* HEADER */}
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
@@ -192,62 +192,32 @@ export default function Organization({ user }: PageProps) {
 
 /* ================= STYLES ================= */
 
-const pageContainer = {
-  background: "#f8fafc",
-  minHeight: "100vh",
-};
-
-const content = {
-  marginLeft: "230px",
-  padding: "80px 30px 30px", // ✅ push below header
-};
-
-const topBar = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginBottom: "20px",
-};
-
-const pageTitle = {
-  fontSize: "28px",
-  fontWeight: "600",
-  color: "#1e40af",
-};
-
-const primaryBtn = {
-  background: "linear-gradient(90deg, #60a5fa, #3b82f6)",
-  color: "white",
-  padding: "10px 18px",
-  border: "none",
-  borderRadius: "8px",
-  cursor: "pointer",
-  fontWeight: "600",
-};
-
-const card = {
+const card: any = {
   background: "white",
   padding: "20px",
-  borderRadius: "12px",
-  boxShadow: "0 4px 15px rgba(0,0,0,0.05)",
+  borderRadius: "10px",
 };
 
-const tableHeader = {
-  padding: "12px",
-  borderBottom: "2px solid #e5e7eb",
-  textAlign: "left" as const,
-  fontWeight: "600",
-  color: "#374151",
+const saveBtn: any = {
+  background: "#7a0019",
+  color: "white",
+  padding: "10px 15px",
+  border: "none",
+  borderRadius: "6px",
 };
 
-const tableCell = {
-  padding: "12px",
-  borderBottom: "1px solid #f1f5f9",
-  color: "#374151",
+const tableHeader: any = {
+  padding: "10px",
+  borderBottom: "1px solid #ddd",
 };
 
-const modalOverlay = {
-  position: "fixed" as const,
+const tableCell: any = {
+  padding: "10px",
+  borderBottom: "1px solid #f3f4f6",
+};
+
+const modalOverlay: any = {
+  position: "fixed",
   top: 0,
   bottom: 0,
   left: 0,
@@ -258,18 +228,11 @@ const modalOverlay = {
   alignItems: "center",
 };
 
-const modalBox = {
+const modalBox: any = {
   background: "white",
-  padding: "25px",
-  borderRadius: "12px",
+  padding: "20px",
+  borderRadius: "10px",
   display: "flex",
-  flexDirection: "column" as const,
-  gap: "12px",
-  width: "350px",
-};
-
-const inputField = {
-  padding: "10px",
-  borderRadius: "6px",
-  border: "1px solid #d1d5db",
+  flexDirection: "column",
+  gap: "10px",
 };
