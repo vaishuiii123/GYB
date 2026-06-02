@@ -1,6 +1,4 @@
-import { useMsal } from "@azure/msal-react";
 import { useState } from "react";
-import { loginRequest } from "./authConfig";
 
 import {
   HashRouter,
@@ -16,33 +14,23 @@ import Template from "./pages/Template";
 import Workshop from "./pages/Workshop";
 
 function App() {
-  const { instance, accounts } = useMsal();
   const [currentUser, setCurrentUser] = useState<any>(null);
 
-  const handleLogin = async (userData?: any) => {
-    // First call from "Check Email" -> store user
-    if (userData) {
-      setCurrentUser(userData);
-      return;
-    }
-
-    // Second call from "Login with Azure" -> trigger Azure login
-    try {
-      await instance.loginRedirect(loginRequest);
-    } catch (error) {
-      console.error(error);
-    }
+  // ✅ Only store user (no Azure login)
+  const handleLogin = (userData: any) => {
+    setCurrentUser(userData);
   };
 
-  // LOGIN PAGE
-  if (accounts.length === 0) {
+  // ✅ Show login page if user not set
+  if (!currentUser) {
     return <Login onLogin={handleLogin} />;
   }
 
-  // APPLICATION
+  // ✅ Application
   return (
     <HashRouter>
       <Routes>
+
         <Route path="*" element={<Navigate to="/dashboard" />} />
 
         <Route
@@ -50,20 +38,22 @@ function App() {
           element={<Dashboard user={currentUser} />}
         />
 
+        {/* For now keep others simple */}
         <Route
           path="/organization"
-          element={<Organization/>}
+          element={<Organization />}
         />
 
         <Route
           path="/template"
-          element={<Template/>}
+          element={<Template />}
         />
 
         <Route
           path="/workshop"
-          element={<Workshop/>}
+          element={<Workshop />}
         />
+
       </Routes>
     </HashRouter>
   );
