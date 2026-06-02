@@ -117,25 +117,22 @@ export default function Login({
 
         
         <button
-          onClick={() => onLogin(null)} 
-          disabled={!isAuthorize}
-          style={{
-            background: "#8B0022",
-            color: "white",
-            border: "none",
-            padding: "14px 30px",
-            borderRadius: "10px",
-            fontSize: "18px",
-            cursor: isAuthorized
-              ? "pointer"
-              : "not-allowed",
-            opacity: isAuthorized ? 1 : 0.5,
-          }}
-        >
-          Login with Azure
-        </button>
-
-      </div>
+      onClick={() => onLogin(null)} 
+      disabled={!isAuthorized}
+      style={{
+        background: "#8B0022",
+        color: "white",
+        border: "none",
+        padding: "14px 30px",
+        borderRadius: "10px",
+        fontSize: "18px",
+        cursor: isAuthorized ? "pointer" : "not-allowed",
+        opacity: isAuthorized ? 1 : 0.5,
+      }}
+    >
+      Login with Azure
+    </button>
+          </div>
     </div>
   );
 }
