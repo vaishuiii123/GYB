@@ -97,10 +97,10 @@ export default function Organization({ user }: PageProps) {
       <Header user={user} />
       <Sidebar />
 
-      <div style={{ marginLeft: "250px", padding: "30px" }}>
+      <div style={{ marginLeft: "200px", padding: "20px" }}>
 
         {/* HEADER */}
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px" }}>
           <h1 style={{ fontSize: "30px" }}>Organization</h1>
 
           <button onClick={() => setShowOrgModal(true)} style={saveBtn}>
