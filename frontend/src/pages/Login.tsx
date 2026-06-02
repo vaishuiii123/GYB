@@ -37,6 +37,9 @@ export default function Login({ onLogin }: LoginProps) {
           role: data.role,
           email: email,
         });
+        
+  navigate("/dashboard");   // ✅ THIS IS KEY
+
       } else {
         //setIsAuthorized(false);
         setMessage("✗ Email not found");
