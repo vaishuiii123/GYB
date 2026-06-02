@@ -1,7 +1,11 @@
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
 
-export default function Dashboard({ user }: any) {
+type PageProps = {
+  user?: any;
+};
+
+export default function Dashboard({ user }: PageProps) {
   return (
     <div
       style={{
