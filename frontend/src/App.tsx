@@ -41,7 +41,7 @@ function App() {
 
         <Route 
           path="*" 
-          element={<Navigate to="/dashboard" user={currentUser} />} 
+          element={<Navigate to="/dashboard"/>} 
         />
         
         <Route
