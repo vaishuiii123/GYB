@@ -24,7 +24,7 @@ export default function Sidebar() {
     <div
       style={{
         width: "200px",
-        background: "linear-gradient(180deg, #93c5fd, #60a5fa)",
+        background: "linear-gradient(135deg, #2563eb, #1e40af)",
         position: "fixed",
         top: "50px",
         left: 0,
