@@ -31,24 +31,18 @@ export default function Login({
     console.log("API Response:", data);
 
       if (data.found) {
-
-  // ✅ enable login button
-  setIsAuthorized(true);
-
-  setMessage("✓ Email verified");
-
-  // ✅ only pass user to App (no login yet)
-  onLogin({
-    name: data.name,
-    role: data.role,
-    email: email
-  });
-
-} else {
-  setMessage("✗ Email not found");
-}
-
-
+          // ✅ enable login button
+          setIsAuthorized(true);
+          setMessage("✓ Email verified");
+          // ✅ only pass user to App (no login yet)
+          onLogin({
+            name: data.name,
+            role: data.role,
+            email: email
+          });
+      } else {
+        setMessage("✗ Email not found");
+      }
   } catch (err) {
 
     console.error(err);
@@ -124,7 +118,7 @@ export default function Login({
         
         <button
           onClick={() => onLogin(null)} 
-          disabled={!isAuthorize
+          disabled={!isAuthorize}
           style={{
             background: "#8B0022",
             color: "white",
