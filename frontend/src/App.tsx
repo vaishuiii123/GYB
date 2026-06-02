@@ -17,10 +17,16 @@ import Workshop from "./pages/Workshop";
 
 function App() {
   const { instance, accounts } = useMsal();
-  const [currentUser, setCurrentUser] =
-  useState<any>(null);
-  
-  const handleLogin = async () => {
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  const handleLogin = async (userData?: any) => {
+    // First call from "Check Email" -> store user
+    if (userData) {
+      setCurrentUser(userData);
+      return;
+    }
+
+    // Second call from "Login with Azure" -> trigger Azure login
     try {
       await instance.loginRedirect(loginRequest);
     } catch (error) {
@@ -30,23 +36,18 @@ function App() {
 
   // LOGIN PAGE
   if (accounts.length === 0) {
-  return <Login onLogin={handleLogin} />;
-}
-  
+    return <Login onLogin={handleLogin} />;
+  }
 
   // APPLICATION
   return (
     <HashRouter>
       <Routes>
+        <Route path="*" element={<Navigate to="/dashboard" />} />
 
-        <Route 
-          path="*" 
-          element={<Navigate to="/dashboard"/>} 
-        />
-        
         <Route
           path="/dashboard"
-          element={<Dashboard  user={currentUser} />}
+          element={<Dashboard user={currentUser} />}
         />
 
         <Route
