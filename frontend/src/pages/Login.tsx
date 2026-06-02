@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 type LoginProps = {
   onLogin: (user?: any) => void;
@@ -8,7 +9,8 @@ export default function Login({ onLogin }: LoginProps) {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [isAuthorized, setIsAuthorized] = useState(false);
-
+  const navigate = useNavigate();
+  
   const checkEmail = async () => {
     try {
       setMessage("");
@@ -23,10 +25,10 @@ export default function Login({ onLogin }: LoginProps) {
 
       const data = await response.json();
 
-      console.log("API Response:", data);
+      //console.log("API Response:", data);
 
       if (data.found) {
-        setIsAuthorized(true);
+        //setIsAuthorized(true);
         setMessage("✓ Email verified");
 
         // Pass user details to App.tsx
@@ -36,12 +38,12 @@ export default function Login({ onLogin }: LoginProps) {
           email: email,
         });
       } else {
-        setIsAuthorized(false);
+        //setIsAuthorized(false);
         setMessage("✗ Email not found");
       }
     } catch (err) {
       console.error(err);
-      setIsAuthorized(false);
+     // setIsAuthorized(false);
       setMessage("Unable to validate email.");
     }
   };
@@ -103,23 +105,6 @@ export default function Login({ onLogin }: LoginProps) {
           }}
         >
           Check Email
-        </button>
-
-        <button
-         onClick={() => onLogin()}
-          disabled={!isAuthorized}
-          style={{
-            background: "#8B0022",
-            color: "white",
-            border: "none",
-            padding: "14px 30px",
-            borderRadius: "10px",
-            fontSize: "18px",
-            cursor: isAuthorized ? "pointer" : "not-allowed",
-            opacity: isAuthorized ? 1 : 0.5,
-          }}
-        >
-          Login with Azure
         </button>
       </div>
     </div>
