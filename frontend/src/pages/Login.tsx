@@ -52,64 +52,90 @@ export default function Login({ onLogin }: LoginProps) {
   };
 
   return (
+  <div
+    style={{
+      height: "100vh",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      background: "linear-gradient(135deg, #2563eb, #1e40af)",
+      fontFamily: "Segoe UI, sans-serif",
+    }}
+  >
     <div
       style={{
-        height: "100vh",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        background: "#f3f4f6",
+        background: "white",
+        padding: "40px",
+        borderRadius: "15px",
+        boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
+        width: "350px",
+        textAlign: "center",
       }}
     >
-      <div
+      {/* Header */}
+      <h1 style={{ marginBottom: "10px", color: "#1e3a8a" }}>
+        Grow Your Business
+      </h1>
+
+      <p style={{ marginBottom: "25px", color: "#6b7280" }}>
+        Welcome! Please enter your email
+      </p>
+
+      {/* Input */}
+      <input
+        id="email"
+        type="email"
+        placeholder="Enter Email ID"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
         style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "15px",
-          alignItems: "center",
+          width: "100%",
+          padding: "12px",
+          border: "1px solid #d1d5db",
+          borderRadius: "8px",
+          fontSize: "16px",
+          marginBottom: "15px",
+          outline: "none",
         }}
-      >
-        <input
-          id="email"
-          type="email"
-          placeholder="Enter Email ID"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          style={{
-            width: "300px",
-            padding: "12px",
-            border: "1px solid #d1d5db",
-            borderRadius: "10px",
-            fontSize: "16px",
-          }}
-        />
+      />
 
-        {message && (
-          <div
-            style={{
-              color: message.includes("✓") ? "green" : "red",
-              fontSize: "14px",
-            }}
-          >
-            {message}
-          </div>
-        )}
-
-        <button
-          onClick={checkEmail}
+      {/* Message */}
+      {message && (
+        <div
           style={{
-            background: "#2563eb",
-            color: "white",
-            border: "none",
-            padding: "14px 30px",
-            borderRadius: "10px",
-            fontSize: "18px",
-            cursor: "pointer",
+            color: message.includes("✓") ? "green" : "red",
+            fontSize: "14px",
+            marginBottom: "10px",
           }}
         >
-          Check Email
-        </button>
-      </div>
+          {message}
+        </div>
+      )}
+
+      {/* Button */}
+      <button
+        onClick={checkEmail}
+        style={{
+          width: "100%",
+          background: "#2563eb",
+          color: "white",
+          border: "none",
+          padding: "12px",
+          borderRadius: "8px",
+          fontSize: "16px",
+          cursor: "pointer",
+          transition: "0.3s",
+        }}
+        onMouseOver={(e) =>
+          (e.currentTarget.style.background = "#1e40af")
+        }
+        onMouseOut={(e) =>
+          (e.currentTarget.style.background = "#2563eb")
+        }
+      >
+        Check Email
+      </button>
     </div>
-  );
+  </div>
+);
 }
