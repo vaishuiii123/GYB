@@ -40,11 +40,13 @@ function App() {
     <HashRouter>
       <Routes>
         <Route
-          path="/"
-          element={
-            <Navigate to="/organization" />
-          }
-        />
+  path="/organization"
+  element={
+    <Organization
+      currentUser={currentUser}
+    />
+  }
+/>
 
         <Route
           path="/dashboard"
