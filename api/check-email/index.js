@@ -19,23 +19,26 @@ module.exports = async function (context, req) {
       "User"
     );
 
-    const entities = client.listEntities({
-      queryOptions: {
-        filter: `Email eq '${email}'`
-      }
-    });
+    const entities = client.listEntities();
 
-    let found = false;
-    let role = null;
-    let name = null;
+let found = false;
+let role = null;
+let name = null;
 
-    for await (const entity of entities) {
-      found = true;
-      role = entity.Role || "";
-      name = entity.Name || "";
-      break;
-    }
+for await (const entity of entities) {
+  console.log(entity);
 
+  if (
+    entity.Email &&
+    entity.Email.toLowerCase() === email.toLowerCase()
+  ) {
+    found = true;
+    role = entity.Role || "";
+    name = entity.Name || "";
+    break;
+  }
+}
+    
     return {
       status: 200,
       body: {
