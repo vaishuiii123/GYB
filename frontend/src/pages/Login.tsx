@@ -11,6 +11,7 @@ export default function Login({
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
 
  const checkEmail = async () => {
   try {
@@ -30,16 +31,17 @@ export default function Login({
 
     console.log("API Response:", data);
 
-    if (data.found) {
-
-      // Store user details if needed
-      localStorage.setItem("role", data.role);
-      localStorage.setItem("name", data.name);
-      localStorage.setItem("email", email);
-
-      onLogin();
-
-    } else {
+      if (data.found) {
+  
+        // Store user details if needed
+        setCurrentUser({
+    name: data.name,
+    role: data.role,
+    email: email});
+  
+        onLogin();
+  
+      } else {
 
       setMessage("✗ Email not found");
 
