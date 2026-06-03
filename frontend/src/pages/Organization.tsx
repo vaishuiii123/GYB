@@ -99,7 +99,7 @@ export default function Organization({ user }: PageProps) {
 <div
   style={{
     flex: 1,
-    marginLeft: "260px", // Sidebar width
+    marginLeft: "220px", // Sidebar width
   }}
 >
   <Header user={user} />
