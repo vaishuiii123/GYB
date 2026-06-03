@@ -116,12 +116,12 @@ export default function Login({ onLogin }: LoginProps) {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         style={{
-          width: "100%",
-          height: "60px",
+          width: "90%",
+          height: "50px",
           border: "2px solid #d1d5db",
           borderRadius: "14px",
           paddingLeft: "20px",
-          fontSize: "18px",
+          fontSize: "15px",
           boxSizing: "border-box",
           marginBottom: "20px",
         }}
@@ -142,13 +142,13 @@ export default function Login({ onLogin }: LoginProps) {
       <button
         onClick={checkEmail}
         style={{
-          width: "100%",
-          height: "60px",
+          width: "90%",
+          height: "50px",
           border: "none",
           borderRadius: "14px",
           background: "#2f56d4",
           color: "white",
-          fontSize: "22px",
+          fontSize: "20px",
           fontWeight: "600",
           cursor: "pointer",
         }}
