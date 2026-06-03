@@ -20,7 +20,7 @@ export default function Header({ user }: any) {
         top: 0,
         left: "220px",
         right: 0,
-        height: "70px",
+        height: "50px",
         background: "#264ECF",
         display: "flex",
         justifyContent: "space-between",
