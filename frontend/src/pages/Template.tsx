@@ -2,7 +2,11 @@ import { useState } from "react";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
 
-export default function Template() {
+type PageProps = {
+  user?: any;
+};
+
+export default function Template({ user }: PageProps) {
   const [templates, setTemplates] = useState<any[]>([]);
 
   const [showModal, setShowModal] = useState(false);
@@ -52,7 +56,7 @@ export default function Template() {
         minHeight: "100vh",
       }}
     >
-      <Header />
+      <Header user={user} />
       <Sidebar />
 
       <div
