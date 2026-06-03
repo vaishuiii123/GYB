@@ -47,12 +47,12 @@ function App() {
 
         <Route
           path="/template"
-          element={<Template />}
+          element={<Template user={currentUser} />}
         />
 
         <Route
           path="/workshop"
-          element={<Workshop />}
+          element={<Workshop user={currentUser} />}
         />
 
       </Routes>
