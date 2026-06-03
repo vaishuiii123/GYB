@@ -13,9 +13,14 @@ import Template from "./pages/Template";
 import Workshop from "./pages/Workshop";
 
 function App() {
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<any>(() => {
+  const savedUser = localStorage.getItem("user");
+
+  return savedUser ? JSON.parse(savedUser) : null;
+});
 
   const handleLogin = (userData: any) => {
+    localStorage.setItem("user", JSON.stringify(userData));
     setCurrentUser(userData);
   };
 
