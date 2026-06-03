@@ -1,14 +1,22 @@
 import { useMsal } from "@azure/msal-react";
+import { useNavigate } from "react-router-dom";
 
 export default function Header({ user }: any) {
   const { instance } = useMsal();
+  const navigate = useNavigate();
+  
+  const handleLogout = () => {
+      const confirmLogout = window.confirm(
+      "Do you really want to logout?"
+    );
 
-  const handleLogout = async () => {
-    await instance.logoutRedirect({
-        postLogoutRedirectUri:
-          "https://gentle-sea-0636fbe10.7.azurestaticapps.net/#/",
-    });
-  };
+  if (confirmLogout) {
+    localStorage.clear();
+    sessionStorage.clear();
+
+    navigate("/");
+  }
+};
 
   const initials =
   user?.name
