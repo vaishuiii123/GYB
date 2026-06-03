@@ -1,44 +1,62 @@
 import { NavLink } from "react-router-dom";
 
 export default function Sidebar() {
-  const menuItems = [
-    {
-      name: "Dashboard",
-      path: "/dashboard",
-    },
-    {
-      name: "Organization",
-      path: "/organization",
-    },
-    {
-      name: "Template",
-      path: "/template",
-    },
-    {
-      name: "Workshop",
-      path: "/workshop",
-    },
-  ];
+ const menuItems = [
+  {
+    name: "Dashboard",
+    path: "/dashboard",
+    icon: "📊",
+  },
+  {
+    name: "Organization",
+    path: "/organization",
+    icon: "🏢",
+  },
+  {
+    name: "Template",
+    path: "/template",
+    icon: "📄",
+  },
+  {
+    name: "Workshop",
+    path: "/workshop",
+    icon: "🎓",
+  },
+];
 
   return (
-    <div
-      style={{
-        width: "200px",
-        background: "linear-gradient(135deg, #2563eb, #1e40af)",
-        position: "fixed",
-        top: "50px",
-        left: 0,
-        height: "calc(100vh - 70px)",
-        boxSizing: "border-box",
-        padding: "25px 20px",
-        overflowY: "auto",
-      }}
-    >
+  <div
+    style={{
+      width: "240px",
+      background: "#081B45",
+      position: "fixed",
+      left: 0,
+      top: 0,
+      height: "100vh",
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "space-between",
+    }}
+  >
+    <div>
+      <div
+        style={{
+          padding: "25px",
+          color: "white",
+          fontSize: "24px",
+          fontWeight: "600",
+          borderBottom: "1px solid rgba(255,255,255,0.1)",
+        }}
+      >
+        🏢 Admin Panel
+      </div>
+
       <div
         style={{
           display: "flex",
           flexDirection: "column",
-          gap: "10px",
+          gap: "8px",
+          padding: "15px",
         }}
       >
         {menuItems.map((item) => (
@@ -47,19 +65,32 @@ export default function Sidebar() {
             to={item.path}
             style={({ isActive }) => ({
               textDecoration: "none",
-              background: isActive ? "white" : "transparent",
-              color: isActive ? "#1e40af" : "white",
-              padding: "10px 20px",
+              background: isActive ? "#2E5BFF" : "transparent",
+              color: "white",
+              padding: "14px 18px",
               borderRadius: "12px",
-              fontWeight: isActive ? "600" : "500",
-              fontSize: "15px",
-              display: "block",
-              transition: "0.3s",
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+              fontSize: "16px",
             })}
           >
+            <span>{item.icon}</span>
             {item.name}
           </NavLink>
         ))}
+      </div>
+    </div>
+
+    <div
+      style={{
+        padding: "20px",
+        color: "white",
+        fontSize: "16px",
+        cursor: "pointer",
+      }}
+    >
+      🚪 Logout
       </div>
     </div>
   );
