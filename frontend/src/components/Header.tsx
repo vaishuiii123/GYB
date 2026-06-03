@@ -1,8 +1,8 @@
-import { useMsal } from "@azure/msal-react";
+
 import { useNavigate } from "react-router-dom";
 
 export default function Header({ user }: any) {
-  const { instance } = useMsal();
+ 
   const navigate = useNavigate();
   
   const handleLogout = () => {
