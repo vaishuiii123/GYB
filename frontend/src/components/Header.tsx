@@ -4,12 +4,9 @@ export default function Header({ user }: any) {
   const { instance } = useMsal();
 
   const handleLogout = async () => {
-    const currentAccount = instance.getActiveAccount();
-
     await instance.logoutRedirect({
-      account: currentAccount || undefined,
-      postLogoutRedirectUri:
-        "https://gentle-sea-0636fbe10.7.azurestaticapps.net",
+        postLogoutRedirectUri:
+          "https://gentle-sea-0636fbe10.7.azurestaticapps.net/#/",
     });
   };
 
