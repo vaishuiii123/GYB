@@ -51,38 +51,40 @@ export default function Login({ onLogin }: LoginProps) {
     }
   };
 
- return (
+return (
   <div
     style={{
-      minHeight: "80vh",
+      height: "100vh",
+      width: "100%",
       background: "#eef3ff",
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
+      overflow: "hidden",
       fontFamily: "Segoe UI, sans-serif",
     }}
   >
     <div
       style={{
-        width: "300px",
+        width: "380px",
         background: "white",
-        borderRadius: "25px",
-        padding: "50px",
-        boxShadow: "0 15px 40px rgba(0,0,0,0.08)",
+        borderRadius: "24px",
+        padding: "35px",
+        boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
         textAlign: "center",
       }}
     >
       <div
         style={{
-          width: "100px",
-          height: "100px",
+          width: "80px",
+          height: "80px",
           background: "#edf2ff",
           borderRadius: "50%",
-          margin: "0 auto 25px auto",
+          margin: "0 auto 20px auto",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: "45px",
+          fontSize: "34px",
         }}
       >
         📧
@@ -91,20 +93,20 @@ export default function Login({ onLogin }: LoginProps) {
       <h1
         style={{
           margin: 0,
-          fontSize: "40px",
+          fontSize: "24px",
           fontWeight: "700",
           color: "#0f172a",
         }}
       >
-        Grow Your Business
+        Welcome Back
       </h1>
 
       <p
         style={{
           color: "#6b7280",
-          fontSize: "18px",
-          marginTop: "15px",
-          marginBottom: "35px",
+          fontSize: "15px",
+          marginTop: "12px",
+          marginBottom: "25px",
         }}
       >
         Enter your registered email address
@@ -116,14 +118,14 @@ export default function Login({ onLogin }: LoginProps) {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         style={{
-          width: "90%",
-          height: "50px",
+          width: "100%",
+          height: "52px",
           border: "2px solid #d1d5db",
-          borderRadius: "14px",
-          paddingLeft: "20px",
+          borderRadius: "12px",
+          padding: "0 16px",
           fontSize: "15px",
           boxSizing: "border-box",
-          marginBottom: "20px",
+          marginBottom: "15px",
         }}
       />
 
@@ -132,6 +134,7 @@ export default function Login({ onLogin }: LoginProps) {
           style={{
             color: message.includes("✓") ? "green" : "red",
             marginBottom: "15px",
+            fontSize: "14px",
             fontWeight: "600",
           }}
         >
@@ -142,13 +145,13 @@ export default function Login({ onLogin }: LoginProps) {
       <button
         onClick={checkEmail}
         style={{
-          width: "90%",
-          height: "50px",
+          width: "100%",
+          height: "52px",
           border: "none",
-          borderRadius: "14px",
+          borderRadius: "12px",
           background: "#2f56d4",
           color: "white",
-          fontSize: "20px",
+          fontSize: "18px",
           fontWeight: "600",
           cursor: "pointer",
         }}
