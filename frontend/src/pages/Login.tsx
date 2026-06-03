@@ -54,7 +54,7 @@ export default function Login({ onLogin }: LoginProps) {
  return (
   <div
     style={{
-      minHeight: "100vh",
+      minHeight: "80vh",
       background: "#eef3ff",
       display: "flex",
       justifyContent: "center",
@@ -64,7 +64,7 @@ export default function Login({ onLogin }: LoginProps) {
   >
     <div
       style={{
-        width: "400px",
+        width: "300px",
         background: "white",
         borderRadius: "25px",
         padding: "50px",
