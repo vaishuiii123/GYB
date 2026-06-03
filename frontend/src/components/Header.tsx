@@ -21,7 +21,7 @@ export default function Header({ user }: any) {
         left: "220px",
         right: 0,
         height: "75px",
-        background: "#2E5BFF",
+        background: "#264ECF",
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
