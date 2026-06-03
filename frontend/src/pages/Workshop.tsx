@@ -10,7 +10,7 @@ type PageProps = {
   user?: any;
 };
 
-export default function Workshop() {
+export default function Workshop(<Header user={user} />) {
   const [workshops, setWorkshops] =
     useState<any[]>([]);
 
