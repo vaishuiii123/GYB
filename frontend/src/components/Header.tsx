@@ -21,95 +21,150 @@ export default function Header({ user }: any) {
     });
   };
 
-  return (
+ return (
+  <div
+    style={{
+      height: "70px",
+      background: "white",
+      borderBottom: "1px solid #e5e7eb",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      padding: "0 25px",
+      boxSizing: "border-box",
+      position: "fixed",
+      top: 0,
+      left: "220px", // same as sidebar width
+      right: 0,
+      zIndex: 1000,
+    }}
+  >
+    {/* LEFT SECTION */}
     <div
       style={{
-        height: "60px",
-        width: "100%",
-        background: "white",
-        borderBottom: "1px solid #e5e7eb",
         display: "flex",
         alignItems: "center",
-        justifyContent: "space-between",
-        padding: "0 30px",
-        boxSizing: "border-box",
-        position: "fixed",
-        top: 0,
-        left: 0,
-        zIndex: 1000,
+        gap: "20px",
       }}
     >
-      {/* LEFT */}
+      {/* Menu Icon */}
+      <div
+        style={{
+          width: "42px",
+          height: "42px",
+          borderRadius: "50%",
+          background: "#3b5bcc",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "white",
+          fontSize: "20px",
+          cursor: "pointer",
+        }}
+      >
+        ☰
+      </div>
+
+      {/* Breadcrumb */}
       <div
         style={{
           display: "flex",
           alignItems: "center",
-          gap: "15px",
+          gap: "12px",
+          fontSize: "16px",
+        }}
+      >
+        <span style={{ color: "#6b7280" }}>Dashboard</span>
+
+        <span style={{ color: "#9ca3af" }}>/</span>
+
+        <span
+          style={{
+            color: "#3b5bcc",
+            fontWeight: "600",
+          }}
+        >
+          Organization
+        </span>
+      </div>
+    </div>
+
+    {/* RIGHT SECTION */}
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "20px",
+      }}
+    >
+      {/* Search */}
+      <input
+        placeholder="Search..."
+        style={{
+          width: "260px",
+          height: "42px",
+          border: "1px solid #d1d5db",
+          borderRadius: "12px",
+          padding: "0 15px",
+          fontSize: "14px",
+          outline: "none",
+          background: "#f9fafb",
+        }}
+      />
+
+      {/* Notification */}
+      <div
+        style={{
+          fontSize: "22px",
+          cursor: "pointer",
+        }}
+      >
+        🔔
+      </div>
+
+      {/* User */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
         }}
       >
         <div
           style={{
-            width: "45px",
-            height: "45px",
-            background: "#8B0022",
-            borderRadius: "12px",
+            width: "42px",
+            height: "42px",
+            borderRadius: "50%",
+            background: "#3b5bcc",
+            color: "white",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            color: "white",
-            fontSize: "20px",
             fontWeight: "600",
           }}
         >
-          K
+          U
         </div>
 
-        <div>
-          <div
-            style={{
-              fontSize: "20px",
-              fontWeight: "600",
-              color: "#111827",
-            }}
-          >
-            KNAV Portal
-          </div>
-
-          <div
-            style={{
-              fontSize: "13px",
-              color: "#6b7280",
-              marginTop: "5px",
-            }}
-          >
-            Workshop Management System
-          </div>
-        </div>
-      </div>
-
-      {/* RIGHT */}
-     
-<div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
-  
-  <div style={{ fontWeight: "600" }}>
-    {user?.name || "User"}
-  </div>
-
-  <button
-          onClick={handleLogout}
+        <div
           style={{
-            background: "#8B0022",
-            color: "white",
-            border: "none",
-            padding: "10px 20px",
-            borderRadius: "8px",
-            cursor: "pointer",
             fontWeight: "600",
+            color: "#111827",
           }}
         >
-          Logout
-        </button>
+          {user?.name || "User"}
+        </div>
+
+        <span
+          style={{
+            color: "#6b7280",
+            cursor: "pointer",
+          }}
+        >
+          ▼
+        </span>
       </div>
     </div>
-  );
+  </div>
+);
 }
