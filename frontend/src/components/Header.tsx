@@ -13,6 +13,13 @@ export default function Header({ user }: any) {
     });
   };
 
+  const initials =
+  user?.name
+    ?.split(" ")
+    .map((word: string) => word[0])
+    .join("")
+    .toUpperCase() || "U";
+  
   return (
     <div
       style={{
@@ -74,21 +81,9 @@ export default function Header({ user }: any) {
               fontWeight: "600",
             }}
           >
-            U
+            {initials}
           </div>
-
-          <span
-            style={{
-              fontSize: "18px",
-              fontWeight: "600",
-            }}
-          >
-            {user?.name || "User"}
-          </span>
-
-          <span>▼</span>
-        </div>
-
+         </div>
         <div
           style={{
             width: "1px",
