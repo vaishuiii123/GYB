@@ -18,7 +18,7 @@ export default function Organization({ user }: PageProps) {
     try {
       const res = await fetch(
               `/api/get-organizations?createdBy=${encodeURIComponent(
-                user?.name || ""
+                user?.email || ""
               )}`
             );
       const data = await res.json();
@@ -67,7 +67,7 @@ export default function Organization({ user }: PageProps) {
           organizationName: orgForm.organizationName,
           contactPerson: orgForm.contactPerson,
           email: orgForm.email,
-          createdBy: user?.name || "",
+          createdBy: user?.email || "",
         }),
       });
 
