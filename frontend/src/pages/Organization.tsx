@@ -44,59 +44,64 @@ const [participantForm, setParticipantForm] =
 };
 
   const handleCreateParticipant = async () => {
+
   try {
 
-    const response = await fetch(
-      "/api/create-participant",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...participantForm,
-          createdBy: user?.email || "",
-        }),
-      }
-    );
-
-    const text = await response.text();
-
-    console.log("Status:", response.status);
-    console.log("Response:", text);
-
-    if (!response.ok) {
-      alert("API Error");
-      return;
+  const response = await fetch(
+    "/api/create-participant",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        ...participantForm,
+        createdBy: user?.email || "",
+      }),
     }
+  );
 
-    const result = JSON.parse(text);
+  const text = await response.text();
 
-    if (result.success) {
+  console.log("Status:", response.status);
+  console.log("Response:", text);
 
-      alert("Participant created successfully");
-
-      setShowParticipantModal(false);
-
-      setParticipantForm({
-        organization: "",
-        firstName: "",
-        middleName: "",
-        lastName: "",
-        email: "",
-        phoneNo: "",
-        password: "",
-      });
-
-    } else {
-      alert(result.error);
-    }
-
-  } catch (error) {
-    console.error(error);
-    alert("Failed to create participant");
+  if (!response.ok) {
+    alert("API Error");
+    return;
   }
-};
+
+  if (!text || text.trim() === "") {
+    alert("API returned empty response");
+    return;
+  }
+
+  const result = JSON.parse(text);
+
+  if (result.success) {
+
+    alert("Participant created successfully");
+
+    setShowParticipantModal(false);
+
+    setParticipantForm({
+      organization: "",
+      firstName: "",
+      middleName: "",
+      lastName: "",
+      email: "",
+      phoneNo: "",
+      password: "",
+    });
+
+  } else {
+    alert(result.error || "Failed to create participant");
+  }
+
+} catch (error) {
+  console.error("Create Participant Error:", error);
+  alert("Failed to create participant");
+}
   
   // ================= ORGANIZATIONS =================
   const [organizations, setOrganizations] = useState<any[]>([]);
