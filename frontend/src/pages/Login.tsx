@@ -52,67 +52,6 @@ export default function Login({ onLogin }: LoginProps) {
   };
 
  return (
-  <div
-    style={{
-      minHeight: "100vh",
-      background: "#eef3ff",
-      fontFamily: "Segoe UI, sans-serif",
-      display: "flex",
-      flexDirection: "column",
-    }}
-  >
-    {/* HEADER */}
-    <div
-      style={{
-        height: "80px",
-        background: "white",
-        borderBottom: "1px solid #e5e7eb",
-        display: "flex",
-        alignItems: "center",
-        padding: "0 40px",
-      }}
-    >
-      <div
-        style={{
-          width: "55px",
-          height: "55px",
-          background: "#2f56d4",
-          borderRadius: "16px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "white",
-          fontSize: "28px",
-          fontWeight: "700",
-          marginRight: "18px",
-        }}
-      >
-        K
-      </div>
-
-      <div>
-        <div
-          style={{
-            fontSize: "26px",
-            fontWeight: "700",
-            color: "#111827",
-          }}
-        >
-          KNAV Portal
-        </div>
-
-        <div
-          style={{
-            fontSize: "14px",
-            color: "#6b7280",
-            marginTop: "3px",
-          }}
-        >
-          Workshop Management System
-        </div>
-      </div>
-    </div>
-
     {/* LOGIN SECTION */}
     <div
       style={{
@@ -124,7 +63,7 @@ export default function Login({ onLogin }: LoginProps) {
     >
       <div
         style={{
-          width: "500px",
+          width: "400px",
           background: "white",
           borderRadius: "25px",
           padding: "50px",
@@ -157,7 +96,7 @@ export default function Login({ onLogin }: LoginProps) {
             color: "#0f172a",
           }}
         >
-          Welcome Back
+          Grow Your Business
         </h1>
 
         <p
