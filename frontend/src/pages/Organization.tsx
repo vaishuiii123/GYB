@@ -111,7 +111,7 @@ export default function Organization({ user }: PageProps) {
   <div
     style={{
       padding: "25px",
-      marginTop: "80px", // Header height + spacing
+      marginTop: "70px", // Header height + spacing
     }}
   >
 
@@ -150,7 +150,7 @@ export default function Organization({ user }: PageProps) {
                     <td style={tableCell}>{org.organizationName || "-"}</td>
                     <td style={tableCell}>{org.contactPerson || "-"}</td>
                     <td style={tableCell}>{org.email || "-"}</td>
-                    <td style={tableCell}>{org.createdBy || "-"}</td>
+                   
                   </tr>
                 ))
               )}
