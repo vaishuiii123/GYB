@@ -55,7 +55,9 @@ return (
   <div
     style={{
       height: "100vh",
-      width: "100%",
+      width: "100vw",
+      margin: 0,
+      padding: 0,
       background: "#eef3ff",
       display: "flex",
       justifyContent: "center",
@@ -66,34 +68,36 @@ return (
   >
     <div
       style={{
-        width: "380px",
+        width: "360px",
         background: "white",
         borderRadius: "24px",
-        padding: "35px",
+        padding: "30px",
         boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
         textAlign: "center",
       }}
     >
+      {/* Email Icon */}
       <div
         style={{
-          width: "80px",
-          height: "80px",
+          width: "75px",
+          height: "75px",
           background: "#edf2ff",
           borderRadius: "50%",
-          margin: "0 auto 20px auto",
+          margin: "0 auto 20px",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: "34px",
+          fontSize: "32px",
         }}
       >
         📧
       </div>
 
+      {/* Heading */}
       <h1
         style={{
           margin: 0,
-          fontSize: "24px",
+          fontSize: "22px",
           fontWeight: "700",
           color: "#0f172a",
         }}
@@ -104,14 +108,15 @@ return (
       <p
         style={{
           color: "#6b7280",
-          fontSize: "15px",
-          marginTop: "12px",
-          marginBottom: "25px",
+          fontSize: "14px",
+          marginTop: "10px",
+          marginBottom: "24px",
         }}
       >
         Enter your registered email address
       </p>
 
+      {/* Email Input */}
       <input
         type="email"
         placeholder="Enter Email ID"
@@ -119,22 +124,24 @@ return (
         onChange={(e) => setEmail(e.target.value)}
         style={{
           width: "100%",
-          height: "52px",
+          height: "48px",
           border: "2px solid #d1d5db",
           borderRadius: "12px",
           padding: "0 16px",
           fontSize: "15px",
           boxSizing: "border-box",
           marginBottom: "15px",
+          outline: "none",
         }}
       />
 
+      {/* Message */}
       {message && (
         <div
           style={{
             color: message.includes("✓") ? "green" : "red",
             marginBottom: "15px",
-            fontSize: "14px",
+            fontSize: "13px",
             fontWeight: "600",
           }}
         >
@@ -142,16 +149,17 @@ return (
         </div>
       )}
 
+      {/* Button */}
       <button
         onClick={checkEmail}
         style={{
           width: "100%",
-          height: "52px",
+          height: "48px",
           border: "none",
           borderRadius: "12px",
           background: "#2f56d4",
           color: "white",
-          fontSize: "18px",
+          fontSize: "16px",
           fontWeight: "600",
           cursor: "pointer",
         }}
