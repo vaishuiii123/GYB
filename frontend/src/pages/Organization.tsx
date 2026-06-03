@@ -10,6 +10,80 @@ type PageProps = {
 
 export default function Organization({ user }: PageProps) {
 
+  const [showParticipantModal, setShowParticipantModal] =
+  useState(false);
+
+const [participantForm, setParticipantForm] =
+  useState({
+    organization: "",
+    firstName: "",
+    middleName: "",
+    lastName: "",
+    email: "",
+    phoneNo: "",
+    password: "",
+  });
+
+ useEffect(() => {
+  if (user?.email) {
+    fetchOrganizations();
+  }
+}, [user]);
+
+  const generatePassword = () => {
+  const first =
+    participantForm.firstName.charAt(0).toLowerCase();
+
+  const last =
+    participantForm.lastName.charAt(0).toLowerCase();
+
+  setParticipantForm({
+    ...participantForm,
+    password: `${first}${last}123`,
+  });
+};
+
+  const handleCreateParticipant = async () => {
+  try {
+    const response = await fetch(
+      "/api/create-participant",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+
+        body: JSON.stringify({
+          ...participantForm,
+          createdBy: user.email,
+        }),
+      }
+    );
+
+    const result = await response.json();
+
+    if (result.success) {
+      alert("Participant created successfully");
+
+      fetchOrganizations();
+      
+      setShowParticipantModal(false);
+
+      setParticipantForm({
+        organization: "",
+        firstName: "",
+        middleName: "",
+        lastName: "",
+        email: "",
+        phoneNo: "",
+        password: "",
+      });
+    }
+  } catch (error) {
+    console.error(error);
+  }
+};
+  
   // ================= ORGANIZATIONS =================
   const [organizations, setOrganizations] = useState<any[]>([]);
 
@@ -30,10 +104,6 @@ export default function Organization({ user }: PageProps) {
       console.error(err);
     }
   };
-
-  useEffect(() => {
-    fetchOrganizations();
-  }, []);
 
   // ================= MODAL =================
   const [showOrgModal, setShowOrgModal] = useState(false);
@@ -95,6 +165,8 @@ export default function Organization({ user }: PageProps) {
     }
   };
 
+  
+
   return (
   <div style={{ display: "flex", minHeight: "100vh", background: "#f3f4f6" }}>
 
@@ -116,14 +188,25 @@ export default function Organization({ user }: PageProps) {
   >
 
         {/* HEADER */}
-      <div style={pageHeader}>
-           <button onClick={() => setShowOrgModal(true)} style={saveBtn}>
-           Create Participants
-          </button>
-          <button onClick={() => setShowOrgModal(true)} style={saveBtn}>
-            Create Organization
-          </button>
-        </div>
+         <div style={pageHeader}>
+      <h1 style={pageTitle}>Organization</h1>
+    
+      <div style={{ display: "flex", gap: "10px" }}>
+        <button
+          onClick={() => setShowParticipantModal(true)}
+          style={saveBtn}
+        >
+          Create Participant
+        </button>
+    
+        <button
+          onClick={() => setShowOrgModal(true)}
+          style={saveBtn}
+        >
+          Create Organization
+        </button>
+      </div>
+    </div>
 
     
 
@@ -142,7 +225,7 @@ export default function Organization({ user }: PageProps) {
             <tbody>
               {organizations.length === 0 ? (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: "center", padding: "20px" }}>
+                  <td colSpan={4} style={{ textAlign: "center", padding: "20px" }}>
                     No data found
                   </td>
                 </tr>
@@ -207,6 +290,148 @@ export default function Organization({ user }: PageProps) {
           </div>
         </div>
       )}
+
+  {showParticipantModal && (
+  <div style={modalOverlay}>
+    <div style={modalBox}>
+
+      <h2>Add Participant</h2>
+
+      <select
+        style={inputStyle}
+        value={participantForm.organization}
+        onChange={(e) =>
+          setParticipantForm({
+            ...participantForm,
+            organization: e.target.value,
+          })
+        }
+      >
+        <option value="">
+          Select Organization
+        </option>
+
+        {organizations.map((org: any) => (
+          <option
+            key={org.id}
+            value={org.organizationName}
+          >
+            {org.organizationName}
+          </option>
+        ))}
+      </select>
+
+      <input
+        style={inputStyle}
+        placeholder="First Name"
+        value={participantForm.firstName}
+        onChange={(e) =>
+          setParticipantForm({
+            ...participantForm,
+            firstName: e.target.value,
+          })
+        }
+      />
+
+      <input
+        style={inputStyle}
+        placeholder="Middle Name"
+        value={participantForm.middleName}
+        onChange={(e) =>
+          setParticipantForm({
+            ...participantForm,
+            middleName: e.target.value,
+          })
+        }
+      />
+
+      <input
+        style={inputStyle}
+        placeholder="Last Name"
+        value={participantForm.lastName}
+        onChange={(e) =>
+          setParticipantForm({
+            ...participantForm,
+            lastName: e.target.value,
+          })
+        }
+      />
+
+      <input
+        style={inputStyle}
+        placeholder="Email"
+        value={participantForm.email}
+        onChange={(e) =>
+          setParticipantForm({
+            ...participantForm,
+            email: e.target.value,
+          })
+        }
+      />
+
+      <input
+        style={inputStyle}
+        placeholder="Phone Number"
+        value={participantForm.phoneNo}
+        onChange={(e) =>
+          setParticipantForm({
+            ...participantForm,
+            phoneNo: e.target.value,
+          })
+        }
+      />
+
+      <div
+        style={{
+          display: "flex",
+          gap: "10px",
+        }}
+      >
+        <input
+          style={{
+            ...inputStyle,
+            flex: 1,
+          }}
+          placeholder="Password"
+          value={participantForm.password}
+          readOnly
+        />
+
+        <button
+          style={saveBtn}
+          onClick={generatePassword}
+        >
+          Generate
+        </button>
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "end",
+          gap: "10px",
+        }}
+      >
+        <button
+          onClick={() =>
+            setShowParticipantModal(false)
+          }
+        >
+          Cancel
+        </button>
+
+        <button
+          style={saveBtn}
+          onClick={handleCreateParticipant}
+        >
+          Save
+        </button>
+      </div>
+
+    </div>
+  </div>
+)}
+  
     </div>
     </div>
   );
