@@ -96,10 +96,20 @@ export default function Organization({ user }: PageProps) {
 
       <Sidebar />
 
-<div style={{ flex: 1 }}>
+<div
+  style={{
+    flex: 1,
+    marginLeft: "260px", // Sidebar width
+  }}
+>
   <Header user={user} />
 
-  <div style={{ padding: "20px 30px" }}>
+  <div
+    style={{
+      padding: "25px",
+      marginTop: "80px", // Header height + spacing
+    }}
+  >
 
         {/* HEADER */}
       <div style={pageHeader}>
@@ -199,9 +209,9 @@ export default function Organization({ user }: PageProps) {
 
 const card: any = {
   background: "white",
-  padding: "20px",
-  borderRadius: "12px",
-  boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+  padding: "24px",
+  borderRadius: "18px",
+  boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
 };
 
 const saveBtn: any = {
@@ -216,7 +226,8 @@ const saveBtn: any = {
 
 
 const tableHeader: any = {
-  padding: "12px",
+  padding: "16px",
+  fontSize: "15px",
   textAlign: "left",
   background: "#f9fafb",
   borderBottom: "1px solid #e5e7eb",
@@ -266,7 +277,9 @@ const pageHeader = {
 };
 
 const pageTitle = {
-  fontSize: "26px",
-  fontWeight: "600",
+  fontSize: "32px",
+  fontWeight: "700",
+  color: "#111827",
+  margin: 0,
 };
 
