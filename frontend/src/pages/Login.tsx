@@ -54,87 +54,145 @@ export default function Login({ onLogin }: LoginProps) {
   return (
   <div
     style={{
-      height: "100vh",
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      background: "linear-gradient(135deg, #2563eb, #1e40af)",
+      minHeight: "100vh",
+      background: "#f3f4f6",
       fontFamily: "Segoe UI, sans-serif",
     }}
   >
+    {/* Top Header */}
     <div
       style={{
+        height: "70px",
         background: "white",
-        padding: "40px",
-        borderRadius: "15px",
-        boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
-        width: "350px",
-        textAlign: "center",
+        borderBottom: "1px solid #e5e7eb",
+        display: "flex",
+        alignItems: "center",
+        padding: "0 30px",
       }}
     >
-      {/* Header */}
-      <h1 style={{ marginBottom: "10px", color: "#1e3a8a" }}>
-        Grow Your Business
-      </h1>
-
-      <p style={{ marginBottom: "25px", color: "#6b7280" }}>
-        Welcome! Please enter your email
-      </p>
-
-      {/* Input */}
-      <input
-        id="email"
-        type="email"
-        placeholder="Enter Email ID"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
+      <div
         style={{
-          width: "100%",
-          padding: "12px",
-          border: "1px solid #d1d5db",
-          borderRadius: "8px",
-          fontSize: "16px",
-          marginBottom: "15px",
-          outline: "none",
+          width: "45px",
+          height: "45px",
+          background: "#8B0022",
+          borderRadius: "12px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "white",
+          fontWeight: "700",
+          fontSize: "22px",
+          marginRight: "15px",
         }}
-      />
+      >
+        K
+      </div>
 
-      {/* Message */}
-      {message && (
+      <div>
         <div
           style={{
-            color: message.includes("✓") ? "green" : "red",
-            fontSize: "14px",
-            marginBottom: "10px",
+            fontSize: "22px",
+            fontWeight: "600",
+            color: "#111827",
           }}
         >
-          {message}
+          KNAV Portal
         </div>
-      )}
 
-      {/* Button */}
-      <button
-        onClick={checkEmail}
+        <div
+          style={{
+            fontSize: "13px",
+            color: "#6b7280",
+          }}
+        >
+          Workshop Management System
+        </div>
+      </div>
+    </div>
+
+    {/* Login Area */}
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        height: "calc(100vh - 70px)",
+      }}
+    >
+      <div
         style={{
-          width: "100%",
-          background: "#2563eb",
-          color: "white",
-          border: "none",
-          padding: "12px",
-          borderRadius: "8px",
-          fontSize: "16px",
-          cursor: "pointer",
-          transition: "0.3s",
+          width: "420px",
+          background: "white",
+          borderRadius: "16px",
+          padding: "40px",
+          boxShadow: "0 10px 25px rgba(0,0,0,0.08)",
         }}
-        onMouseOver={(e) =>
-          (e.currentTarget.style.background = "#1e40af")
-        }
-        onMouseOut={(e) =>
-          (e.currentTarget.style.background = "#2563eb")
-        }
       >
-        Check Email
-      </button>
+        <h2
+          style={{
+            textAlign: "center",
+            marginBottom: "10px",
+            color: "#111827",
+          }}
+        >
+          Welcome Back
+        </h2>
+
+        <p
+          style={{
+            textAlign: "center",
+            color: "#6b7280",
+            marginBottom: "30px",
+          }}
+        >
+          Enter your registered email address
+        </p>
+
+        <input
+          type="email"
+          placeholder="Enter Email ID"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          style={{
+            width: "100%",
+            padding: "14px",
+            border: "1px solid #d1d5db",
+            borderRadius: "10px",
+            fontSize: "15px",
+            boxSizing: "border-box",
+            marginBottom: "15px",
+          }}
+        />
+
+        {message && (
+          <div
+            style={{
+              color: message.includes("✓") ? "green" : "red",
+              marginBottom: "15px",
+              fontSize: "14px",
+            }}
+          >
+            {message}
+          </div>
+        )}
+
+        <button
+          onClick={checkEmail}
+          style={{
+            width: "100%",
+            background: "#8B0022",
+            color: "white",
+            border: "none",
+            padding: "14px",
+            borderRadius: "10px",
+            fontSize: "16px",
+            fontWeight: "600",
+            cursor: "pointer",
+          }}
+        >
+          Continue
+        </button>
+      </div>
     </div>
   </div>
 );
