@@ -20,7 +20,7 @@ export default function Header({ user }: any) {
         top: 0,
         left: "220px",
         right: 0,
-        height: "50px",
+        height: "60px",
         background: "#264ECF",
         display: "flex",
         justifyContent: "space-between",
@@ -32,8 +32,8 @@ export default function Header({ user }: any) {
     >
       <div
         style={{
-          width: "48px",
-          height: "48px",
+          width: "45px",
+          height: "45px",
           borderRadius: "50%",
           border: "2px solid rgba(255,255,255,0.25)",
           display: "flex",
