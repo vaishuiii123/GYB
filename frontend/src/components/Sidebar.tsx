@@ -28,7 +28,7 @@ export default function Sidebar() {
     <div
       style={{
         width: "220px",
-        background: "#081B45",
+        background: "#0A1F5C",
         position: "fixed",
         left: 0,
         top: 0,
@@ -57,7 +57,7 @@ export default function Sidebar() {
               style={{
                 width: "48px",
                 height: "48px",
-                background: "#2E5BFF",
+                background: "#2952D5",
                 borderRadius: "12px",
                 display: "flex",
                 justifyContent: "center",
