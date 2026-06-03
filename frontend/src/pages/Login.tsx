@@ -51,38 +51,40 @@ export default function Login({ onLogin }: LoginProps) {
     }
   };
 
-  return (
+ return (
   <div
     style={{
       minHeight: "100vh",
-      background: "#f3f4f6",
+      background: "#eef3ff",
       fontFamily: "Segoe UI, sans-serif",
+      display: "flex",
+      flexDirection: "column",
     }}
   >
-    {/* Top Header */}
+    {/* HEADER */}
     <div
       style={{
-        height: "70px",
+        height: "80px",
         background: "white",
         borderBottom: "1px solid #e5e7eb",
         display: "flex",
         alignItems: "center",
-        padding: "0 30px",
+        padding: "0 40px",
       }}
     >
       <div
         style={{
-          width: "45px",
-          height: "45px",
-          background: "#8B0022",
-          borderRadius: "12px",
+          width: "55px",
+          height: "55px",
+          background: "#2f56d4",
+          borderRadius: "16px",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           color: "white",
+          fontSize: "28px",
           fontWeight: "700",
-          fontSize: "22px",
-          marginRight: "15px",
+          marginRight: "18px",
         }}
       >
         K
@@ -91,8 +93,8 @@ export default function Login({ onLogin }: LoginProps) {
       <div>
         <div
           style={{
-            fontSize: "22px",
-            fontWeight: "600",
+            fontSize: "26px",
+            fontWeight: "700",
             color: "#111827",
           }}
         >
@@ -101,8 +103,9 @@ export default function Login({ onLogin }: LoginProps) {
 
         <div
           style={{
-            fontSize: "13px",
+            fontSize: "14px",
             color: "#6b7280",
+            marginTop: "3px",
           }}
         >
           Workshop Management System
@@ -110,39 +113,59 @@ export default function Login({ onLogin }: LoginProps) {
       </div>
     </div>
 
-    {/* Login Area */}
+    {/* LOGIN SECTION */}
     <div
       style={{
+        flex: 1,
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        height: "calc(100vh - 70px)",
       }}
     >
       <div
         style={{
-          width: "420px",
+          width: "500px",
           background: "white",
-          borderRadius: "16px",
-          padding: "40px",
-          boxShadow: "0 10px 25px rgba(0,0,0,0.08)",
+          borderRadius: "25px",
+          padding: "50px",
+          boxShadow: "0 15px 40px rgba(0,0,0,0.08)",
+          textAlign: "center",
         }}
       >
-        <h2
+        {/* EMAIL ICON */}
+        <div
           style={{
-            textAlign: "center",
-            marginBottom: "10px",
-            color: "#111827",
+            width: "100px",
+            height: "100px",
+            background: "#edf2ff",
+            borderRadius: "50%",
+            margin: "0 auto 25px auto",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "45px",
+          }}
+        >
+          📧
+        </div>
+
+        <h1
+          style={{
+            margin: 0,
+            fontSize: "48px",
+            fontWeight: "700",
+            color: "#0f172a",
           }}
         >
           Welcome Back
-        </h2>
+        </h1>
 
         <p
           style={{
-            textAlign: "center",
             color: "#6b7280",
-            marginBottom: "30px",
+            fontSize: "18px",
+            marginTop: "15px",
+            marginBottom: "35px",
           }}
         >
           Enter your registered email address
@@ -155,12 +178,13 @@ export default function Login({ onLogin }: LoginProps) {
           onChange={(e) => setEmail(e.target.value)}
           style={{
             width: "100%",
-            padding: "14px",
-            border: "1px solid #d1d5db",
-            borderRadius: "10px",
-            fontSize: "15px",
+            height: "60px",
+            border: "2px solid #d1d5db",
+            borderRadius: "14px",
+            paddingLeft: "20px",
+            fontSize: "18px",
             boxSizing: "border-box",
-            marginBottom: "15px",
+            marginBottom: "20px",
           }}
         />
 
@@ -169,7 +193,7 @@ export default function Login({ onLogin }: LoginProps) {
             style={{
               color: message.includes("✓") ? "green" : "red",
               marginBottom: "15px",
-              fontSize: "14px",
+              fontWeight: "600",
             }}
           >
             {message}
@@ -180,12 +204,12 @@ export default function Login({ onLogin }: LoginProps) {
           onClick={checkEmail}
           style={{
             width: "100%",
-            background: "#8B0022",
-            color: "white",
+            height: "60px",
             border: "none",
-            padding: "14px",
-            borderRadius: "10px",
-            fontSize: "16px",
+            borderRadius: "14px",
+            background: "#2f56d4",
+            color: "white",
+            fontSize: "22px",
             fontWeight: "600",
             cursor: "pointer",
           }}
@@ -193,6 +217,18 @@ export default function Login({ onLogin }: LoginProps) {
           Continue
         </button>
       </div>
+    </div>
+
+    {/* FOOTER */}
+    <div
+      style={{
+        textAlign: "center",
+        paddingBottom: "25px",
+        color: "#6b7280",
+        fontSize: "14px",
+      }}
+    >
+      © 2026 KNAV Portal. All rights reserved.
     </div>
   </div>
 );
