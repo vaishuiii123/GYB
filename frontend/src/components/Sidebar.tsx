@@ -27,7 +27,7 @@ export default function Sidebar() {
   return (
   <div
     style={{
-      width: "240px",
+      width: "200px",
       background: "#081B45",
       position: "fixed",
       left: 0,
@@ -41,9 +41,9 @@ export default function Sidebar() {
     <div>
       <div
         style={{
-          padding: "25px",
+          padding: "18px",
           color: "white",
-          fontSize: "24px",
+          fontSize: "20px",
           fontWeight: "600",
           borderBottom: "1px solid rgba(255,255,255,0.1)",
         }}
@@ -55,7 +55,7 @@ export default function Sidebar() {
         style={{
           display: "flex",
           flexDirection: "column",
-          gap: "8px",
+          gap: "4px",
           padding: "15px",
         }}
       >
@@ -67,12 +67,12 @@ export default function Sidebar() {
               textDecoration: "none",
               background: isActive ? "#2E5BFF" : "transparent",
               color: "white",
-              padding: "14px 18px",
+              padding: "10px 14px",
               borderRadius: "12px",
               display: "flex",
               alignItems: "center",
               gap: "12px",
-              fontSize: "16px",
+              fontSize: "14px",
             })}
           >
             <span>{item.icon}</span>
