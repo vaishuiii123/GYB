@@ -92,17 +92,18 @@ export default function Organization({ user }: PageProps) {
   };
 
   return (
-    <div style={{ background: "#f3f4f6", minHeight: "100vh" }}>
+  <div style={{ display: "flex", minHeight: "100vh", background: "#f3f4f6" }}>
 
-      <Header user={user} />
       <Sidebar />
 
-      <div style={{ marginLeft: "20px", padding: "20px" }}>
+<div style={{ flex: 1 }}>
+  <Header user={user} />
+
+  <div style={{ padding: "20px 30px" }}>
 
         {/* HEADER */}
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px" }}>
-          <h1 style={{ fontSize: "30px" }}>Organization</h1>
-
+      <div style={pageHeader}>
+          <h1 style={pageTitle}>Organization</h1>
           <button onClick={() => setShowOrgModal(true)} style={saveBtn}>
             Create Organization
           </button>
@@ -153,6 +154,7 @@ export default function Organization({ user }: PageProps) {
             <h2>Create Organization</h2>
 
             <input
+              style={inputStyle}
               placeholder="Organization Name"
               value={orgForm.organizationName}
               onChange={(e) =>
@@ -161,6 +163,7 @@ export default function Organization({ user }: PageProps) {
             />
 
             <input
+              style={inputStyle}
               placeholder="Contact Person"
               value={orgForm.contactPerson}
               onChange={(e) =>
@@ -169,6 +172,7 @@ export default function Organization({ user }: PageProps) {
             />
 
             <input
+              style={inputStyle}
               placeholder="Email"
               value={orgForm.email}
               onChange={(e) =>
@@ -187,6 +191,7 @@ export default function Organization({ user }: PageProps) {
         </div>
       )}
     </div>
+    </div>
   );
 }
 
@@ -195,26 +200,34 @@ export default function Organization({ user }: PageProps) {
 const card: any = {
   background: "white",
   padding: "20px",
-  borderRadius: "10px",
+  borderRadius: "12px",
+  boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
 };
 
 const saveBtn: any = {
-  background: "#2F57C3",
+  background: "#3b5bcc",
   color: "white",
-  padding: "5px 15px",
+  padding: "8px 16px",
   border: "none",
-  borderRadius: "6px",
+  borderRadius: "8px",
+  fontWeight: "500",
+  cursor: "pointer",
 };
 
+
 const tableHeader: any = {
-  padding: "10px",
-  borderBottom: "1px solid #ddd",
+  padding: "12px",
+  textAlign: "left",
+  background: "#f9fafb",
+  borderBottom: "1px solid #e5e7eb",
+  fontWeight: "600",
 };
 
 const tableCell: any = {
-  padding: "10px",
-  borderBottom: "1px solid #f3f4f6",
+  padding: "12px",
+  borderBottom: "1px solid #f1f1f1",
 };
+
 
 const modalOverlay: any = {
   position: "fixed",
@@ -230,9 +243,30 @@ const modalOverlay: any = {
 
 const modalBox: any = {
   background: "white",
-  padding: "20px",
-  borderRadius: "10px",
+  padding: "25px",
+  borderRadius: "12px",
+  width: "400px",
   display: "flex",
   flexDirection: "column",
-  gap: "10px",
+  gap: "12px",
 };
+
+const inputStyle = {
+  padding: "10px",
+  border: "1px solid #ddd",
+  borderRadius: "6px",
+};
+
+
+const pageHeader = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: "20px",
+};
+
+const pageTitle = {
+  fontSize: "26px",
+  fontWeight: "600",
+};
+
