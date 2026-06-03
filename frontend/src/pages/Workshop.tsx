@@ -1,7 +1,14 @@
+import Header from "../components/Header";
+import Sidebar from "../components/Sidebar";
+
 import {
   useState,
   useEffect,
 } from "react";
+
+type PageProps = {
+  user?: any;
+};
 
 export default function Workshop() {
   const [workshops, setWorkshops] =
@@ -115,6 +122,10 @@ export default function Workshop() {
         minHeight: "100vh",
       }}
     >
+
+      <Header user={user} />
+      <Sidebar />
+      
       {/* TITLE */}
 
       <div
