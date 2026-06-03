@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import * as XLSX from "xlsx";
+//import * as XLSX from "xlsx";
 
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
@@ -101,7 +101,8 @@ const [participantForm, setParticipantForm] =
 } catch (error) {
   console.error("Create Participant Error:", error);
   alert("Failed to create participant");
-}
+  }
+  };
   
   // ================= ORGANIZATIONS =================
   const [organizations, setOrganizations] = useState<any[]>([]);
