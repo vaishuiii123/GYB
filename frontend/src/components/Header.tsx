@@ -21,148 +21,109 @@ export default function Header({ user }: any) {
     });
   };
 
- return (
+return (
   <div
     style={{
-      height: "70px",
-      background: "white",
-      borderBottom: "1px solid #e5e7eb",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      padding: "0 25px",
-      boxSizing: "border-box",
       position: "fixed",
       top: 0,
-      left: "220px", // same as sidebar width
+      left: "260px", // same as sidebar width
       right: 0,
+      height: "70px",
+      background: "#2f56d4",
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      padding: "0 35px",
+      boxSizing: "border-box",
       zIndex: 1000,
+      boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
     }}
   >
-    {/* LEFT SECTION */}
+    {/* LEFT */}
+    <div
+      style={{
+        width: "46px",
+        height: "46px",
+        borderRadius: "50%",
+        border: "2px solid rgba(255,255,255,0.25)",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        color: "white",
+        fontSize: "22px",
+        cursor: "pointer",
+      }}
+    >
+      ☰
+    </div>
+
+    {/* RIGHT */}
     <div
       style={{
         display: "flex",
         alignItems: "center",
-        gap: "20px",
+        gap: "25px",
+        color: "white",
       }}
     >
-      {/* Menu Icon */}
-      <div
-        style={{
-          width: "42px",
-          height: "42px",
-          borderRadius: "50%",
-          background: "#3b5bcc",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "white",
-          fontSize: "20px",
-          cursor: "pointer",
-        }}
-      >
-        ☰
-      </div>
-
-      {/* Breadcrumb */}
+      {/* USER */}
       <div
         style={{
           display: "flex",
           alignItems: "center",
           gap: "12px",
-          fontSize: "16px",
         }}
       >
-        <span style={{ color: "#6b7280" }}>Dashboard</span>
-
-        <span style={{ color: "#9ca3af" }}>/</span>
+        <div
+          style={{
+            width: "40px",
+            height: "40px",
+            borderRadius: "50%",
+            background: "rgba(255,255,255,0.25)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            fontSize: "20px",
+          }}
+        >
+          👤
+        </div>
 
         <span
           style={{
-            color: "#3b5bcc",
             fontWeight: "600",
-          }}
-        >
-          Organization
-        </span>
-      </div>
-    </div>
-
-    {/* RIGHT SECTION */}
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "20px",
-      }}
-    >
-      {/* Search */}
-      <input
-        placeholder="Search..."
-        style={{
-          width: "260px",
-          height: "42px",
-          border: "1px solid #d1d5db",
-          borderRadius: "12px",
-          padding: "0 15px",
-          fontSize: "14px",
-          outline: "none",
-          background: "#f9fafb",
-        }}
-      />
-
-      {/* Notification */}
-      <div
-        style={{
-          fontSize: "22px",
-          cursor: "pointer",
-        }}
-      >
-        🔔
-      </div>
-
-      {/* User */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "10px",
-        }}
-      >
-        <div
-          style={{
-            width: "42px",
-            height: "42px",
-            borderRadius: "50%",
-            background: "#3b5bcc",
-            color: "white",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontWeight: "600",
-          }}
-        >
-          U
-        </div>
-
-        <div
-          style={{
-            fontWeight: "600",
-            color: "#111827",
+            fontSize: "18px",
           }}
         >
           {user?.name || "User"}
-        </div>
-
-        <span
-          style={{
-            color: "#6b7280",
-            cursor: "pointer",
-          }}
-        >
-          ▼
         </span>
+
+        <span style={{ fontSize: "12px" }}>▼</span>
+      </div>
+
+      {/* DIVIDER */}
+      <div
+        style={{
+          width: "1px",
+          height: "35px",
+          background: "rgba(255,255,255,0.25)",
+        }}
+      />
+
+      {/* LOGOUT */}
+      <div
+        onClick={handleLogout}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+          cursor: "pointer",
+          fontWeight: "600",
+          fontSize: "18px",
+        }}
+      >
+        <span style={{ fontSize: "24px" }}>↪</span>
+        Logout
       </div>
     </div>
   </div>
