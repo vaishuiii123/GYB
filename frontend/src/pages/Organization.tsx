@@ -16,7 +16,11 @@ export default function Organization({ user }: PageProps) {
   // ================= FETCH FROM AZURE =================
   const fetchOrganizations = async () => {
     try {
-      const res = await fetch("/api/get-organizations");
+      const res = await fetch(
+              `/api/get-organizations?createdBy=${encodeURIComponent(
+                user?.name || ""
+              )}`
+            );
       const data = await res.json();
 
       if (data.success) {
