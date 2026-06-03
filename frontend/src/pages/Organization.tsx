@@ -117,11 +117,15 @@ export default function Organization({ user }: PageProps) {
 
         {/* HEADER */}
       <div style={pageHeader}>
-          <h1 style={pageTitle}>Organization</h1>
+           <button onClick={() => setShowOrgModal(true)} style={saveBtn}>
+           Create Participants
+          </button>
           <button onClick={() => setShowOrgModal(true)} style={saveBtn}>
             Create Organization
           </button>
         </div>
+
+    
 
         {/* TABLE */}
         <div style={card}>
@@ -132,7 +136,6 @@ export default function Organization({ user }: PageProps) {
                 <th style={tableHeader}>Organization Name</th>
                 <th style={tableHeader}>Contact Person</th>
                 <th style={tableHeader}>Email</th>
-                <th style={tableHeader}>Created By</th>
               </tr>
             </thead>
 
