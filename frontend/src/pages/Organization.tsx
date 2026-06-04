@@ -60,8 +60,8 @@ const [participantForm, setParticipantForm] =
   }
 }, [user]);
 
-
  const handleEdit = (org: any) => {
+  console.log("EDIT CLICKED");
   setEditOrganization(org);
   setShowEditModal(true);
 };
@@ -695,73 +695,71 @@ const [participantForm, setParticipantForm] =
     </div>
   </div>
       )}
-
-        {//================= VIEW ORGANIZATION ===================================}
-         {showViewModal && (
-              <div style={modalOverlay}>
-                <div
+  
+               {showViewModal && (
+          <div style={modalOverlay}>
+            <div
+              style={{
+                background: "#fff",
+                borderRadius: "16px",
+                width: "90%",
+                maxWidth: "1000px",
+                overflow: "hidden",
+                boxShadow: "0 10px 40px rgba(0,0,0,0.2)",
+              }}
+            >
+              <div
+                style={{
+                  background: "#3b5bcc",
+                  color: "white",
+                  padding: "20px",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <h2 style={{ margin: 0 }}>
+                  Participants - {selectedOrganization?.organizationName}
+                </h2>
+        
+                <button
+                  onClick={() => setShowViewModal(false)}
                   style={{
-                    background: "#fff",
-                    borderRadius: "16px",
-                    width: "90%",
-                    maxWidth: "1000px",
-                    overflow: "hidden",
-                    boxShadow: "0 10px 40px rgba(0,0,0,0.2)",
-                  }}
-                >
-                <div
-                  style={{
-                    background: "#3b5bcc",
+                    background: "transparent",
+                    border: "none",
                     color: "white",
-                    padding: "20px",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
+                    fontSize: "22px",
+                    cursor: "pointer",
                   }}
                 >
-                  <h2 style={{ margin: 0 }}>
-                    Participants - {selectedOrganization?.organizationName}
-                  </h2>
-                
-                  <button
-                    onClick={() => setShowViewModal(false)}
+                  ✕
+                </button>
+              </div>
+        
+              <div
+                style={{
+                  maxHeight: "500px",
+                  overflowY: "auto",
+                  padding: "20px",
+                }}
+              >
+                {participants.length === 0 ? (
+                  <div
                     style={{
-                      background: "transparent",
-                      border: "none",
-                      color: "white",
-                      fontSize: "22px",
-                      cursor: "pointer",
+                      textAlign: "center",
+                      padding: "40px",
+                      color: "#6b7280",
                     }}
                   >
-                    ✕
-                  </button>
-                </div>
-               {participants.length === 0 ? (
-                    <div
-                      style={{
-                        padding: "40px",
-                        textAlign: "center",
-                        color: "#6b7280",
-                      }}
-                    >
-                      No participants found.
-                    </div>
-                  ) : (
-                  
-                    <div
-                      style={{
-                        maxHeight: "500px",
-                        overflowY: "auto",
-                        padding: "20px",
-                      }}
-                    >
-                  
-                      <table
-                        style={{
-                          width: "100%",
-                          borderCollapse: "collapse",
-                        }}
-                      >
+                    No participants found.
+                  </div>
+                ) : (
+                  <table
+                    style={{
+                      width: "100%",
+                      borderCollapse: "collapse",
+                    }}
+                  >
                     <thead>
                       <tr>
                         <th style={tableHeader}>First Name</th>
@@ -769,22 +767,25 @@ const [participantForm, setParticipantForm] =
                         <th style={tableHeader}>Password</th>
                       </tr>
                     </thead>
-          
+        
                     <tbody>
                       {participants.map((p, index) => (
                         <tr key={index}>
                           <td style={tableCell}>{p.firstName}</td>
                           <td style={tableCell}>{p.email}</td>
-                          <td>{"•".repeat(p.password.length)}</td>
+                          <td style={tableCell}>{p.password ? "********" : "-"}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
-
-                      <div
+                )}
+              </div>
+        
+              <div
                 style={{
-                  marginTop: "20px",
+                  padding: "20px",
                   textAlign: "right",
+                  borderTop: "1px solid #e5e7eb",
                 }}
               >
                 <button
@@ -794,10 +795,6 @@ const [participantForm, setParticipantForm] =
                   Close
                 </button>
               </div>
-                
-                </div>
-              )}
-              
             </div>
           </div>
         )}
