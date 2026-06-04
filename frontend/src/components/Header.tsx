@@ -96,6 +96,8 @@ export default function Header({ user }: any) {
       color: "white",
     }}
   >
+     {initials}
+   
     ↪ Logout
   </div>
 </div>  
