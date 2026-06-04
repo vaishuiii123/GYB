@@ -49,23 +49,28 @@ const [participantForm, setParticipantForm] =
 }, [user]);
 
     const handleView = async (org: any) => {
-          setSelectedOrganization(org);
-          try {
-            const response = await fetch(
-              `/api/get-participants-by-organization?organization=${encodeURIComponent(
-                org.organizationName
-              )}`
-            );
-            const data = await response.json();
-            if (data.success) {
-              setParticipants(data.participants);
-              setShowViewModal(true);
-            }
-          } catch (err) {
-            console.error(err);
-            alert("Failed to load participants");
-          }
-        };
+  setSelectedOrganization(org);
+
+  try {
+    const response = await fetch(
+      `/api/get-participants?organization=${encodeURIComponent(
+        org.organizationName
+      )}`
+    );
+
+    const data = await response.json();
+
+    if (data.success) {
+      setParticipants(data.participants);
+      setShowViewModal(true);
+    } else {
+      alert("Failed to load participants");
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Failed to load participants");
+  }
+};
   
   const handleCreateParticipant = async () => {
 
