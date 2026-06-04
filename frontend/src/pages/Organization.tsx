@@ -245,17 +245,18 @@ const [participantForm, setParticipantForm] =
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
-                <th style={tableHeader}>Sr No.</th>
-                <th style={tableHeader}>Organization Name</th>
-                <th style={tableHeader}>Contact Person</th>
-                <th style={tableHeader}>Email</th>
+              <th style={tableHeader}>Sr No.</th>
+              <th style={tableHeader}>Organization Name</th>
+              <th style={tableHeader}>Contact Person</th>
+              <th style={tableHeader}>Email</th>
+              <th style={tableHeader}>Actions</th>
               </tr>
             </thead>
 
             <tbody>
               {organizations.length === 0 ? (
                 <tr>
-                  <td colSpan={4} style={{ textAlign: "center", padding: "20px" }}>
+                  <td colSpan={5} style={{ textAlign: "center", padding: "20px" }}>
                     No data found
                   </td>
                 </tr>
@@ -266,6 +267,26 @@ const [participantForm, setParticipantForm] =
                     <td style={tableCell}>{org.organizationName || "-"}</td>
                     <td style={tableCell}>{org.contactPerson || "-"}</td>
                     <td style={tableCell}>{org.email || "-"}</td>
+                    <td style={tableCell}>
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "8px",
+                        }}
+                      >
+                        <button style={viewBtn}>
+                          👁 View
+                        </button>
+                    
+                        <button style={editBtn}>
+                          ✏ Edit
+                        </button>
+                    
+                        <button style={deleteBtn}>
+                          🗑 Delete
+                        </button>
+                      </div>
+                    </td>
                    
                   </tr>
                 ))
@@ -342,13 +363,13 @@ const [participantForm, setParticipantForm] =
         </option>
 
         {organizations.map((org: any) => (
-          <option
-            key={org.id}
-            value={org.organizationName}
-          >
-            {org.organizationName}
-          </option>
-        ))}
+        <option
+          key={org.organizationName}
+          value={org.organizationName}
+        >
+          {org.organizationName}
+        </option>
+      ))}
       </select>
 
       <input
@@ -423,6 +444,7 @@ const [participantForm, setParticipantForm] =
     value={participantForm.password}
     onFocus={() => setShowPasswordRules(true)}
     onClick={() => setShowPasswordRules(true)}
+    onBlur={() => setShowPasswordRules(false)}
     onChange={(e) =>
       setParticipantForm({
         ...participantForm,
@@ -608,6 +630,35 @@ const saveBtn: any = {
   cursor: "pointer",
 };
 
+const viewBtn: any = {
+  background: "#22c55e",
+  color: "white",
+  border: "none",
+  borderRadius: "6px",
+  padding: "6px 12px",
+  cursor: "pointer",
+  fontSize: "13px",
+};
+
+const editBtn: any = {
+  background: "#3b82f6",
+  color: "white",
+  border: "none",
+  borderRadius: "6px",
+  padding: "6px 12px",
+  cursor: "pointer",
+  fontSize: "13px",
+};
+
+const deleteBtn: any = {
+  background: "#ef4444",
+  color: "white",
+  border: "none",
+  borderRadius: "6px",
+  padding: "6px 12px",
+  cursor: "pointer",
+  fontSize: "13px",
+};
 
 const tableHeader: any = {
   padding: "16px",
