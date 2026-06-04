@@ -1,5 +1,9 @@
-return (
-  <div>
-    TEST PAGE
-  </div>
-);
+function App() {
+  return (
+    <div>
+      TEST PAGE
+    </div>
+  );
+}
+
+export default App;
