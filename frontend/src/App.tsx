@@ -23,12 +23,17 @@ function App() {
 
   return (
     <HashRouter>
-      <Routes>
+     <Routes>
         <Route
           path="/"
-          element={<Dashboard/>}
+          element={<AdminLogin onLogin={handleLogin} />}
         />
-      </Routes>  
+      
+        <Route
+          path="/dashboard"
+          element={<Dashboard user={currentUser} />}
+        />
+      </Routes>
     </HashRouter>
   );
 }
