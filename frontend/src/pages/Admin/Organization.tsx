@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 //import * as XLSX from "xlsx";
 
-import Header from "../components/Header";
-import Sidebar from "../components/Sidebar";
+import Header from "../../components/Header";
+import Sidebar from "../../components/Sidebar";
 
 type PageProps = {
   user?: any;
