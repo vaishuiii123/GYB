@@ -10,6 +10,9 @@ type PageProps = {
 
 export default function Organization({ user }: PageProps) {
 
+  const [successMessage, setSuccessMessage] =
+  useState("");
+  
   const [showParticipantModal, setShowParticipantModal] =
   useState(false);
 
@@ -85,8 +88,9 @@ const [participantForm, setParticipantForm] =
   const result = JSON.parse(text);
 
   if (result.success) {
-
-    alert("Participant created successfully");
+    setSuccessMessage(
+      "Participant created successfully"
+    );
 
     setShowParticipantModal(false);
 
@@ -412,7 +416,7 @@ const [participantForm, setParticipantForm] =
     type={showPassword ? "text" : "password"}
     style={{
       ...inputStyle,
-      paddingRight: "40px",
+      paddingRight: "30px",
       boxSizing: "border-box",
     }}
     placeholder="Password"
@@ -524,6 +528,64 @@ const [participantForm, setParticipantForm] =
   
     </div>
     </div>
+    {successMessage && (
+  <div style={modalOverlay}>
+    <div
+      style={{
+        background: "#fff",
+        padding: "30px",
+        borderRadius: "15px",
+        width: "400px",
+        textAlign: "center",
+        boxShadow:
+          "0 10px 30px rgba(0,0,0,0.2)",
+      }}
+    >
+      <div
+        style={{
+          fontSize: "55px",
+          marginBottom: "15px",
+        }}
+      >
+        ✅
+      </div>
+
+      <h2
+        style={{
+          marginBottom: "10px",
+          color: "#111827",
+        }}
+      >
+        Success
+      </h2>
+
+      <p
+        style={{
+          color: "#6b7280",
+          marginBottom: "20px",
+        }}
+      >
+        {successMessage}
+      </p>
+
+      <button
+        style={{
+          background: "#3b5bcc",
+          color: "white",
+          border: "none",
+          padding: "10px 25px",
+          borderRadius: "8px",
+          cursor: "pointer",
+        }}
+        onClick={() =>
+          setSuccessMessage("")
+        }
+      >
+        OK
+      </button>
+    </div>
+  </div>
+)}
   );
 }
 
