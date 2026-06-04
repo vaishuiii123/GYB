@@ -6,11 +6,11 @@ import {
   Route,
 } from "react-router-dom";
 
-import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
-import Organization from "./pages/Organization";
-import Template from "./pages/Template";
-import Workshop from "./pages/Workshop";
+import Login from "./pages/auth/AdminLogin";
+import Dashboard from "./pages/Admin/Dashboard";
+import Organization from "./pages/Admin/Organization";
+import Template from "./pages/Admin/Template";
+import Workshop from "./pages/Admin/Workshop";
 
 function App() {
   const [currentUser, setCurrentUser] = useState<any>(() => {
@@ -31,7 +31,7 @@ function App() {
         {/* ✅ Login route */}
         <Route
           path="/"
-          element={<Login onLogin={handleLogin} />}
+          element={<AdminLogin onLogin={handleLogin} />}
         />
 
         {/* ✅ Dashboard route */}
