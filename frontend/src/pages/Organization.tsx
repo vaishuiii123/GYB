@@ -10,6 +10,12 @@ type PageProps = {
 
 export default function Organization({ user }: PageProps) {
 
+  const [showViewModal, setShowViewModal] =
+  useState(false);
+
+  const [selectedOrganization, setSelectedOrganization] =
+  useState<any>(null);
+  
   const [successMessage, setSuccessMessage] =
   useState("");
   
@@ -193,7 +199,11 @@ const [participantForm, setParticipantForm] =
     }
   };
 
-  
+      const handleView = async (org: any) => {
+      setSelectedOrganization(org);
+    
+      setShowViewModal(true);
+    };  
 
   return (
       <>
@@ -273,7 +283,10 @@ const [participantForm, setParticipantForm] =
                           gap: "8px",
                         }}
                       >
-                        <button style={viewBtn}>
+                        <button
+                          style={viewBtn}
+                          onClick={() => handleView(org)}
+                        >
                           👁 View
                         </button>
                     
@@ -549,6 +562,49 @@ const [participantForm, setParticipantForm] =
   
     </div>
     </div>
+
+        {showViewModal && (
+          <div style={modalOverlay}>
+            <div
+              style={{
+                background: "#fff",
+                padding: "25px",
+                borderRadius: "12px",
+                width: "500px",
+              }}
+            >
+              <h2>Organization Details</h2>
+              <p>
+                <strong>Organization:</strong>{" "}
+                {selectedOrganization?.organizationName}
+              </p>
+              <p>
+                <strong>Contact Person:</strong>{" "}
+                {selectedOrganization?.contactPerson}
+              </p>
+              <p>
+                <strong>Email:</strong>{" "}
+                {selectedOrganization?.email}
+              </p>     
+              <div
+                style={{
+                  marginTop: "20px",
+                  textAlign: "right",
+                }}
+              >
+                <button
+                  style={saveBtn}
+                  onClick={() =>
+                    setShowViewModal(false)
+                  }
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+                
     {successMessage && (
   <div style={modalOverlay}>
     <div
