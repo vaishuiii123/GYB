@@ -6,7 +6,7 @@ import {
   Route,
 } from "react-router-dom";
 
-import Login from "./pages/auth/AdminLogin";
+import AdminLogin from "./pages/auth/AdminLogin";
 import Dashboard from "./pages/Admin/Dashboard";
 import Organization from "./pages/Admin/Organization";
 import Template from "./pages/Admin/Template";
