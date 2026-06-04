@@ -5,7 +5,7 @@ type LoginProps = {
   onLogin: (user?: any) => void;
 };
 
-export default function Login({ onLogin }: LoginProps) {
+export default function AdminLogin({ onLogin }: LoginProps) {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [isAuthorized, setIsAuthorized] = useState(false);
