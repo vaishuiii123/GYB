@@ -30,16 +30,20 @@ const [participantForm, setParticipantForm] =
   }
 }, [user]);
 
-  const generatePassword = () => {
-  const first =
-    participantForm.firstName.charAt(0).toLowerCase();
+const generatePassword = () => {
+  const chars =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
 
-  const last =
-    participantForm.lastName.charAt(0).toLowerCase();
+  let password = "";
+
+  for (let i = 0; i < 8; i++) {
+    const randomIndex = Math.floor(Math.random() * chars.length);
+    password += chars[randomIndex];
+  }
 
   setParticipantForm({
     ...participantForm,
-    password: `${first}${last}123`,
+    password: password,
   });
 };
 
