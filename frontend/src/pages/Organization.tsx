@@ -14,8 +14,13 @@ export default function Organization({ user }: PageProps) {
   const [showEditModal, setShowEditModal] =
   useState(false);
 
-  const [editOrganization, setEditOrganization] =
-  useState<any>(null);
+ const [editOrganization, setEditOrganization] =
+  useState<any>({
+    id: "",
+    organizationName: "",
+    contactPerson: "",
+    email: "",
+  });
   
   const [participants, setParticipants] =
   useState<any[]>([]);
@@ -56,7 +61,7 @@ const [participantForm, setParticipantForm] =
 }, [user]);
 
 
-  const handleEdit = (org: any) => {
+ const handleEdit = (org: any) => {
   setEditOrganization(org);
   setShowEditModal(true);
 };
@@ -697,6 +702,77 @@ const [participantForm, setParticipantForm] =
     </div>
   </div>
 )}
+
+        {showEditModal && (
+  <div style={modalOverlay}>
+    <div style={modalBox}>
+
+      <h2>Edit Organization</h2>
+
+      <input
+        style={inputStyle}
+        value={editOrganization.organizationName}
+        onChange={(e) =>
+          setEditOrganization({
+            ...editOrganization,
+            organizationName: e.target.value,
+          })
+        }
+      />
+
+      <input
+        style={inputStyle}
+        value={editOrganization.contactPerson}
+        onChange={(e) =>
+          setEditOrganization({
+            ...editOrganization,
+            contactPerson: e.target.value,
+          })
+        }
+      />
+
+      <input
+        style={inputStyle}
+        value={editOrganization.email}
+        onChange={(e) =>
+          setEditOrganization({
+            ...editOrganization,
+            email: e.target.value,
+          })
+        }
+      />
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "end",
+          gap: "10px",
+        }}
+      >
+        <button
+          onClick={() =>
+            setShowEditModal(false)
+          }
+        >
+          Cancel
+        </button>
+
+        <button
+          style={saveBtn}
+          onClick={() =>
+            alert(
+              "Update API will be connected here"
+            )
+          }
+        >
+          Save
+        </button>
+      </div>
+
+    </div>
+  </div>
+)}
+        
                 
     {successMessage && (
   <div style={modalOverlay}>
