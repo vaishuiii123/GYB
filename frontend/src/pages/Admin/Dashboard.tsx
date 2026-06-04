@@ -5,7 +5,7 @@ type PageProps = {
   user?: any;
 };
 
-export default function Dashboard({ user }: PageProps) {
+export default function Dashboard() {
   return (
     <div
       style={{
@@ -13,7 +13,7 @@ export default function Dashboard({ user }: PageProps) {
         minHeight: "100vh",
       }}
     >
-      <Header user={user} />
+      
       <Sidebar />
 
       <div
