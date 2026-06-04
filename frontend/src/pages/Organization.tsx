@@ -13,6 +13,12 @@ export default function Organization({ user }: PageProps) {
   const [showParticipantModal, setShowParticipantModal] =
   useState(false);
 
+  const [showPassword, setShowPassword] =
+  useState(false);
+
+const [showPasswordRules, setShowPasswordRules] =
+  useState(false);
+
 const [participantForm, setParticipantForm] =
   useState({
     organization: "",
@@ -30,26 +36,22 @@ const [participantForm, setParticipantForm] =
   }
 }, [user]);
 
-const generatePassword = () => {
-  const chars =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
 
-  let password = "";
-
-  for (let i = 0; i < 8; i++) {
-    const randomIndex = Math.floor(Math.random() * chars.length);
-    password += chars[randomIndex];
-  }
-
-  setParticipantForm({
-    ...participantForm,
-    password: password,
-  });
-};
 
   const handleCreateParticipant = async () => {
 
+  const passwordRegex =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
+  if (!passwordRegex.test(participantForm.password)) {
+    alert(
+      "Password must contain minimum 8 characters, one uppercase, one lowercase, one number and one special character."
+    );
+    return;
+  }
+    
   try {
+
 
   const response = await fetch(
     "/api/create-participant",
@@ -404,31 +406,95 @@ const generatePassword = () => {
           })
         }
       />
+<div style={{ position: "relative" }}>
 
-      <div
-        style={{
-          display: "flex",
-          gap: "10px",
-        }}
-      >
-        <input
-          style={{
-            ...inputStyle,
-            flex: 1,
-          }}
-          placeholder="Password"
-          value={participantForm.password}
-          readOnly
-        />
+  <input
+    type={showPassword ? "text" : "password"}
+    style={{
+      ...inputStyle,
+      paddingRight: "40px",
+      boxSizing: "border-box",
+    }}
+    placeholder="Password"
+    value={participantForm.password}
+    onFocus={() => setShowPasswordRules(true)}
+    onClick={() => setShowPasswordRules(true)}
+    onChange={(e) =>
+      setParticipantForm({
+        ...participantForm,
+        password: e.target.value,
+      })
+    }
+  />
 
-        <button
-          style={saveBtn}
-          onClick={generatePassword}
-        >
-          Generate
-        </button>
-      </div>
+  <span
+    onClick={() =>
+      setShowPassword(!showPassword)
+    }
+    style={{
+      position: "absolute",
+      right: "12px",
+      top: "12px",
+      cursor: "pointer",
+      userSelect: "none",
+    }}
+  >
+    {showPassword ? "🙈" : "👁"}
+  </span>
 
+  {showPasswordRules && (
+    <div
+      style={{
+        marginTop: "8px",
+        fontSize: "12px",
+        color: "#666",
+        background: "#f9fafb",
+        padding: "10px",
+        borderRadius: "6px",
+      }}
+    >
+      Password must contain:
+      <ul style={{ margin: "5px 0 0 15px" }}>
+      <li style={{
+        color: participantForm.password.length >= 8
+          ? "green"
+          : "red"
+      }}>
+        ✓ Minimum 8 characters
+      </li>
+      <li style={{
+        color: /[A-Z]/.test(participantForm.password)
+          ? "green"
+          : "red"
+      }}>
+        ✓ One uppercase letter
+      </li>
+      <li style={{
+        color: /[a-z]/.test(participantForm.password)
+          ? "green"
+          : "red"
+      }}>
+        ✓ One lowercase letter
+      </li>
+      <li style={{
+        color: /\d/.test(participantForm.password)
+          ? "green"
+          : "red"
+      }}>
+        ✓ One number
+      </li>
+    
+      <li style={{
+        color: /[@$!%*?&]/.test(participantForm.password)
+          ? "green"
+          : "red"
+      }}>
+        ✓ One special character
+      </li>
+    </ul>
+    </div>
+  )}
+</div>
       <div
         style={{
           display: "flex",
