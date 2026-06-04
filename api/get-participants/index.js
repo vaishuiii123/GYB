@@ -2,6 +2,8 @@ const { TableClient } = require("@azure/data-tables");
 
 module.exports = async function (context, req) {
   try {
+
+    const organization = req.query.organization;
     const createdBy = req.query.createdBy;
 
     const client = TableClient.fromConnectionString(
@@ -9,15 +11,27 @@ module.exports = async function (context, req) {
       "Participants"
     );
 
-    const entities = client.listEntities();
-
     const participants = [];
 
-    for await (const entity of entities) {
-      if (
-        entity.Created_By &&
-        entity.Created_By.toLowerCase() === createdBy.toLowerCase()
-      ) {
+    for await (const entity of client.listEntities()) {
+
+      let include = true;
+
+      if (organization) {
+        include =
+          include &&
+          entity.Organisation === organization;
+      }
+
+      if (createdBy) {
+        include =
+          include &&
+          entity.Created_By &&
+          entity.Created_By.toLowerCase() ===
+            createdBy.toLowerCase();
+      }
+
+      if (include) {
         participants.push({
           id: entity.rowKey,
           organization: entity.Organisation || "",
@@ -31,15 +45,19 @@ module.exports = async function (context, req) {
       }
     }
 
-    return {
+    context.res = {
       status: 200,
       body: {
         success: true,
         participants,
       },
     };
+
   } catch (error) {
-    return {
+
+    context.log(error);
+
+    context.res = {
       status: 500,
       body: {
         success: false,
