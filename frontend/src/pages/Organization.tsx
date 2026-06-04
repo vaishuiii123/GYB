@@ -10,6 +10,13 @@ type PageProps = {
 
 export default function Organization({ user }: PageProps) {
 
+
+  const [showEditModal, setShowEditModal] =
+  useState(false);
+
+  const [editOrganization, setEditOrganization] =
+  useState<any>(null);
+  
   const [participants, setParticipants] =
   useState<any[]>([]);
 
@@ -48,6 +55,44 @@ const [participantForm, setParticipantForm] =
   }
 }, [user]);
 
+
+  const handleEdit = (org: any) => {
+  setEditOrganization(org);
+  setShowEditModal(true);
+};
+
+  const handleDelete = async (org: any) => {
+
+  const response = await fetch(
+    `/api/get-participants?organization=${encodeURIComponent(
+      org.organizationName
+    )}`
+  );
+
+  const data = await response.json();
+
+  if (
+    data.participants &&
+    data.participants.length > 0
+  ) {
+    alert(
+      "You cannot delete this organization because participants are already added."
+    );
+    return;
+  }
+
+  const confirmDelete =
+    window.confirm(
+      `Delete ${org.organizationName}?`
+    );
+
+  if (!confirmDelete) return;
+
+  alert(
+    "Delete API will be called here."
+  );
+};
+  
     const handleView = async (org: any) => {
   setSelectedOrganization(org);
 
@@ -313,14 +358,14 @@ const [participantForm, setParticipantForm] =
                     
                         <button
                           style={editBtn}
-                          onClick={() => console.log("Edit", org)}
+                          onClick={() => handleEdit(org)}
                         >
                           ✏ Edit
                         </button>
                                             
                      <button
                         style={deleteBtn}
-                        onClick={() => console.log("Delete", org)}
+                        onClick={() => handleDelete(org)}
                       >
                         🗑 Delete
                       </button>
@@ -591,46 +636,67 @@ const [participantForm, setParticipantForm] =
     </div>
 
         {showViewModal && (
-          <div style={modalOverlay}>
-            <div
-              style={{
-                background: "#fff",
-                padding: "25px",
-                borderRadius: "12px",
-                width: "500px",
-              }}
-            >
-              <h2>Organization Details</h2>
-              <p>
-                <strong>Organization:</strong>{" "}
-                {selectedOrganization?.organizationName}
-              </p>
-              <p>
-                <strong>Contact Person:</strong>{" "}
-                {selectedOrganization?.contactPerson}
-              </p>
-              <p>
-                <strong>Email:</strong>{" "}
-                {selectedOrganization?.email}
-              </p>     
-              <div
-                style={{
-                  marginTop: "20px",
-                  textAlign: "right",
-                }}
-              >
-                <button
-                  style={saveBtn}
-                  onClick={() =>
-                    setShowViewModal(false)
-                  }
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+  <div style={modalOverlay}>
+    <div
+      style={{
+        background: "#fff",
+        padding: "25px",
+        borderRadius: "12px",
+        width: "800px",
+        maxHeight: "80vh",
+        overflowY: "auto",
+      }}
+    >
+      <h2>
+        Participants - {selectedOrganization?.organizationName}
+      </h2>
+
+      {participants.length === 0 ? (
+        <p>No participants found.</p>
+      ) : (
+        <table
+          style={{
+            width: "100%",
+            borderCollapse: "collapse",
+            marginTop: "15px",
+          }}
+        >
+          <thead>
+            <tr>
+              <th style={tableHeader}>First Name</th>
+              <th style={tableHeader}>Email</th>
+              <th style={tableHeader}>Password</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {participants.map((p, index) => (
+              <tr key={index}>
+                <td style={tableCell}>{p.firstName}</td>
+                <td style={tableCell}>{p.email}</td>
+                <td style={tableCell}>{p.password}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      <div
+        style={{
+          marginTop: "20px",
+          textAlign: "right",
+        }}
+      >
+        <button
+          style={saveBtn}
+          onClick={() => setShowViewModal(false)}
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+)}
                 
     {successMessage && (
   <div style={modalOverlay}>
