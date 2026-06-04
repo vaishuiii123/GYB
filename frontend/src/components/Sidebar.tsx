@@ -123,16 +123,6 @@ export default function Sidebar() {
           ))}
         </div>
       </div>
-
-      <div
-        style={{
-          padding: "20px",
-          color: "white",
-          borderTop: "1px solid rgba(255,255,255,0.1)",
-        }}
-      >
-        🚪 Logout
-      </div>
     </div>
   );
 }
