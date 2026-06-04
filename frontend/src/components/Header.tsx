@@ -42,22 +42,6 @@ export default function Header({ user }: any) {
         zIndex: 1000,
       }}
     >
-      <div
-        style={{
-          width: "45px",
-          height: "45px",
-          borderRadius: "50%",
-          border: "2px solid rgba(255,255,255,0.25)",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          color: "white",
-          fontSize: "22px",
-          cursor: "pointer",
-        }}
-      >
-        ☰
-      </div>
 
       <div
         style={{
