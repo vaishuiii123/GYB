@@ -12,7 +12,7 @@ function App() {
     <HashRouter>
       <Routes>
         <Route
-          path="/dashboard"
+          path="/"
           element={<Dashboard/>}
         />
       </Routes>  
