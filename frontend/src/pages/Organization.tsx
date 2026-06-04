@@ -638,141 +638,7 @@ const [participantForm, setParticipantForm] =
 )}
   
     </div>
-    </div>
-
-        {showViewModal && (
-  <div style={modalOverlay}>
-    <div
-      style={{
-        background: "#fff",
-        padding: "25px",
-        borderRadius: "12px",
-        width: "800px",
-        maxHeight: "80vh",
-        overflowY: "auto",
-      }}
-    >
-      <h2>
-        Participants - {selectedOrganization?.organizationName}
-      </h2>
-
-      {participants.length === 0 ? (
-        <p>No participants found.</p>
-      ) : (
-        <table
-          style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            marginTop: "15px",
-          }}
-        >
-          <thead>
-            <tr>
-              <th style={tableHeader}>First Name</th>
-              <th style={tableHeader}>Email</th>
-              <th style={tableHeader}>Password</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {participants.map((p, index) => (
-              <tr key={index}>
-                <td style={tableCell}>{p.firstName}</td>
-                <td style={tableCell}>{p.email}</td>
-                <td style={tableCell}>{p.password}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-
-      <div
-        style={{
-          marginTop: "20px",
-          textAlign: "right",
-        }}
-      >
-        <button
-          style={saveBtn}
-          onClick={() => setShowViewModal(false)}
-        >
-          Close
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-
-        {showEditModal && (
-  <div style={modalOverlay}>
-    <div style={modalBox}>
-
-      <h2>Edit Organization</h2>
-
-      <input
-        style={inputStyle}
-        value={editOrganization.organizationName}
-        onChange={(e) =>
-          setEditOrganization({
-            ...editOrganization,
-            organizationName: e.target.value,
-          })
-        }
-      />
-
-      <input
-        style={inputStyle}
-        value={editOrganization.contactPerson}
-        onChange={(e) =>
-          setEditOrganization({
-            ...editOrganization,
-            contactPerson: e.target.value,
-          })
-        }
-      />
-
-      <input
-        style={inputStyle}
-        value={editOrganization.email}
-        onChange={(e) =>
-          setEditOrganization({
-            ...editOrganization,
-            email: e.target.value,
-          })
-        }
-      />
-
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "end",
-          gap: "10px",
-        }}
-      >
-        <button
-          onClick={() =>
-            setShowEditModal(false)
-          }
-        >
-          Cancel
-        </button>
-
-        <button
-          style={saveBtn}
-          onClick={() =>
-            alert(
-              "Update API will be connected here"
-            )
-          }
-        >
-          Save
-        </button>
-      </div>
-
-    </div>
-  </div>
-)}
-        
+    </div>        
                 
     {successMessage && (
   <div style={modalOverlay}>
@@ -832,6 +698,169 @@ const [participantForm, setParticipantForm] =
     </div>
   </div>
       )}
+
+        {//================= VIEW ORGANIZATION ===================================}
+         {showViewModal && (
+              <div style={modalOverlay}>
+                <div
+                  style={{
+                    background: "#fff",
+                    borderRadius: "16px",
+                    width: "90%",
+                    maxWidth: "1000px",
+                    overflow: "hidden",
+                    boxShadow: "0 10px 40px rgba(0,0,0,0.2)",
+                  }}
+                >
+                <div
+                  style={{
+                    background: "#3b5bcc",
+                    color: "white",
+                    padding: "20px",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <h2 style={{ margin: 0 }}>
+                    Participants - {selectedOrganization?.organizationName}
+                  </h2>
+                
+                  <button
+                    onClick={() => setShowViewModal(false)}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      color: "white",
+                      fontSize: "22px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+               {participants.length === 0 ? (
+                  <p>No participants found.</p>
+                  ) : (
+                  
+                    <div
+                      style={{
+                        maxHeight: "500px",
+                        overflowY: "auto",
+                        padding: "20px",
+                      }}
+                    >
+                  
+                      <table
+                        style={{
+                          width: "100%",
+                          borderCollapse: "collapse",
+                        }}
+                      >
+                    <thead>
+                      <tr>
+                        <th style={tableHeader}>First Name</th>
+                        <th style={tableHeader}>Email</th>
+                        <th style={tableHeader}>Password</th>
+                      </tr>
+                    </thead>
+          
+                    <tbody>
+                      {participants.map((p, index) => (
+                        <tr key={index}>
+                          <td style={tableCell}>{p.firstName}</td>
+                          <td style={tableCell}>{p.email}</td>
+                          <td>{"•".repeat(p.password.length)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                    </table>
+                </div>
+              )}
+              <div
+                style={{
+                  marginTop: "20px",
+                  textAlign: "right",
+                }}
+              >
+                <button
+                  style={saveBtn}
+                  onClick={() => setShowViewModal(false)}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+              {showEditModal && (
+                    <div style={modalOverlay}>
+                      <div style={modalBox}>
+                  
+                        <h2>Edit Organization</h2>
+                  
+                        <input
+                          style={inputStyle}
+                          value={editOrganization.organizationName}
+                          onChange={(e) =>
+                            setEditOrganization({
+                              ...editOrganization,
+                              organizationName: e.target.value,
+                            })
+                          }
+                        />
+                  
+                        <input
+                            style={inputStyle}
+                            value={editOrganization.contactPerson}
+                            onChange={(e) =>
+                              setEditOrganization({
+                                ...editOrganization,
+                                contactPerson: e.target.value,
+                              })
+                            }
+                          />
+                          <input
+                            style={inputStyle}
+                            value={editOrganization.email}
+                            onChange={(e) =>
+                              setEditOrganization({
+                                ...editOrganization,
+                                email: e.target.value,
+                              })
+                            }
+                          />
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "end",
+                              gap: "10px",
+                            }}
+                          >
+                            <button
+                              onClick={() =>
+                                setShowEditModal(false)
+                              }
+                            >
+                              Cancel
+                            </button>
+                      <button
+                        style={saveBtn}
+                        onClick={() =>
+                          alert(
+                            "Update API will be connected here"
+                          )
+                        }
+                      >
+                        Save
+                      </button>
+                    </div>
+              
+                  </div>
+                </div>
+              )}
     </>
   );
 }  
@@ -906,10 +935,11 @@ const modalOverlay: any = {
   bottom: 0,
   left: 0,
   right: 0,
-  background: "rgba(0,0,0,0.4)",
+  background: "rgba(0,0,0,0.6)",
   display: "flex",
   justifyContent: "center",
   alignItems: "center",
+  zIndex: 9999,
 };
 
 const modalBox: any = {
