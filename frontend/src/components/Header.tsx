@@ -35,20 +35,19 @@ export default function Header({ user }: any) {
     height: "60px",
     background: "#264ECF",
     display: "flex",
-    justifyContent: "space-between",
     alignItems: "center",
     padding: "0 30px",
     boxSizing: "border-box",
     zIndex: 1000,
   }}
 >
-  {/* LEFT SIDE */}
   <div
     style={{
       display: "flex",
       alignItems: "center",
       gap: "25px",
       color: "white",
+      marginLeft: "auto", // ✅ THIS LINE FIXES EVERYTHING
     }}
   >
     <div
@@ -81,25 +80,21 @@ export default function Header({ user }: any) {
         background: "rgba(255,255,255,0.3)",
       }}
     />
-  </div>
 
-  {/* RIGHT SIDE */}
-  <div
-    onClick={handleLogout}
-    style={{
-      display: "flex",
-      alignItems: "center",
-      gap: "10px",
-      cursor: "pointer",
-      fontWeight: "600",
-      fontSize: "18px",
-      color: "white",
-    }}
-  >
-     {initials}
-   
-    ↪ Logout
+    <div
+      onClick={handleLogout}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "10px",
+        cursor: "pointer",
+        fontWeight: "600",
+        fontSize: "18px",
+      }}
+    >
+      ↪ Logout
+    </div>
   </div>
-</div>  
+</div>
   );
 }
