@@ -26,75 +26,78 @@ export default function Header({ user }: any) {
     .toUpperCase() || "U";
   
   return (
+   <div
+  style={{
+    position: "fixed",
+    top: 0,
+    left: "220px",
+    right: 0,
+    height: "60px",
+    background: "#264ECF",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "0 30px",
+    boxSizing: "border-box",
+    zIndex: 1000,
+  }}
+>
+  {/* LEFT SIDE */}
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: "25px",
+      color: "white",
+    }}
+  >
     <div
       style={{
-        position: "fixed",
-        top: 0,
-        left: "220px",
-        right: 0,
-        height: "60px",
-        background: "#264ECF",
         display: "flex",
-        justifyContent: "space-between",
         alignItems: "center",
-        padding: "0 30px",
-        boxSizing: "border-box",
-        zIndex: 1000,
+        gap: "10px",
       }}
     >
-
       <div
         style={{
+          width: "42px",
+          height: "42px",
+          borderRadius: "50%",
+          background: "rgba(255,255,255,0.2)",
           display: "flex",
+          justifyContent: "center",
           alignItems: "center",
-          gap: "25px",
-          color: "white",
+          fontWeight: "600",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-          }}
-        >
-          <div
-            style={{
-              width: "42px",
-              height: "42px",
-              borderRadius: "50%",
-              background: "rgba(255,255,255,0.2)",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              fontWeight: "600",
-            }}
-          >
-            {initials}
-          </div>
-         </div>
-        <div
-          style={{
-            width: "1px",
-            height: "35px",
-            background: "rgba(255,255,255,0.3)",
-          }}
-        />
-
-        <div
-          onClick={handleLogout}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            cursor: "pointer",
-            fontWeight: "600",
-            fontSize: "18px",
-          }}
-        >
-          ↪ Logout
-        </div>
+        {initials}
       </div>
     </div>
+
+    <div
+      style={{
+        width: "1px",
+        height: "35px",
+        background: "rgba(255,255,255,0.3)",
+      }}
+    />
+  </div>
+
+  {/* RIGHT SIDE */}
+  <div
+    onClick={handleLogout}
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: "10px",
+      cursor: "pointer",
+      fontWeight: "600",
+      fontSize: "18px",
+      color: "white",
+    }}
+  >
+    ↪ Logout
+  </div>
+</div>  
   );
 }
