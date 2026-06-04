@@ -39,8 +39,6 @@ const [participantForm, setParticipantForm] =
   }
 }, [user]);
 
-
-
   const handleCreateParticipant = async () => {
 
   const passwordRegex =
@@ -198,7 +196,8 @@ const [participantForm, setParticipantForm] =
   
 
   return (
-  <div style={{ display: "flex", minHeight: "100vh", background: "#f3f4f6" }}>
+      <>
+      <div style={{ display: "flex", minHeight: "100vh", background: "#f3f4f6" }}>
 
       <Sidebar />
 
@@ -607,9 +606,10 @@ const [participantForm, setParticipantForm] =
       </button>
     </div>
   </div>
-)}
+      )}
+    </>
   );
-}
+}  
 
 /* ================= STYLES ================= */
 
