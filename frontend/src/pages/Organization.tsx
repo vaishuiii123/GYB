@@ -10,6 +10,9 @@ type PageProps = {
 
 export default function Organization({ user }: PageProps) {
 
+  const [participants, setParticipants] =
+  useState<any[]>([]);
+
   const [showViewModal, setShowViewModal] =
   useState(false);
 
@@ -45,6 +48,25 @@ const [participantForm, setParticipantForm] =
   }
 }, [user]);
 
+    const handleView = async (org: any) => {
+          setSelectedOrganization(org);
+          try {
+            const response = await fetch(
+              `/api/get-participants-by-organization?organization=${encodeURIComponent(
+                org.organizationName
+              )}`
+            );
+            const data = await response.json();
+            if (data.success) {
+              setParticipants(data.participants);
+              setShowViewModal(true);
+            }
+          } catch (err) {
+            console.error(err);
+            alert("Failed to load participants");
+          }
+        };
+  
   const handleCreateParticipant = async () => {
 
   const passwordRegex =
@@ -199,12 +221,6 @@ const [participantForm, setParticipantForm] =
     }
   };
 
-      const handleView = async (org: any) => {
-      setSelectedOrganization(org);
-    
-      setShowViewModal(true);
-    };  
-
   return (
       <>
       <div style={{ display: "flex", minHeight: "100vh", background: "#f3f4f6" }}>
@@ -290,13 +306,19 @@ const [participantForm, setParticipantForm] =
                           👁 View
                         </button>
                     
-                        <button style={editBtn}>
+                        <button
+                          style={editBtn}
+                          onClick={() => console.log("Edit", org)}
+                        >
                           ✏ Edit
                         </button>
-                    
-                        <button style={deleteBtn}>
-                          🗑 Delete
-                        </button>
+                                            
+                     <button
+                        style={deleteBtn}
+                        onClick={() => console.log("Delete", org)}
+                      >
+                        🗑 Delete
+                      </button>
                       </div>
                     </td>
                    
