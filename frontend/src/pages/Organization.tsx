@@ -635,10 +635,7 @@ const [participantForm, setParticipantForm] =
 
     </div>
   </div>
-)}
-  
-    </div>
-    </div>        
+)}    
                 
     {successMessage && (
   <div style={modalOverlay}>
@@ -740,7 +737,15 @@ const [participantForm, setParticipantForm] =
                   </button>
                 </div>
                {participants.length === 0 ? (
-                  <p>No participants found.</p>
+                    <div
+                      style={{
+                        padding: "40px",
+                        textAlign: "center",
+                        color: "#6b7280",
+                      }}
+                    >
+                      No participants found.
+                    </div>
                   ) : (
                   
                     <div
@@ -775,10 +780,8 @@ const [participantForm, setParticipantForm] =
                       ))}
                     </tbody>
                   </table>
-                    </table>
-                </div>
-              )}
-              <div
+
+                      <div
                 style={{
                   marginTop: "20px",
                   textAlign: "right",
@@ -791,6 +794,10 @@ const [participantForm, setParticipantForm] =
                   Close
                 </button>
               </div>
+                
+                </div>
+              )}
+              
             </div>
           </div>
         )}
@@ -861,6 +868,8 @@ const [participantForm, setParticipantForm] =
                   </div>
                 </div>
               )}
+  </div>
+    </div>    
     </>
   );
 }  
