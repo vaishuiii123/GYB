@@ -27,7 +27,7 @@ module.exports = async function (context, req) {
       }
     }
 
-    return {
+    context.res = {
       status: 200,
       body: {
         success: found,
@@ -39,7 +39,7 @@ module.exports = async function (context, req) {
 
     context.log(error);
 
-    return {
+    context.res = {
       status: 500,
       body: {
         success: false,
