@@ -24,7 +24,16 @@ export default function UserLogin() {
       }),
     });
 
-    const data = await response.json();
+    const responseText = await response.text();
+
+    console.log("API RESPONSE:", responseText);
+    
+    if (!response.ok) {
+      alert(responseText);
+      return;
+    }
+
+  const data = JSON.parse(responseText);
 
     if (data.success) {
       localStorage.setItem(
