@@ -12,14 +12,11 @@ export default function UserHeader() {
   }`.trim();
 
   const initials =
-    `${user?.First_Name?.[0] || ""}${user?.Last_Name?.[0] || ""}`.toUpperCase() || "User";
+    `${user?.First_Name?.[0] || ""}${user?.Last_Name?.[0] || ""}`.toUpperCase() ||
+    "U";
 
   const handleLogout = () => {
-    const confirmLogout = window.confirm(
-      "Do you really want to logout?"
-    );
-
-    if (confirmLogout) {
+    if (window.confirm("Do you really want to logout?")) {
       localStorage.removeItem("participant");
       navigate("/");
     }
@@ -30,14 +27,14 @@ export default function UserHeader() {
       style={{
         position: "fixed",
         top: 0,
-        left: "220px",
+        left: 0,
         right: 0,
-        height: "60px",
+        height: "70px",
         background: "#264ECF",
         display: "flex",
-        alignItems: "center",
         justifyContent: "space-between",
-        padding: "0 30px",
+        alignItems: "center",
+        padding: "0 40px",
         boxSizing: "border-box",
         zIndex: 1000,
       }}
@@ -47,9 +44,10 @@ export default function UserHeader() {
         style={{
           display: "flex",
           alignItems: "center",
-          gap: "40px",
+          gap: "50px",
           color: "white",
           fontWeight: "600",
+          fontSize: "20px",
         }}
       >
         <span>
@@ -71,34 +69,26 @@ export default function UserHeader() {
           color: "white",
         }}
       >
-        <div
+        <span
           style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-end",
+            fontWeight: "600",
+            fontSize: "18px",
           }}
         >
-          <span
-            style={{
-              fontSize: "14px",
-              fontWeight: "600",
-            }}
-          >
-            {fullName || "Participant"}
-          </span>
-        </div>
+          {fullName || "Participant"}
+        </span>
 
         <div
           style={{
-            width: "42px",
-            height: "42px",
+            width: "45px",
+            height: "45px",
             borderRadius: "50%",
             background: "rgba(255,255,255,0.2)",
             display: "flex",
-            justifyContent: "center",
             alignItems: "center",
+            justifyContent: "center",
             fontWeight: "700",
-            fontSize: "14px",
+            fontSize: "16px",
           }}
         >
           {initials}
@@ -112,16 +102,16 @@ export default function UserHeader() {
           }}
         />
 
-        <div
+        <span
           onClick={handleLogout}
           style={{
             cursor: "pointer",
             fontWeight: "600",
-            fontSize: "16px",
+            fontSize: "18px",
           }}
         >
           ↪ Logout
-        </div>
+        </span>
       </div>
     </div>
   );
