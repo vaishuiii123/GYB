@@ -10,6 +10,7 @@ import AdminLogin from "./pages/auth/AdminLogin";
 import Organization from "./pages/Admin/Organization";
 import Template from "./pages/Admin/Template";
 import Workshop from "./pages/Admin/Workshop";
+import UserLogin from "./pages/Admin/UserLogin";
 
 function App() {
 
@@ -30,7 +31,7 @@ function App() {
      <Routes>
         <Route
           path="/"
-          element={<AdminLogin onLogin={handleLogin} />}
+          element={<UserLogin />}
         />
       
         <Route
