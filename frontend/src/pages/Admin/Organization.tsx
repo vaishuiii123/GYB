@@ -194,6 +194,45 @@ const [participantForm, setParticipantForm] =
   alert("Failed to create participant");
   }
   };
+
+  //============================= UPDATE ORGANIZATION =====================================
+
+        const handleUpdateOrganization = async () => {
+        try {
+          const response = await fetch(
+            "/api/update-organization",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                id: editOrganization.id,
+                organizationName:
+                  editOrganization.organizationName,
+                contactPerson:
+                  editOrganization.contactPerson,
+                email: editOrganization.email,
+              }),
+            }
+          );
+      
+          const data = await response.json();
+      
+          if (data.success) {
+            alert("Organization updated successfully");
+      
+            setShowEditModal(false);
+      
+            fetchOrganizations();
+          } else {
+            alert(data.error);
+          }
+        } catch (error) {
+          console.error(error);
+          alert("Failed to update organization");
+        }
+      };
   
   // ================= ORGANIZATIONS =================
   const [organizations, setOrganizations] = useState<any[]>([]);
@@ -851,14 +890,10 @@ const [participantForm, setParticipantForm] =
                               Cancel
                             </button>
                       <button
-                        style={saveBtn}
-                        onClick={() =>
-                          alert(
-                            "Update API will be connected here"
-                          )
-                        }
-                      >
-                        Save
+                          style={saveBtn}
+                          onClick={handleUpdateOrganization}
+                        >
+                          Save
                       </button>
                     </div>
               
