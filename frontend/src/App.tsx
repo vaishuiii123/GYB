@@ -33,7 +33,12 @@ function App() {
           path="/"
           element={<UserLogin />}
         />
-      
+
+       <Route
+          path="/adminlogin"
+          element={<AdminLogin onLogin={handleLogin} />}
+        />
+       
         <Route
           path="/dashboard"
           element={<Dashboard user={currentUser} />}
