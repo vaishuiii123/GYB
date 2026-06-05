@@ -169,16 +169,16 @@ export default function UserLogin() {
               marginTop: "30px",
             }}
           >
-            <a
-              href="#/admin-login"
-              style={{
-                color: "#7b0f2c",
-                fontWeight: 600,
-                textDecoration: "none",
-              }}
-            >
-              Admin Login
-            </a>
+           <Link
+            to="/admin-login"
+            style={{
+              color: "#7b0f2c",
+              fontWeight: 600,
+              textDecoration: "none",
+            }}
+          >
+            Admin Login
+          </Link>
           </div>
         </div>
       </div>
