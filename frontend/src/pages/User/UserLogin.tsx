@@ -1,4 +1,5 @@
 
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 export default function UserLogin() {
@@ -10,30 +11,36 @@ export default function UserLogin() {
   const navigate = useNavigate();
 
   const handleLogin = async () => {
+  try {
+    const response = await fetch("/api/user-login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email,
+        organization,
+        password,
+      }),
+    });
 
-  const response = await fetch("/api/user-login", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      email,
-      organization,
-      password,
-    }),
-  });
+    const data = await response.json();
 
-  const data = await response.json();
-      if (data.success) {
-        localStorage.setItem(
-          "participant",
-          JSON.stringify(data.user)
-        );
-        navigate("/dashboard");
-      } else {
-        alert("Invalid credentials");
-      }
-  };
+    if (data.success) {
+      localStorage.setItem(
+        "participant",
+        JSON.stringify(data.user)
+      );
+
+      navigate("/userdashboard");
+    } else {
+      alert("Invalid credentials");
+    }
+  } catch (error) {
+    console.error(error);
+    alert("Login failed");
+  }
+};
   
   return (
     <div
