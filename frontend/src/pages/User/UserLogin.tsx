@@ -1,6 +1,7 @@
 
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import myImage from "../../images/KNAV logo.png";
 
 export default function UserLogin() {
 
@@ -80,7 +81,7 @@ export default function UserLogin() {
       >
         {/* Logo */}
         <img
-          src="/knav-logo.png"
+          src={myImage}
           alt="KNAV"
           style={{
             position: "absolute",
