@@ -2,40 +2,84 @@ const { TableClient, AzureNamedKeyCredential } =
   require("@azure/data-tables");
 
 module.exports = async function (context, req) {
+  try {
+    context.log("User Login API Called");
 
-  const { email, organization, password } = req.body;
+    const { email, organization, password } = req.body || {};
 
-  const credential = new AzureNamedKeyCredential(
-    process.env.STORAGE_ACCOUNT_NAME,
-    process.env.STORAGE_ACCOUNT_KEY
-  );
+    context.log("Email:", email);
+    context.log("Organization:", organization);
 
-  const tableClient = new TableClient(
-    `https://${process.env.STORAGE_ACCOUNT_NAME}.table.core.windows.net`,
-    "Participants",
-    credential
-  );
-
-  let found = false;
-  let user = null;
-
-  for await (const entity of tableClient.listEntities()) {
-
-    if (
-      entity.Email === email &&
-      entity.Organisation === organization &&
-      entity.Password === password
-    ) {
-      found = true;
-      user = entity;
-      break;
+    if (!email || !organization || !password) {
+      context.res = {
+        status: 400,
+        body: {
+          success: false,
+          message: "Missing required fields"
+        }
+      };
+      return;
     }
+
+    const accountName = process.env.STORAGE_ACCOUNT_NAME;
+    const accountKey = process.env.STORAGE_ACCOUNT_KEY;
+
+    context.log("Storage Account:", accountName);
+    context.log("Key Exists:", !!accountKey);
+
+    const credential = new AzureNamedKeyCredential(
+      accountName,
+      accountKey
+    );
+
+    const tableClient = new TableClient(
+      `https://${accountName}.table.core.windows.net`,
+      "Participants",
+      credential
+    );
+
+    let foundUser = null;
+
+    for await (const entity of tableClient.listEntities()) {
+      context.log("Checking:", entity.Email);
+
+      if (
+        entity.Email === email &&
+        entity.Organisation === organization &&
+        entity.Password === password
+      ) {
+        foundUser = entity;
+        break;
+      }
+    }
+
+    if (foundUser) {
+      context.res = {
+        status: 200,
+        body: {
+          success: true,
+          user: foundUser
+        }
+      };
+    } else {
+      context.res = {
+        status: 200,
+        body: {
+          success: false,
+          message: "Invalid credentials"
+        }
+      };
+    }
+
+  } catch (err) {
+    context.log("LOGIN ERROR:", err);
+
+    context.res = {
+      status: 500,
+      body: {
+        success: false,
+        error: err.message
+      }
+    };
   }
-
-  context.res = {
-    body: {
-      success: found,
-      user
-    }
-  };
 };
