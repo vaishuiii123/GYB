@@ -33,6 +33,11 @@ export default function UserLogin() {
       return;
     }
 
+   if (!responseText) {
+      alert("Empty response from API");
+      return;
+    }
+
   const data = JSON.parse(responseText);
 
     if (data.success) {
