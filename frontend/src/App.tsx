@@ -11,6 +11,7 @@ import Organization from "./pages/Admin/Organization";
 import Template from "./pages/Admin/Template";
 import Workshop from "./pages/Admin/Workshop";
 import UserLogin from "./pages/User/UserLogin";
+import UserDashboard from "./pages/User/UserDashboard";
 
 function App() {
 
@@ -34,6 +35,11 @@ function App() {
           element={<UserLogin />}
         />
 
+        <Route
+          path="/userdashboard"
+          element={<UserDashboard />}
+        />
+       
        <Route
           path="/adminlogin"
           element={<AdminLogin onLogin={handleLogin} />}
