@@ -1,4 +1,4 @@
-import UserHeader from "./pages/User/UserHeader";
+import UserHeader from "./UserHeader";
 
 export default function UserDashboard() {
   return (
