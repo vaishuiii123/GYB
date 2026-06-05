@@ -10,7 +10,7 @@ import AdminLogin from "./pages/auth/AdminLogin";
 import Organization from "./pages/Admin/Organization";
 import Template from "./pages/Admin/Template";
 import Workshop from "./pages/Admin/Workshop";
-import UserLogin from "./pages/Admin/UserLogin";
+import UserLogin from "./pages/User/UserLogin";
 
 function App() {
 
