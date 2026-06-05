@@ -1,6 +1,40 @@
-import { Link } from "react-router-dom";
+
+import { Link, useNavigate } from "react-router-dom";
 
 export default function UserLogin() {
+
+  const [email, setEmail] = useState("");
+  const [organization, setOrganization] = useState("");
+  const [password, setPassword] = useState("");
+
+  const navigate = useNavigate();
+
+  const handleLogin = async () => {
+
+  const response = await fetch("/api/user-login", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email,
+      organization,
+      password,
+    }),
+  });
+
+  const data = await response.json();
+      if (data.success) {
+        localStorage.setItem(
+          "participant",
+          JSON.stringify(data.user)
+        );
+        navigate("/dashboard");
+      } else {
+        alert("Invalid credentials");
+      }
+  };
+  
   return (
     <div
       style={{
@@ -116,17 +150,23 @@ export default function UserLogin() {
           }}
         >
           <input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             placeholder="Username"
             style={inputStyle}
           />
 
-          <input
+         <input
+            value={organization}
+            onChange={(e) => setOrganization(e.target.value)}
             placeholder="Organization name"
             style={inputStyle}
           />
 
           <input
             type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             placeholder="Password"
             style={inputStyle}
           />
@@ -138,6 +178,7 @@ export default function UserLogin() {
             }}
           >
             <button
+              onClick={handleLogin}
               style={{
                 background: "#7b0f2c",
                 color: "white",
