@@ -4,8 +4,12 @@ import {
   Routes,
   Route,
 } from "react-router-dom";
+
 import Dashboard from "./pages/Admin/Dashboard";
 import AdminLogin from "./pages/auth/AdminLogin";
+import Organization from "./pages/Admin/Organization";
+import Template from "./pages/Admin/Template";
+import Workshop from "./pages/Admin/Workshop";
 
 function App() {
 
@@ -33,6 +37,22 @@ function App() {
           path="/dashboard"
           element={<Dashboard user={currentUser} />}
         />
+
+       <Route
+          path="/organization"
+          element={<Organization user={currentUser} />}
+        />
+
+        <Route
+          path="/template"
+          element={<Template user={currentUser} />}
+        />
+
+       <Route
+          path="/workshop"
+          element={<Workshop user={currentUser} />}
+        />
+       
       </Routes>
     </HashRouter>
   );
