@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 export default function UserLogin() {
   return (
     <div
@@ -170,7 +172,7 @@ export default function UserLogin() {
             }}
           >
            <Link
-            to="/admin-login"
+            to="/adminlogin"
             style={{
               color: "#7b0f2c",
               fontWeight: 600,
