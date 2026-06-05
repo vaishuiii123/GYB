@@ -1,101 +1,26 @@
-import { useNavigate } from "react-router-dom";
+import UserHeader from "./pages/User/UserHeader";
 
 export default function UserDashboard() {
-  const navigate = useNavigate();
-
-  const user = JSON.parse(
-    localStorage.getItem("participant") || "{}"
-  );
-
-  const handleLogout = () => {
-    localStorage.removeItem("participant");
-    navigate("/");
-  };
-
   return (
     <div
       style={{
         minHeight: "100vh",
         background: "#f5f5f5",
         padding: "30px 50px",
+        paddingTop: "90px", // Space for fixed header
         fontFamily: "Segoe UI",
       }}
     >
-      {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-        }}
-      >
-        <div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "15px",
-              color: "#7b0f2c",
-              fontWeight: "700",
-              fontSize: "24px",
-            }}
-          >
-            ☰
-            <span>
-              [{user.First_Name || user.firstName || "Name"}]
-            </span>
-          </div>
-
-          <div
-            style={{
-              marginTop: "30px",
-              marginLeft: "40px",
-              display: "flex",
-              gap: "80px",
-              color: "#7b0f2c",
-              fontWeight: "600",
-            }}
-          >
-            <span>
-              [{user.Organization || user.organization || "Organization Name"}]
-            </span>
-
-            <span>KNAV BAS OD</span>
-          </div>
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            gap: "20px",
-            alignItems: "center",
-            color: "#7b0f2c",
-            fontWeight: "600",
-          }}
-        >
-          <span
-            onClick={handleLogout}
-            style={{
-              cursor: "pointer",
-            }}
-          >
-            Logout
-          </span>
-
-          <span>Home</span>
-          <span style={{ fontSize: "24px" }}>🌐</span>
-          <span style={{ fontSize: "24px" }}>in</span>
-        </div>
-      </div>
+      <UserHeader />
 
       {/* Main Card */}
       <div
         style={{
           background: "white",
           borderRadius: "16px",
-          marginTop: "50px",
           padding: "40px 60px",
           minHeight: "350px",
+          boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
         }}
       >
         {[
@@ -111,9 +36,9 @@ export default function UserDashboard() {
                 alignItems: "center",
                 gap: "15px",
                 color: "#555",
-                fontSize: "28px",
                 marginBottom: "20px",
                 cursor: "pointer",
+                transition: "0.2s",
               }}
             >
               <span
@@ -138,7 +63,7 @@ export default function UserDashboard() {
             {index !== 3 && (
               <div
                 style={{
-                  width: "270px",
+                  width: "300px",
                   height: "1px",
                   background: "#d6d6d6",
                   marginLeft: "35px",
@@ -154,12 +79,13 @@ export default function UserDashboard() {
       <div
         style={{
           marginTop: "60px",
-          color: "#333",
+          color: "#555",
           fontSize: "13px",
           fontStyle: "italic",
+          textAlign: "center",
         }}
       >
-        Grow Your Business: organization Development Workshop
+        Grow Your Business: Organization Development Workshop
       </div>
     </div>
   );
