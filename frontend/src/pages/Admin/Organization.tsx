@@ -226,9 +226,7 @@ const [participantForm, setParticipantForm] =
       
             fetchOrganizations();
           } else {
-            alert(
-              data.error || "Update failed"
-            );
+            alert(data.error);
           }
         } catch (error) {
           console.error(error);
@@ -666,9 +664,9 @@ const [participantForm, setParticipantForm] =
           Cancel
         </button>
 
-       <button
+        <button
           style={saveBtn}
-          onClick={handleUpdateOrganization}
+          onClick={handleCreateParticipant}
         >
           Save
         </button>
