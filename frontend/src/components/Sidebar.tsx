@@ -12,6 +12,11 @@ export default function Sidebar() {
       path: "/organization",
       icon: "🏢",
     },
+     {
+      name: "Participants",
+      path: "/participant",
+      icon: "🏢",
+    },
     {
       name: "Template",
       path: "/template",
