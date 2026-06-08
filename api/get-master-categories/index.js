@@ -11,11 +11,16 @@ module.exports = async function (context, req) {
     const categories = [];
 
     for await (const entity of client.listEntities()) {
-      categories.push({
-        id: entity.rowKey,
-        masterCategoryName:
-          entity.MasterCategoryName,
-      });
+     if (
+          entity.MasterCategoryName &&
+          entity.MasterCategoryName.trim()
+        ) {
+          categories.push({
+            id: entity.rowKey,
+            masterCategoryName:
+              entity.MasterCategoryName,
+          });
+        }
     }
 
     context.res = {
