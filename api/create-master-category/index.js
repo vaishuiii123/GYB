@@ -4,6 +4,17 @@ module.exports = async function (context, req) {
   try {
     const { masterCategoryName, createdBy } = req.body;
 
+    if (!masterCategoryName || !masterCategoryName.trim()) {
+      context.res = {
+        status: 400,
+        body: {
+          success: false,
+          message: "Master Category Name is required",
+        },
+      };
+      return;
+    }
+    
     const client =
       TableClient.fromConnectionString(
         process.env.AZURE_STORAGE_CONNECTION_STRING,
