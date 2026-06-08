@@ -8,6 +8,7 @@ import {
 import Dashboard from "./pages/Admin/Dashboard";
 import AdminLogin from "./pages/auth/AdminLogin";
 import Organization from "./pages/Admin/Organization";
+import Participants from "./pages/Admin/Participants";
 import Template from "./pages/Admin/Template";
 import Workshop from "./pages/Admin/Workshop";
 import UserLogin from "./pages/User/UserLogin";
@@ -53,6 +54,11 @@ function App() {
        <Route
           path="/organization"
           element={<Organization user={currentUser} />}
+        />
+
+       <Route
+          path="/participants"
+          element={<Participants user={currentUser} />}
         />
 
         <Route
