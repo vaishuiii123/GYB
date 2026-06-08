@@ -8,6 +8,16 @@ type PageProps = {
 
 export default function Category({ user }: PageProps) {
 
+  const [selectedMasterCategory,
+  setSelectedMasterCategory] =
+  useState<any>(null);
+
+  const [categoriesList,setCategoriesList] = useState<any[]>([]);
+
+  const [showCategoryModal,setShowCategoryModal] =useState(false);
+  
+  const [categoryName,setCategoryName] =useState("");
+
   const [categoryError, setCategoryError] = useState("");
   
   const [categories, setCategories] = useState<any[]>([]);
@@ -74,11 +84,33 @@ export default function Category({ user }: PageProps) {
     }
   };
 
-  const handleView = (category: any) => {
-    alert(
-      `View clicked for ${category.masterCategoryName}`
+const handleView = async (
+  masterCategory: any
+) => {
+
+  setSelectedMasterCategory(
+    masterCategory
+  );
+
+  try {
+
+    const response = await fetch(
+      `/api/get-categories?masterCategoryId=${masterCategory.id}`
     );
-  };
+
+    const data =
+      await response.json();
+
+    if (data.success) {
+      setCategoriesList(
+        data.categories
+      );
+    }
+
+  } catch (error) {
+    console.error(error);
+  }
+};
 
   const handleEdit = (category: any) => {
     alert(
@@ -121,8 +153,21 @@ export default function Category({ user }: PageProps) {
 
             <div style={pageHeader}>
               <h1 style={pageTitle}>
-                Category Management
+                {selectedMasterCategory
+                  ? selectedMasterCategory.masterCategoryName
+                  : "Category Management"}
               </h1>
+
+              {selectedMasterCategory && (
+                <button
+                  style={saveBtn}
+                  onClick={() =>
+                    setShowCategoryModal(true)
+                  }
+                >
+                  Create Category
+                </button>
+              )}
 
               <button
                 style={saveBtn}
