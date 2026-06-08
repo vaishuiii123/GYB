@@ -829,36 +829,52 @@ const handleParticipantDelete = (participant: any) => {
                 </thead>
         
                     <tbody>
-                      {participants.map((p, index) => (
-                        <tr key={index}>
-                          <td style={tableCell}>{p.firstName}{p.lastName}</td>
-                          <td style={tableCell}>{p.email}</td>
-                          <td style={tableCell}>{p.password ? "********" : "-"}</td>
-                          <td style={tableCell}>
-                          <div style={{display: "flex", gap: "8px", }}>
-                            <button
-                              style={viewBtn}
-                              onClick={() => handleParticipantView(p)}
-                            >
-                              👁 View
-                            </button>
-                            <button
-                              style={editBtn}
-                              onClick={() => handleParticipantEdit(p)}
-                            >
-                              ✏ Edit
-                            </button>
-                  
-                            <button
-                              style={deleteBtn}
-                              onClick={() => handleParticipantDelete(p)}
-                            >
-                              🗑 Delete
-                            </button>
-                          </div>
-                      </td>
-               </tr>
-            ))}
+                      <tbody>
+                        {organizations.map((org, index) => (
+                          <tr key={index}>
+                            <td style={tableCell}>
+                              {org.organizationName}
+                            </td>
+                      
+                            <td style={tableCell}>
+                              {org.contactPerson}
+                            </td>
+                      
+                            <td style={tableCell}>
+                              {org.email}
+                            </td>
+                      
+                            <td style={tableCell}>
+                              <div
+                                style={{
+                                  display: "flex",
+                                  gap: "8px",
+                                }}
+                              >
+                                <button
+                                  style={viewBtn}
+                                  onClick={() => handleView(org)}
+                                >
+                                  👁 View
+                                </button>
+                      
+                                <button
+                                  style={editBtn}
+                                  onClick={() => handleEdit(org)}
+                                >
+                                  ✏ Edit
+                                </button>
+                      
+                                <button
+                                  style={deleteBtn}
+                                  onClick={() => handleDelete(org)}
+                                >
+                                  🗑 Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
                     </tbody>
                   </table>
                 )}
