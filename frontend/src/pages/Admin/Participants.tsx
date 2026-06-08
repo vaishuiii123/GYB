@@ -103,12 +103,44 @@ export default function Participants({ user }: PageProps) {
   setShowEditModal(true);
 };
 
-  const handleDeleteParticipant = async (
-  participant: any
-) => {
-  const confirmDelete = window.confirm(
-    `Delete ${participant.firstName} ${participant.lastName}?`
-  );
+  const handleUpdateParticipant = async () => {
+
+  await fetch("/api/update-participant", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(editParticipant),
+  });
+
+  setShowEditModal(false);
+
+  fetchParticipants();
+};
+
+   //=============================== DELETE PARTICIPANTS ==========================================
+
+ const handleDeleteParticipant = async (p: any) => {
+
+  if (
+    !window.confirm(
+      `Delete ${p.firstName} ${p.lastName}?`
+    )
+  )
+    return;
+
+  await fetch("/api/delete-participant", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      id: p.id,
+    }),
+  });
+
+  fetchParticipants();
+};
 
   if (!confirmDelete) return;
 
@@ -191,7 +223,7 @@ export default function Participants({ user }: PageProps) {
                         >
                           <button
                             style={editBtn}
-                            onClick={() => handleEditParticipant(p)}
+                            onClick={() => handleUpdateParticipant (p)}
                           >
                             ✏ Edit
                           </button>
