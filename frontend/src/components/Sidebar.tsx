@@ -14,7 +14,7 @@ export default function Sidebar() {
     },
      {
       name: "Participants",
-      path: "/participant",
+      path: "/participants",
       icon: "🏢",
     },
     {
