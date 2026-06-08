@@ -90,6 +90,33 @@ export default function Participants({ user }: PageProps) {
     }
   };
 
+  const [showEditModal, setShowEditModal] =
+  useState(false);
+
+  const [editParticipant, setEditParticipant] =
+  useState<any>(null);
+
+  //=============================== EDIT PARTICIPANTS ==========================================
+
+  const handleEditParticipant = (participant: any) => {
+  setEditParticipant(participant);
+  setShowEditModal(true);
+};
+
+  const handleDeleteParticipant = async (
+  participant: any
+) => {
+  const confirmDelete = window.confirm(
+    `Delete ${participant.firstName} ${participant.lastName}?`
+  );
+
+  if (!confirmDelete) return;
+
+  alert(
+    "Delete API will be called here"
+  );
+};
+  
   return (
     <>
       <div
@@ -137,45 +164,45 @@ export default function Participants({ user }: PageProps) {
               >
                 <thead>
                   <tr>
-                    <th style={tableHeader}>
-                      First Name
-                    </th>
-                    <th style={tableHeader}>
-                      Middle Name
-                    </th>
-                    <th style={tableHeader}>
-                      Last Name
-                    </th>
-                    <th style={tableHeader}>
-                      Email
-                    </th>
-                    <th style={tableHeader}>
-                      Phone No
-                    </th>
-                  </tr>
+                  <th style={tableHeader}>First Name</th>
+                  <th style={tableHeader}>Middle Name</th>
+                  <th style={tableHeader}>Last Name</th>
+                  <th style={tableHeader}>Email</th>
+                  <th style={tableHeader}>Phone No</th>
+                  <th style={tableHeader}>Actions</th>
+                </tr>
                 </thead>
 
                 <tbody>
                   {participants.map((p, index) => (
                     <tr key={index}>
+                      <td style={tableCell}>{p.firstName}</td>
+                      <td style={tableCell}>{p.middleName}</td>
+                      <td style={tableCell}>{p.lastName}</td>
+                      <td style={tableCell}>{p.email}</td>
+                      <td style={tableCell}>{p.phoneNo}</td>
+                    
                       <td style={tableCell}>
-                        {p.firstName}
-                      </td>
-
-                      <td style={tableCell}>
-                        {p.middleName}
-                      </td>
-
-                      <td style={tableCell}>
-                        {p.lastName}
-                      </td>
-
-                      <td style={tableCell}>
-                        {p.email}
-                      </td>
-
-                      <td style={tableCell}>
-                        {p.phoneNo}
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "8px",
+                          }}
+                        >
+                          <button
+                            style={editBtn}
+                            onClick={() => handleEditParticipant(p)}
+                          >
+                            ✏ Edit
+                          </button>
+                    
+                          <button
+                            style={deleteBtn}
+                            onClick={() => handleDeleteParticipant(p)}
+                          >
+                            🗑 Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -361,4 +388,22 @@ const inputStyle = {
   padding: "10px",
   border: "1px solid #ddd",
   borderRadius: "6px",
+};
+
+const editBtn = {
+  background: "#3b82f6",
+  color: "white",
+  border: "none",
+  borderRadius: "6px",
+  padding: "6px 12px",
+  cursor: "pointer",
+};
+
+const deleteBtn = {
+  background: "#ef4444",
+  color: "white",
+  border: "none",
+  borderRadius: "6px",
+  padding: "6px 12px",
+  cursor: "pointer",
 };
