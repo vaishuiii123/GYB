@@ -381,9 +381,7 @@ const handleParticipantDelete = (participant: any) => {
         </button>
       </div>
     </div>
-
     
-
         {/* TABLE */}
         <div style={card}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -398,52 +396,51 @@ const handleParticipantDelete = (participant: any) => {
             </thead>
 
             <tbody>
-              {organizations.length === 0 ? (
-                <tr>
-                  <td colSpan={5} style={{ textAlign: "center", padding: "20px" }}>
-                    No data found
+              {participants.map((p, index) => (
+                <tr key={index}>
+                  <td style={tableCell}>
+                    {p.firstName} {p.lastName}
                   </td>
-                </tr>
-              ) : (
-                organizations.map((org, index) => (
-                  <tr key={index}>
-                    <td style={tableCell}>{index + 1}</td>
-                    <td style={tableCell}>{org.organizationName || "-"}</td>
-                    <td style={tableCell}>{org.contactPerson || "-"}</td>
-                    <td style={tableCell}>{org.email || "-"}</td>
-                    <td style={tableCell}>
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: "8px",
-                        }}
+            
+                  <td style={tableCell}>
+                    {p.email}
+                  </td>
+            
+                  <td style={tableCell}>
+                    {p.password ? "********" : "-"}
+                  </td>
+            
+                  <td style={tableCell}>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "8px",
+                      }}
+                    >
+                      <button
+                        style={viewBtn}
+                        onClick={() => handleParticipantView(p)}
                       >
-                        <button
-                          style={viewBtn}
-                          onClick={() => handleView(org)}
-                        >
-                          👁 View
-                        </button>
-                    
-                        <button
-                          style={editBtn}
-                          onClick={() => handleEdit(org)}
-                        >
-                          ✏ Edit
-                        </button>
-                                            
-                     <button
+                        👁 View
+                      </button>
+            
+                      <button
+                        style={editBtn}
+                        onClick={() => handleParticipantEdit(p)}
+                      >
+                        ✏ Edit
+                      </button>
+            
+                      <button
                         style={deleteBtn}
-                        onClick={() => handleDelete(org)}
+                        onClick={() => handleParticipantDelete(p)}
                       >
                         🗑 Delete
                       </button>
-                      </div>
-                    </td>
-                   
-                  </tr>
-                ))
-              )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
