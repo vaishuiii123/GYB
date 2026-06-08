@@ -7,6 +7,10 @@ type PageProps = {
 };
 
 export default function Participants({ user }: PageProps) {
+
+  const [selectedParticipants, setSelectedParticipants] =
+  useState<string[]>([]);
+  
   const [participants, setParticipants] = useState<any[]>([]);
 
   const [showParticipantModal, setShowParticipantModal] =
@@ -157,7 +161,45 @@ export default function Participants({ user }: PageProps) {
   fetchParticipants();
 };
 
+//============================ DELETE ALL PARTICIPANTS ===================================================
 
+    const handleDeleteSelected = async () => {
+    if (selectedParticipants.length === 0) {
+      alert("Please select participants");
+      return;
+    }
+  
+    if (
+      !window.confirm(
+        `Delete ${selectedParticipants.length} participant(s)?`
+      )
+    ) {
+      return;
+    }
+  
+    try {
+      for (const id of selectedParticipants) {
+        await fetch("/api/delete-participant", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            id,
+          }),
+        });
+      }
+  
+      alert("Participants deleted");
+  
+      setSelectedParticipants([]);
+  
+      fetchParticipants();
+    } catch (error) {
+      console.error(error);
+      alert("Delete failed");
+    }
+  };
   
   return (
     <>
@@ -195,6 +237,16 @@ export default function Participants({ user }: PageProps) {
               >
                 Create Participant
               </button>
+
+              <button
+                style={{
+                  ...deleteBtn,
+                  background: "#dc2626",
+                }}
+                onClick={handleDeleteSelected}
+              >
+                Delete Selected
+              </button>
             </div>
 
             <div style={card}>
@@ -206,18 +258,56 @@ export default function Participants({ user }: PageProps) {
               >
                 <thead>
                   <tr>
-                  <th style={tableHeader}>First Name</th>
-                  <th style={tableHeader}>Middle Name</th>
-                  <th style={tableHeader}>Last Name</th>
-                  <th style={tableHeader}>Email</th>
-                  <th style={tableHeader}>Phone No</th>
-                  <th style={tableHeader}>Actions</th>
-                </tr>
-                </thead>
+                  <th style={tableHeader}>
+                    <input
+                      type="checkbox"
+                      checked={
+                        participants.length > 0 &&
+                        selectedParticipants.length === participants.length
+                      }
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedParticipants(
+                            participants.map((p) => p.id)
+                          );
+                        } else {
+                            setSelectedParticipants([]);
+                          }
+                        }}
+                      />
+                    </th>
+                    <th style={tableHeader}>First Name</th>
+                    <th style={tableHeader}>Middle Name</th>
+                    <th style={tableHeader}>Last Name</th>
+                    <th style={tableHeader}>Email</th>
+                    <th style={tableHeader}>Phone No</th>
+                    <th style={tableHeader}>Actions</th>
+                  </tr>
+                  </thead>
 
                 <tbody>
                   {participants.map((p, index) => (
                     <tr key={index}>
+                      <td style={tableCell}>
+                        <input
+                          type="checkbox"
+                          checked={selectedParticipants.includes(p.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedParticipants([
+                                ...selectedParticipants,
+                                p.id,
+                              ]);
+                            } else {
+                              setSelectedParticipants(
+                                selectedParticipants.filter(
+                                  (id) => id !== p.id
+                                )
+                              );
+                            }
+                          }}
+                        />
+                      </td>
                       <td style={tableCell}>{p.firstName}</td>
                       <td style={tableCell}>{p.middleName}</td>
                       <td style={tableCell}>{p.lastName}</td>
