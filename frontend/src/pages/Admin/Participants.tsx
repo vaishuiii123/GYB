@@ -240,7 +240,7 @@ export default function Participants({ user }: PageProps) {
 
               <button
                 style={{
-                  ...deleteBtn,
+                  style={saveBtn},
                   background: "#dc2626",
                 }}
                 onClick={handleDeleteSelected}
