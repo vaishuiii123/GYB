@@ -1,11 +1,95 @@
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
+import { useState, useEffect } from "react";
 
 type PageProps = {
   user?: any;
 };
 
 export default function Participants({ user }: PageProps) {
+  const [participants, setParticipants] = useState<any[]>([]);
+
+  const [showParticipantModal, setShowParticipantModal] =
+    useState(false);
+
+  const [participantForm, setParticipantForm] = useState({
+    firstName: "",
+    middleName: "",
+    lastName: "",
+    email: "",
+    phoneNo: "",
+    password: "",
+  });
+
+  useEffect(() => {
+    fetchParticipants();
+  }, []);
+
+  const fetchParticipants = async () => {
+    try {
+      const response = await fetch("/api/get-participants");
+
+      const data = await response.json();
+
+      if (data.success) {
+        setParticipants(data.participants);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleCreateParticipant = async () => {
+    try {
+      const currentUser = JSON.parse(
+        localStorage.getItem("user") || "{}"
+      );
+
+      const response = await fetch(
+        "/api/create-participant",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            firstName: participantForm.firstName,
+            middleName: participantForm.middleName,
+            lastName: participantForm.lastName,
+            email: participantForm.email,
+            phoneNo: participantForm.phoneNo,
+            password: participantForm.password,
+            createdBy: currentUser.email,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert("Participant created successfully");
+
+        setParticipantForm({
+          firstName: "",
+          middleName: "",
+          lastName: "",
+          email: "",
+          phoneNo: "",
+          password: "",
+        });
+
+        setShowParticipantModal(false);
+
+        fetchParticipants();
+      } else {
+        alert(data.message);
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Failed to create participant");
+    }
+  };
+
   return (
     <>
       <div
@@ -31,31 +115,183 @@ export default function Participants({ user }: PageProps) {
               marginTop: "70px",
             }}
           >
-            {/* HEADER */}
             <div style={pageHeader}>
               <h1 style={pageTitle}>Participants</h1>
 
-              <div
-                style={{
-                  display: "flex",
-                  gap: "10px",
-                }}
+              <button
+                style={saveBtn}
+                onClick={() =>
+                  setShowParticipantModal(true)
+                }
               >
-              </div>
+                Create Participant
+              </button>
             </div>
 
-            {/* CONTENT */}
             <div style={card}>
-              <h3>Participants Page</h3>
+              <table
+                style={{
+                  width: "100%",
+                  borderCollapse: "collapse",
+                }}
+              >
+                <thead>
+                  <tr>
+                    <th style={tableHeader}>
+                      First Name
+                    </th>
+                    <th style={tableHeader}>
+                      Middle Name
+                    </th>
+                    <th style={tableHeader}>
+                      Last Name
+                    </th>
+                    <th style={tableHeader}>
+                      Email
+                    </th>
+                    <th style={tableHeader}>
+                      Phone No
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {participants.map((p, index) => (
+                    <tr key={index}>
+                      <td style={tableCell}>
+                        {p.firstName}
+                      </td>
+
+                      <td style={tableCell}>
+                        {p.middleName}
+                      </td>
+
+                      <td style={tableCell}>
+                        {p.lastName}
+                      </td>
+
+                      <td style={tableCell}>
+                        {p.email}
+                      </td>
+
+                      <td style={tableCell}>
+                        {p.phoneNo}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
       </div>
+
+      {showParticipantModal && (
+        <div style={modalOverlay}>
+          <div style={modalBox}>
+            <h2>Create Participant</h2>
+
+            <input
+              style={inputStyle}
+              placeholder="First Name"
+              value={participantForm.firstName}
+              onChange={(e) =>
+                setParticipantForm({
+                  ...participantForm,
+                  firstName: e.target.value,
+                })
+              }
+            />
+
+            <input
+              style={inputStyle}
+              placeholder="Middle Name"
+              value={participantForm.middleName}
+              onChange={(e) =>
+                setParticipantForm({
+                  ...participantForm,
+                  middleName: e.target.value,
+                })
+              }
+            />
+
+            <input
+              style={inputStyle}
+              placeholder="Last Name"
+              value={participantForm.lastName}
+              onChange={(e) =>
+                setParticipantForm({
+                  ...participantForm,
+                  lastName: e.target.value,
+                })
+              }
+            />
+
+            <input
+              style={inputStyle}
+              placeholder="Email"
+              value={participantForm.email}
+              onChange={(e) =>
+                setParticipantForm({
+                  ...participantForm,
+                  email: e.target.value,
+                })
+              }
+            />
+
+            <input
+              style={inputStyle}
+              placeholder="Phone Number"
+              value={participantForm.phoneNo}
+              onChange={(e) =>
+                setParticipantForm({
+                  ...participantForm,
+                  phoneNo: e.target.value,
+                })
+              }
+            />
+
+            <input
+              type="password"
+              style={inputStyle}
+              placeholder="Password"
+              value={participantForm.password}
+              onChange={(e) =>
+                setParticipantForm({
+                  ...participantForm,
+                  password: e.target.value,
+                })
+              }
+            />
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "10px",
+              }}
+            >
+              <button
+                onClick={() =>
+                  setShowParticipantModal(false)
+                }
+              >
+                Cancel
+              </button>
+
+              <button
+                style={saveBtn}
+                onClick={handleCreateParticipant}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
-
-/* ================= STYLES ================= */
 
 const card = {
   background: "white",
@@ -76,4 +312,53 @@ const pageTitle = {
   fontWeight: "700",
   color: "#111827",
   margin: 0,
+};
+
+const saveBtn = {
+  background: "#3b5bcc",
+  color: "white",
+  border: "none",
+  borderRadius: "8px",
+  padding: "10px 16px",
+  cursor: "pointer",
+};
+
+const tableHeader = {
+  padding: "12px",
+  textAlign: "left" as const,
+  borderBottom: "1px solid #ddd",
+};
+
+const tableCell = {
+  padding: "12px",
+  borderBottom: "1px solid #eee",
+};
+
+const modalOverlay = {
+  position: "fixed" as const,
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  background: "rgba(0,0,0,0.5)",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  zIndex: 9999,
+};
+
+const modalBox = {
+  background: "white",
+  padding: "25px",
+  width: "500px",
+  borderRadius: "12px",
+  display: "flex",
+  flexDirection: "column" as const,
+  gap: "12px",
+};
+
+const inputStyle = {
+  padding: "10px",
+  border: "1px solid #ddd",
+  borderRadius: "6px",
 };
