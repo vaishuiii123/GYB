@@ -99,23 +99,38 @@ export default function Participants({ user }: PageProps) {
   //=============================== EDIT PARTICIPANTS ==========================================
 
   const handleEditParticipant = (participant: any) => {
-  setEditParticipant(participant);
-  setShowEditModal(true);
-};
+    setEditParticipant(participant);
+    setShowEditModal(true);
+  };
 
-  const handleUpdateParticipant = async () => {
+ const handleUpdateParticipant = async () => {
+  try {
+    const response = await fetch(
+      "/api/update-participant",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(editParticipant),
+      }
+    );
 
-  await fetch("/api/update-participant", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(editParticipant),
-  });
+    const data = await response.json();
 
-  setShowEditModal(false);
+    if (data.success) {
+      alert("Participant updated successfully");
 
-  fetchParticipants();
+      setShowEditModal(false);
+
+      fetchParticipants();
+    } else {
+      alert("Update failed");
+    }
+  } catch (error) {
+    console.error(error);
+    alert("Failed to update participant");
+  }
 };
 
    //=============================== DELETE PARTICIPANTS ==========================================
@@ -142,12 +157,7 @@ export default function Participants({ user }: PageProps) {
   fetchParticipants();
 };
 
-  if (!confirmDelete) return;
 
-  alert(
-    "Delete API will be called here"
-  );
-};
   
   return (
     <>
@@ -221,12 +231,12 @@ export default function Participants({ user }: PageProps) {
                             gap: "8px",
                           }}
                         >
-                          <button
-                            style={editBtn}
-                            onClick={() => handleUpdateParticipant (p)}
-                          >
-                            ✏ Edit
-                          </button>
+                         <button
+                          style={editBtn}
+                          onClick={() => handleEditParticipant(p)}
+                        >
+                          ✏ Edit
+                        </button>
                     
                           <button
                             style={deleteBtn}
@@ -348,6 +358,104 @@ export default function Participants({ user }: PageProps) {
           </div>
         </div>
       )}
+
+              {showEditModal && editParticipant && (
+          <div style={modalOverlay}>
+            <div style={modalBox}>
+              <h2>Edit Participant</h2>
+        
+              <input
+                style={inputStyle}
+                value={editParticipant.firstName}
+                onChange={(e) =>
+                  setEditParticipant({
+                    ...editParticipant,
+                    firstName: e.target.value,
+                  })
+                }
+              />
+        
+              <input
+                style={inputStyle}
+                value={editParticipant.middleName}
+                onChange={(e) =>
+                  setEditParticipant({
+                    ...editParticipant,
+                    middleName: e.target.value,
+                  })
+                }
+              />
+        
+              <input
+                style={inputStyle}
+                value={editParticipant.lastName}
+                onChange={(e) =>
+                  setEditParticipant({
+                    ...editParticipant,
+                    lastName: e.target.value,
+                  })
+                }
+              />
+        
+              <input
+                style={inputStyle}
+                value={editParticipant.email}
+                onChange={(e) =>
+                  setEditParticipant({
+                    ...editParticipant,
+                    email: e.target.value,
+                  })
+                }
+              />
+        
+              <input
+                style={inputStyle}
+                value={editParticipant.phoneNo}
+                onChange={(e) =>
+                  setEditParticipant({
+                    ...editParticipant,
+                    phoneNo: e.target.value,
+                  })
+                }
+              />
+        
+              <input
+                type="password"
+                style={inputStyle}
+                value={editParticipant.password}
+                onChange={(e) =>
+                  setEditParticipant({
+                    ...editParticipant,
+                    password: e.target.value,
+                  })
+                }
+              />
+        
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: "10px",
+                }}
+              >
+                <button
+                  onClick={() =>
+                    setShowEditModal(false)
+                  }
+                >
+                  Cancel
+                </button>
+        
+                <button
+                  style={saveBtn}
+                  onClick={handleUpdateParticipant}
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
     </>
   );
 }
