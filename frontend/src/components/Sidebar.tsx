@@ -18,6 +18,11 @@ export default function Sidebar() {
       icon: "🏢",
     },
     {
+      name: "Category Management",
+      path: "/category",
+      icon: "📂",
+    },
+    {
       name: "Template",
       path: "/template",
       icon: "📄",
