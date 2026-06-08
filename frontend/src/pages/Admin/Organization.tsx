@@ -315,6 +315,31 @@ const [participantForm, setParticipantForm] =
     }
   };
 
+
+  //======================================== Handles Participants Action Button =====================================================
+  const handleParticipantView = (participant: any) => {
+  alert(
+    `Participant: ${participant.firstName}`
+  );
+};
+
+const handleParticipantEdit = (participant: any) => {
+  alert(
+    `Edit API for ${participant.firstName}`
+  );
+};
+
+const handleParticipantDelete = (participant: any) => {
+  const confirmDelete = window.confirm(
+    `Delete ${participant.firstName}?`
+  );
+
+  if (!confirmDelete) return;
+
+  alert(
+    `Delete API for ${participant.firstName}`
+  );
+};
   return (
       <>
       <div style={{ display: "flex", minHeight: "100vh", background: "#f3f4f6" }}>
@@ -799,22 +824,47 @@ const [participantForm, setParticipantForm] =
                       borderCollapse: "collapse",
                     }}
                   >
-                    <thead>
-                      <tr>
-                        <th style={tableHeader}>First Name</th>
-                        <th style={tableHeader}>Email</th>
-                        <th style={tableHeader}>Password</th>
-                      </tr>
-                    </thead>
+                  <thead>
+                  <tr>
+                    <th style={tableHeader}>First Name</th>
+                    <th style={tableHeader}>Email</th>
+                    <th style={tableHeader}>Password</th>
+                    <th style={tableHeader}>Actions</th>
+                  </tr>
+                </thead>
         
                     <tbody>
                       {participants.map((p, index) => (
                         <tr key={index}>
-                          <td style={tableCell}>{p.firstName}</td>
+                          <td style={tableCell}>{p.firstName}{p.lastName}</td>
                           <td style={tableCell}>{p.email}</td>
                           <td style={tableCell}>{p.password ? "********" : "-"}</td>
-                        </tr>
-                      ))}
+                          <td style={tableCell}>
+                          <div style={{display: "flex", gap: "8px", }}>
+                            <button
+                              style={viewBtn}
+                              onClick={() => handleParticipantView(p)}
+                            >
+                              👁 View
+                            </button>
+                            <button
+                              style={editBtn}
+                              onClick={() => handleParticipantEdit(p)}
+                            >
+                              ✏ Edit
+                            </button>
+                  
+                            <button
+                              style={deleteBtn}
+                              onClick={() => handleParticipantDelete(p)}
+                            >
+                              🗑 Delete
+                            </button>
+                          </div>
+                      </td>
+                  </tr>
+               </tr>
+            ))}
                     </tbody>
                   </table>
                 )}
