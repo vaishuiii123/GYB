@@ -150,15 +150,36 @@ const handleView = async (
             }}
           >
             {/* HEADER */}
-
-            <div style={pageHeader}>
+          <div style={pageHeader}>
+            <div>
+              {selectedMasterCategory && (
+                <button
+                  onClick={() => {
+                    setSelectedMasterCategory(null);
+                    setCategoriesList([]);
+                  }}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                    marginBottom: "10px",
+                    color: "#3b5bcc",
+                  }}
+                >
+                  ← Back to Master Categories
+                </button>
+              )}
+          
               <h1 style={pageTitle}>
                 {selectedMasterCategory
                   ? selectedMasterCategory.masterCategoryName
                   : "Category Management"}
               </h1>
-
-              {selectedMasterCategory && (
+            </div>
+          
+            <div style={{ display: "flex", gap: "10px" }}>
+              {selectedMasterCategory ? (
                 <button
                   style={saveBtn}
                   onClick={() =>
@@ -167,19 +188,20 @@ const handleView = async (
                 >
                   Create Category
                 </button>
+              ) : (
+                <button
+                  style={saveBtn}
+                  onClick={() =>
+                    setShowModal(true)
+                  }
+                >
+                  Create Master Category
+                </button>
               )}
-
-              <button
-                style={saveBtn}
-                onClick={() =>
-                  setShowModal(true)
-                }
-              >
-                Create Master Category
-              </button>
             </div>
-
-            {/* TABLE */}
+          
+          </div>
+                       {/* TABLE */}
 
             <div style={card}>
               <table
@@ -190,8 +212,10 @@ const handleView = async (
               >
                 <thead>
                   <tr>
-                    <th style={tableHeader}>
-                      Master Category Name
+                   <th style={tableHeader}>
+                      {selectedMasterCategory
+                        ? "Category Name"
+                        : "Master Category Name"}
                     </th>
 
                     <th style={tableHeader}>
@@ -201,11 +225,16 @@ const handleView = async (
                 </thead>
 
                 <tbody>
-                  {categories.map((cat) => (
+                  {(selectedMasterCategory
+                    ? categoriesList
+                    : categories
+                  ).map((cat) => (
                     <tr key={cat.id}>
                       <td style={tableCell}>
-                        {cat.masterCategoryName}
-                      </td>
+                          {selectedMasterCategory
+                            ? cat.categoryName
+                            : cat.masterCategoryName}
+                        </td>
 
                       <td style={tableCell}>
                         <div
