@@ -10,12 +10,6 @@ type PageProps = {
 
 export default function Organization({ user }: PageProps) {
 
-  const [showParticipantViewModal, setShowParticipantViewModal] =
-  useState(false);
-
-  const [selectedParticipant, setSelectedParticipant] =
-  useState<any>(null);
-
   const [showEditModal, setShowEditModal] =
   useState(false);
 
@@ -26,9 +20,6 @@ export default function Organization({ user }: PageProps) {
     contactPerson: "",
     email: "",
   });
-  
-  const [participants, setParticipants] =
-  useState<any[]>([]);
 
   const [showViewModal, setShowViewModal] =
   useState(false);
@@ -36,28 +27,7 @@ export default function Organization({ user }: PageProps) {
   const [selectedOrganization, setSelectedOrganization] =
   useState<any>(null);
   
-  const [successMessage, setSuccessMessage] =
-  useState("");
-  
-  const [showParticipantModal, setShowParticipantModal] =
-  useState(false);
 
-  const [showPassword, setShowPassword] =
-  useState(false);
-
-const [showPasswordRules, setShowPasswordRules] =
-  useState(false);
-
-const [participantForm, setParticipantForm] =
-  useState({
-    organization: "",
-    firstName: "",
-    middleName: "",
-    lastName: "",
-    email: "",
-    phoneNo: "",
-    password: "",
-  });
 
  useEffect(() => {
   if (user?.email) {
@@ -102,103 +72,11 @@ const [participantForm, setParticipantForm] =
     "Delete API will be called here."
   );
 };
-  
-    const handleView = async (org: any) => {
+
+  const handleView = (org: any) => {
   setSelectedOrganization(org);
-
-  try {
-    const response = await fetch(
-      `/api/get-participants?organization=${encodeURIComponent(
-        org.organizationName
-      )}`
-    );
-
-    const data = await response.json();
-
-    if (data.success) {
-      setParticipants(data.participants);
-      setShowViewModal(true);
-    } else {
-      alert("Failed to load participants");
-    }
-  } catch (err) {
-    console.error(err);
-    alert("Failed to load participants");
-  }
+  setShowViewModal(true);
 };
-  
-  const handleCreateParticipant = async () => {
-
-  const passwordRegex =
-  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-
-  if (!passwordRegex.test(participantForm.password)) {
-    alert(
-      "Password must contain minimum 8 characters, one uppercase, one lowercase, one number and one special character."
-    );
-    return;
-  }
-    
-  try {
-
-
-  const response = await fetch(
-    "/api/create-participant",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        ...participantForm,
-        createdBy: user?.email || "",
-      }),
-    }
-  );
-
-  const text = await response.text();
-
-  console.log("Status:", response.status);
-  console.log("Response:", text);
-
-  if (!response.ok) {
-    alert("API Error");
-    return;
-  }
-
-  if (!text || text.trim() === "") {
-    alert("API returned empty response");
-    return;
-  }
-
-  const result = JSON.parse(text);
-
-  if (result.success) {
-    setSuccessMessage(
-      "Participant created successfully"
-    );
-
-    setShowParticipantModal(false);
-
-    setParticipantForm({
-      organization: "",
-      firstName: "",
-      middleName: "",
-      lastName: "",
-      email: "",
-      phoneNo: "",
-      password: "",
-    });
-
-  } else {
-    alert(result.error || "Failed to create participant");
-  }
-
-} catch (error) {
-  console.error("Create Participant Error:", error);
-  alert("Failed to create participant");
-  }
-  };
 
   //============================= UPDATE ORGANIZATION =====================================
 
@@ -320,28 +198,6 @@ const [participantForm, setParticipantForm] =
     }
   };
 
-
-  //======================================== Handles Participants Action Button =====================================================
-  const handleParticipantView = (participant: any) => {
-  setSelectedParticipant(participant);
-  setShowParticipantViewModal(true);
-};
-
-const handleParticipantEdit = (participant: any) => {
-  alert(
-    `Edit API for ${participant.firstName}`
-  );
-};
-
-const handleParticipantDelete = (participant: any) => {
-  const confirmDelete = window.confirm(
-    `Delete ${participant.firstName}?`
-  );
-
-  if (!confirmDelete) return;
-
-  alert("Delete API will be called here");
-};
   return (
       <>
       <div style={{ display: "flex", minHeight: "100vh", background: "#f3f4f6" }}>
@@ -368,13 +224,6 @@ const handleParticipantDelete = (participant: any) => {
       <h1 style={pageTitle}>Organization</h1>
     
       <div style={{ display: "flex", gap: "10px" }}>
-        <button
-          onClick={() => setShowParticipantModal(true)}
-          style={saveBtn}
-        >
-          Create Participant
-        </button>
-    
         <button
           onClick={() => setShowOrgModal(true)}
           style={saveBtn}
@@ -489,513 +338,120 @@ const handleParticipantDelete = (participant: any) => {
 
           </div>
         </div>
-      )}
+      )}    
 
-  {showParticipantModal && (
-  <div style={modalOverlay}>
-    <div style={modalBox}>
-
-      <h2>Add Participant</h2>
-
-      <select
-        style={inputStyle}
-        value={participantForm.organization}
-        onChange={(e) =>
-          setParticipantForm({
-            ...participantForm,
-            organization: e.target.value,
-          })
-        }
-      >
-        <option value="">
-          Select Organization
-        </option>
-
-        {organizations.map((org: any) => (
-        <option
-          key={org.organizationName}
-          value={org.organizationName}
-        >
-          {org.organizationName}
-        </option>
-      ))}
-      </select>
-
-      <input
-        style={inputStyle}
-        placeholder="First Name"
-        value={participantForm.firstName}
-        onChange={(e) =>
-          setParticipantForm({
-            ...participantForm,
-            firstName: e.target.value,
-          })
-        }
-      />
-
-      <input
-        style={inputStyle}
-        placeholder="Middle Name"
-        value={participantForm.middleName}
-        onChange={(e) =>
-          setParticipantForm({
-            ...participantForm,
-            middleName: e.target.value,
-          })
-        }
-      />
-
-      <input
-        style={inputStyle}
-        placeholder="Last Name"
-        value={participantForm.lastName}
-        onChange={(e) =>
-          setParticipantForm({
-            ...participantForm,
-            lastName: e.target.value,
-          })
-        }
-      />
-
-      <input
-        style={inputStyle}
-        placeholder="Email"
-        value={participantForm.email}
-        onChange={(e) =>
-          setParticipantForm({
-            ...participantForm,
-            email: e.target.value,
-          })
-        }
-      />
-
-      <input
-        style={inputStyle}
-        placeholder="Phone Number"
-        value={participantForm.phoneNo}
-        onChange={(e) =>
-          setParticipantForm({
-            ...participantForm,
-            phoneNo: e.target.value,
-          })
-        }
-      />
-<div style={{ position: "relative" }}>
-
-  <input
-    type={showPassword ? "text" : "password"}
-    style={{
-      ...inputStyle,
-      paddingRight: "30px",
-      boxSizing: "border-box",
-    }}
-    placeholder="Password"
-    value={participantForm.password}
-    onFocus={() => setShowPasswordRules(true)}
-    onClick={() => setShowPasswordRules(true)}
-    onBlur={() => setShowPasswordRules(false)}
-    onChange={(e) =>
-      setParticipantForm({
-        ...participantForm,
-        password: e.target.value,
-      })
-    }
-  />
-
-  <span
-    onClick={() =>
-      setShowPassword(!showPassword)
-    }
-    style={{
-      position: "absolute",
-      right: "12px",
-      top: "12px",
-      cursor: "pointer",
-      userSelect: "none",
-    }}
-  >
-    {showPassword ? "🙈" : "👁"}
-  </span>
-
-  {showPasswordRules && (
-    <div
-      style={{
-        marginTop: "8px",
-        fontSize: "12px",
-        color: "#666",
-        background: "#f9fafb",
-        padding: "10px",
-        borderRadius: "6px",
-      }}
-    >
-      Password must contain:
-      <ul style={{ margin: "5px 0 0 15px" }}>
-      <li style={{
-        color: participantForm.password.length >= 8
-          ? "green"
-          : "red"
-      }}>
-        ✓ Minimum 8 characters
-      </li>
-      <li style={{
-        color: /[A-Z]/.test(participantForm.password)
-          ? "green"
-          : "red"
-      }}>
-        ✓ One uppercase letter
-      </li>
-      <li style={{
-        color: /[a-z]/.test(participantForm.password)
-          ? "green"
-          : "red"
-      }}>
-        ✓ One lowercase letter
-      </li>
-      <li style={{
-        color: /\d/.test(participantForm.password)
-          ? "green"
-          : "red"
-      }}>
-        ✓ One number
-      </li>
-    
-      <li style={{
-        color: /[@$!%*?&]/.test(participantForm.password)
-          ? "green"
-          : "red"
-      }}>
-        ✓ One special character
-      </li>
-    </ul>
-    </div>
-  )}
-</div>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "end",
-          gap: "10px",
-        }}
-      >
-        <button
-          onClick={() =>
-            setShowParticipantModal(false)
-          }
-        >
-          Cancel
-        </button>
-
-        <button
-          style={saveBtn}
-          onClick={handleCreateParticipant}
-        >
-          Save
-        </button>
-      </div>
-
-    </div>
-  </div>
-)}    
-                
-    {successMessage && (
-  <div style={modalOverlay}>
-    <div
-      style={{
-        background: "#fff",
-        padding: "30px",
-        borderRadius: "15px",
-        width: "400px",
-        textAlign: "center",
-        boxShadow:
-          "0 10px 30px rgba(0,0,0,0.2)",
-      }}
-    >
-      <div
-        style={{
-          fontSize: "55px",
-          marginBottom: "15px",
-        }}
-      >
-        ✅
-      </div>
-
-      <h2
-        style={{
-          marginBottom: "10px",
-          color: "#111827",
-        }}
-      >
-        Success
-      </h2>
-
-      <p
-        style={{
-          color: "#6b7280",
-          marginBottom: "20px",
-        }}
-      >
-        {successMessage}
-      </p>
-
-      <button
-        style={{
-          background: "#3b5bcc",
-          color: "white",
-          border: "none",
-          padding: "10px 25px",
-          borderRadius: "8px",
-          cursor: "pointer",
-        }}
-        onClick={() =>
-          setSuccessMessage("")
-        }
-      >
-        OK
-      </button>
-    </div>
-  </div>
-      )}
-  
-               {showViewModal && (
-          <div style={modalOverlay}>
-            <div
-              style={{
-                background: "#fff",
-                borderRadius: "16px",
-                width: "90%",
-                maxWidth: "1000px",
-                overflow: "hidden",
-                boxShadow: "0 10px 40px rgba(0,0,0,0.2)",
-              }}
-            >
-              <div
-                style={{
-                  background: "#3b5bcc",
-                  color: "white",
-                  padding: "20px",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <h2 style={{ margin: 0 }}>
-                  Participants - {selectedOrganization?.organizationName}
-                </h2>
-        
-                <button
-                  onClick={() => setShowViewModal(false)}
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    color: "white",
-                    fontSize: "22px",
-                    cursor: "pointer",
-                  }}
-                >
-                  ✕
-                </button>
-              </div>
-        
-              <div
-                style={{
-                  maxHeight: "500px",
-                  overflowY: "auto",
-                  padding: "20px",
-                }}
-              >
-                {participants.length === 0 ? (
-                  <div
-                    style={{
-                      textAlign: "center",
-                      padding: "40px",
-                      color: "#6b7280",
-                    }}
-                  >
-                    No participants found.
-                  </div>
-                ) : (
-                  <table
-                    style={{
-                      width: "100%",
-                      borderCollapse: "collapse",
-                    }}
-                  >
-                  <thead>
-                  <tr>
-                    <th style={tableHeader}>First Name</th>
-                    <th style={tableHeader}>Email</th>
-                    <th style={tableHeader}>Password</th>
-                    <th style={tableHeader}>Actions</th>
-                  </tr>
-                </thead>
-        
-              <tbody>
-                {participants.map((p, index) => (
-                  <tr key={index}>
-                    <td style={tableCell}>
-                      {p.firstName} {p.lastName}
-                    </td>
-              
-                    <td style={tableCell}>
-                      {p.email}
-                    </td>
-              
-                    <td style={tableCell}>
-                      {p.password ? "********" : "-"}
-                    </td>
-              
-                    <td style={tableCell}>
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: "8px",
-                        }}
-                      >
-                        <button
-                          style={viewBtn}
-                          onClick={() => handleParticipantView(p)}
-                        >
-                          👁 View
-                        </button>          
-                        <button
-                          style={deleteBtn}
-                          onClick={() => handleParticipantDelete(p)}
-                        >
-                          🗑 Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-                  </table>
-                )}
-              </div>
-        
-              <div
-                style={{
-                  padding: "20px",
-                  textAlign: "right",
-                  borderTop: "1px solid #e5e7eb",
-                }}
-              >
-                <button
-                  style={saveBtn}
-                  onClick={() => setShowViewModal(false)}
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-              {showEditModal && (
-                    <div style={modalOverlay}>
-                      <div style={modalBox}>
-                  
-                        <h2>Edit Organization</h2>
-                  
-                        <input
-                          style={inputStyle}
-                          value={editOrganization.organizationName}
-                          onChange={(e) =>
-                            setEditOrganization({
-                              ...editOrganization,
-                              organizationName: e.target.value,
-                            })
-                          }
-                        />
-                  
-                        <input
-                            style={inputStyle}
-                            value={editOrganization.contactPerson}
-                            onChange={(e) =>
-                              setEditOrganization({
-                                ...editOrganization,
-                                contactPerson: e.target.value,
-                              })
-                            }
-                          />
-                          <input
-                            style={inputStyle}
-                            value={editOrganization.email}
-                            onChange={(e) =>
-                              setEditOrganization({
-                                ...editOrganization,
-                                email: e.target.value,
-                              })
-                            }
-                          />
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "end",
-                              gap: "10px",
-                            }}
-                          >
-                            <button
-                              onClick={() =>
-                                setShowEditModal(false)
-                              }
-                            >
-                              Cancel
-                            </button>
-                      <button
-                          style={saveBtn}
-                          onClick={handleUpdateOrganization}
-                        >
-                          Save
-                      </button>
-                    </div>
-              
-                  </div>
-                </div>
-              )}
-  </div>
-    </div>
-
-              {showParticipantViewModal && (
+        {showViewModal && (
         <div style={modalOverlay}>
           <div style={modalBox}>
-            <h2>Participant Details</h2>
+            <h2>Organization Details</h2>
       
             <p>
-              <b>Name:</b>{" "}
-              {selectedParticipant?.firstName}{" "}
-              {selectedParticipant?.lastName}
+              <b>Organization Name:</b>{" "}
+              {selectedOrganization?.organizationName}
+            </p>
+      
+            <p>
+              <b>Contact Person:</b>{" "}
+              {selectedOrganization?.contactPerson}
             </p>
       
             <p>
               <b>Email:</b>{" "}
-              {selectedParticipant?.email}
+              {selectedOrganization?.email}
             </p>
       
-            <p>
-              <b>Phone:</b>{" "}
-              {selectedParticipant?.phoneNo}
-            </p>
-      
-            <p>
-              <b>Organization:</b>{" "}
-              {selectedParticipant?.organization}
-            </p>
-      
-            <button
-              style={saveBtn}
-              onClick={() =>
-                setShowParticipantViewModal(false)
-              }
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "end",
+              }}
             >
-              Close
-            </button>
+              <button
+                style={saveBtn}
+                onClick={() =>
+                  setShowViewModal(false)
+                }
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
+
+                           {showEditModal && (
+                <div style={modalOverlay}>
+                  <div style={modalBox}>
+                    <h2>Edit Organization</h2>
+
+                    <input
+                      style={inputStyle}
+                      value={editOrganization.organizationName}
+                      onChange={(e) =>
+                        setEditOrganization({
+                          ...editOrganization,
+                          organizationName: e.target.value,
+                        })
+                      }
+                    />
+
+                    <input
+                      style={inputStyle}
+                      value={editOrganization.contactPerson}
+                      onChange={(e) =>
+                        setEditOrganization({
+                          ...editOrganization,
+                          contactPerson: e.target.value,
+                        })
+                      }
+                    />
+
+                    <input
+                      style={inputStyle}
+                      value={editOrganization.email}
+                      onChange={(e) =>
+                        setEditOrganization({
+                          ...editOrganization,
+                          email: e.target.value,
+                        })
+                      }
+                    />
+
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "end",
+                        gap: "10px",
+                      }}
+                    >
+                      <button
+                        onClick={() =>
+                          setShowEditModal(false)
+                        }
+                      >
+                        Cancel
+                      </button>
+
+                      <button
+                        style={saveBtn}
+                        onClick={handleUpdateOrganization}
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+               </div> {/* Main Content */}
+
+          </div> {/* Right Side */}
+
+      </div> {/* Main Flex Container */}
+
     </>
   );
-}  
-
+}
 /* ================= STYLES ================= */
 
 const card: any = {
