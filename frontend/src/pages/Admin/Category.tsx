@@ -7,6 +7,9 @@ type PageProps = {
 };
 
 export default function Category({ user }: PageProps) {
+
+  const [categoryError, setCategoryError] = useState("");
+  
   const [categories, setCategories] = useState<any[]>([]);
   const [showModal, setShowModal] = useState(false);
 
@@ -33,7 +36,15 @@ export default function Category({ user }: PageProps) {
     }
   };
 
-  const handleCreateCategory = async () => {
+   const handleCreateCategory = async () => {
+  
+    if (!masterCategoryName.trim()) {
+      setCategoryError("Master Category Name is required");
+      return;
+    }
+  
+    setCategoryError("");
+  
     try {
       const response = await fetch(
         "/api/create-master-category",
@@ -48,20 +59,18 @@ export default function Category({ user }: PageProps) {
           }),
         }
       );
-
+  
       const data = await response.json();
-
+  
       if (data.success) {
-        alert("Master Category Created");
-
         setShowModal(false);
         setMasterCategoryName("");
-
+        setCategoryError("");
+  
         fetchCategories();
       }
     } catch (error) {
       console.error(error);
-      alert("Failed to create category");
     }
   };
 
@@ -203,16 +212,33 @@ export default function Category({ user }: PageProps) {
                     Create Master Category
                   </h2>
 
-                  <input
-                    style={inputStyle}
+                 <input
+                    style={{
+                      ...inputStyle,
+                      border: categoryError
+                        ? "1px solid #dc2626"
+                        : "1px solid #d1d5db",
+                    }}
                     placeholder="Master Category Name"
                     value={masterCategoryName}
-                    onChange={(e) =>
-                      setMasterCategoryName(
-                        e.target.value
-                      )
-                    }
+                    onChange={(e) => {
+                      setMasterCategoryName(e.target.value);
+                      setCategoryError("");
+                    }}
                   />
+
+                  {categoryError && (
+                      <div
+                        style={{
+                          color: "#dc2626",
+                          fontSize: "14px",
+                          marginTop: "-5px",
+                          marginBottom: "8px",
+                        }}
+                      >
+                        {categoryError}
+                      </div>
+                    )}
 
                   <div
                     style={{
