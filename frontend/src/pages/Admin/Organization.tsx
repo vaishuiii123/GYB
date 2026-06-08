@@ -198,260 +198,244 @@ export default function Organization({ user }: PageProps) {
     }
   };
 
-  return (
-      <>
+   return (
+    <>
       <div style={{ display: "flex", minHeight: "100vh", background: "#f3f4f6" }}>
+        <Sidebar />
 
-      <Sidebar />
-
-<div
-  style={{
-    flex: 1,
-    marginLeft: "220px", // Sidebar width
-  }}
->
-  <Header user={user} />
-
-  <div
-    style={{
-      padding: "25px",
-      marginTop: "70px", // Header height + spacing
-    }}
-  >
-
-        {/* HEADER */}
-         <div style={pageHeader}>
-      <h1 style={pageTitle}>Organization</h1>
-    
-      <div style={{ display: "flex", gap: "10px" }}>
-        <button
-          onClick={() => setShowOrgModal(true)}
-          style={saveBtn}
+        <div
+          style={{
+            flex: 1,
+            marginLeft: "220px", // Sidebar width
+          }}
         >
-          Create Organization
-        </button>
-      </div>
-    </div>
-    
-        {/* TABLE */}
-        <div style={card}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr>
-              <th style={tableHeader}>Organization Name</th>
-              <th style={tableHeader}>Contact Person</th>
-              <th style={tableHeader}>Email</th>
-              <th style={tableHeader}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {organizations.map((org, index) => (
-                <tr key={index}>
-                  <td style={tableCell}>
-                    {org.organizationName}
-                  </td>
-            
-                  <td style={tableCell}>
-                    {org.contactPerson}
-                  </td>
-            
-                  <td style={tableCell}>
-                    {org.email}
-                  </td>
-            
-                  <td style={tableCell}>
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: "8px",
-                      }}
-                    >
-                      <button
-                        style={viewBtn}
-                        onClick={() => handleView(org)}
-                      >
-                        👁 View
-                      </button>
-            
-                      <button
-                        style={editBtn}
-                        onClick={() => handleEdit(org)}
-                      >
-                        ✏ Edit
-                      </button>
-            
-                      <button
-                        style={deleteBtn}
-                        onClick={() => handleDelete(org)}
-                      >
-                        🗑 Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+          <Header user={user} />
 
-      {/* MODAL */}
-      {showOrgModal && (
-        <div style={modalOverlay}>
-          <div style={modalBox}>
+          <div
+            style={{
+              padding: "25px",
+              marginTop: "70px", // Header height + spacing
+            }}
+          >
 
-            <h2>Create Organization</h2>
-
-            <input
-              style={inputStyle}
-              placeholder="Organization Name"
-              value={orgForm.organizationName}
-              onChange={(e) =>
-                setOrgForm({ ...orgForm, organizationName: e.target.value })
-              }
-            />
-
-            <input
-              style={inputStyle}
-              placeholder="Contact Person"
-              value={orgForm.contactPerson}
-              onChange={(e) =>
-                setOrgForm({ ...orgForm, contactPerson: e.target.value })
-              }
-            />
-
-            <input
-              style={inputStyle}
-              placeholder="Email"
-              value={orgForm.email}
-              onChange={(e) =>
-                setOrgForm({ ...orgForm, email: e.target.value })
-              }
-            />
-
-            <div style={{ display: "flex", gap: "10px", justifyContent: "end" }}>
-              <button onClick={() => setShowOrgModal(false)}>Cancel</button>
-              <button onClick={handleCreateOrganization} style={saveBtn}>
-                Save
-              </button>
-            </div>
-
-          </div>
-        </div>
-      )}    
-
-        {showViewModal && (
-        <div style={modalOverlay}>
-          <div style={modalBox}>
-            <h2>Organization Details</h2>
+          {/* HEADER */}
+          <div style={pageHeader}>
+            <h1 style={pageTitle}>Organization</h1>
       
-            <p>
-              <b>Organization Name:</b>{" "}
-              {selectedOrganization?.organizationName}
-            </p>
-      
-            <p>
-              <b>Contact Person:</b>{" "}
-              {selectedOrganization?.contactPerson}
-            </p>
-      
-            <p>
-              <b>Email:</b>{" "}
-              {selectedOrganization?.email}
-            </p>
-      
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "end",
-              }}
-            >
+            <div style={{ display: "flex", gap: "10px" }}>
               <button
+                onClick={() => setShowOrgModal(true)}
                 style={saveBtn}
-                onClick={() =>
-                  setShowViewModal(false)
-                }
               >
-                Close
+            Create Organization
               </button>
             </div>
+            </div>
+      
+          {/* TABLE */}
+            <div style={card}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr>
+                  <th style={tableHeader}>Organization Name</th>
+                  <th style={tableHeader}>Contact Person</th>
+                  <th style={tableHeader}>Email</th>
+                  <th style={tableHeader}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {organizations.map((org, index) => (
+                    <tr key={index}>
+                      <td style={tableCell}>
+                        {org.organizationName}
+                      </td>
+                
+                      <td style={tableCell}>
+                        {org.contactPerson}
+                      </td>
+                
+                      <td style={tableCell}>
+                        {org.email}
+                      </td>
+                
+                      <td style={tableCell}>
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "8px",
+                          }}
+                        >
+                          <button
+                            style={viewBtn}
+                            onClick={() => handleView(org)}
+                          >
+                            👁 View
+                          </button>
+                
+                          <button
+                            style={editBtn}
+                            onClick={() => handleEdit(org)}
+                          >
+                            ✏ Edit
+                          </button>
+                
+                          <button
+                            style={deleteBtn}
+                            onClick={() => handleDelete(org)}
+                          >
+                            🗑 Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      )}
 
-                           {showEditModal && (
-                <div style={modalOverlay}>
-                  <div style={modalBox}>
-                    <h2>Edit Organization</h2>
+          {/* MODAL */}
+          {showOrgModal && (
+            <div style={modalOverlay}>
+              <div style={modalBox}>
+                <h2>Create Organization</h2>
+                <input
+                  style={inputStyle}
+                  placeholder="Organization Name"
+                  value={orgForm.organizationName}
+                  onChange={(e) =>
+                    setOrgForm({ ...orgForm, organizationName: e.target.value })
+                  }
+                />
 
-                    <input
-                      style={inputStyle}
-                      value={editOrganization.organizationName}
-                      onChange={(e) =>
-                        setEditOrganization({
-                          ...editOrganization,
-                          organizationName: e.target.value,
-                        })
-                      }
-                    />
+                <input
+                  style={inputStyle}
+                  placeholder="Contact Person"
+                  value={orgForm.contactPerson}
+                  onChange={(e) =>
+                    setOrgForm({ ...orgForm, contactPerson: e.target.value })
+                  }
+                />
 
-                    <input
-                      style={inputStyle}
-                      value={editOrganization.contactPerson}
-                      onChange={(e) =>
-                        setEditOrganization({
-                          ...editOrganization,
-                          contactPerson: e.target.value,
-                        })
-                      }
-                    />
+                <input
+                  style={inputStyle}
+                  placeholder="Email"
+                  value={orgForm.email}
+                  onChange={(e) =>
+                    setOrgForm({ ...orgForm, email: e.target.value })
+                  }
+                />
 
-                    <input
-                      style={inputStyle}
-                      value={editOrganization.email}
-                      onChange={(e) =>
-                        setEditOrganization({
-                          ...editOrganization,
-                          email: e.target.value,
-                        })
-                      }
-                    />
+                <div style={{ display: "flex", gap: "10px", justifyContent: "end" }}>
+                  <button onClick={() => setShowOrgModal(false)}>Cancel</button>
+                  <button onClick={handleCreateOrganization} style={saveBtn}>
+                    Save
+                  </button>
+                </div>
 
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "end",
-                        gap: "10px",
-                      }}
-                    >
-                      <button
-                        onClick={() =>
-                          setShowEditModal(false)
-                        }
-                      >
-                        Cancel
-                      </button>
+              </div>
+            </div>
+          )}    
 
-                      <button
-                        style={saveBtn}
-                        onClick={handleUpdateOrganization}
-                      >
-                        Save
-                      </button>
-                    </div>
+            {showViewModal && (
+            <div style={modalOverlay}>
+              <div style={modalBox}>
+                <h2>Organization Details</h2>
+          
+                <p>
+                  <b>Organization Name:</b>{" "}
+                  {selectedOrganization?.organizationName}
+                </p>
+          
+                <p>
+                  <b>Contact Person:</b>{" "}
+                  {selectedOrganization?.contactPerson}
+                </p>
+          
+                <p>
+                  <b>Email:</b>{" "}
+                  {selectedOrganization?.email}
+                </p>
+          
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "end",
+                  }}
+                >
+                  <button
+                    style={saveBtn}
+                    onClick={() =>
+                      setShowViewModal(false)
+                    }
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+            {showEditModal && (
+              <div style={modalOverlay}>
+                <div style={modalBox}>
+                  <h2>Edit Organization</h2>
+
+                  <input style={inputStyle} value={editOrganization.organizationName}
+                    onChange={(e) =>
+                      setEditOrganization({
+                        ...editOrganization,
+                        organizationName: e.target.value,
+                      })
+                    }
+                  />
+
+                  <input style={inputStyle} value={editOrganization.contactPerson}
+                    onChange={(e) =>
+                      setEditOrganization({
+                        ...editOrganization,
+                        contactPerson: e.target.value,
+                      })
+                    }
+                  />
+
+                  <input style={inputStyle} value={editOrganization.email}
+                    onChange={(e) =>
+                      setEditOrganization({
+                        ...editOrganization,
+                        email: e.target.value,
+                      })
+                    }
+                  />
+
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "end",
+                      gap: "10px",
+                    }}
+                  >
+                    <button onClick={() => setShowEditModal(false)}>
+                      Cancel
+                    </button>
+
+                    <button style={saveBtn} onClick={handleUpdateOrganization}>
+                      Save
+                    </button>
                   </div>
                 </div>
-              )}
+              </div>
+            )}
 
-               </div> {/* Main Content */}
+        </div> {/* Main Content */}
 
-          </div> {/* Right Side */}
-
-      </div> {/* Main Flex Container */}
+      </div> {/* Right Side */}  
 
     </>
   );
 }
+
+
 /* ================= STYLES ================= */
 
 const card: any = {
