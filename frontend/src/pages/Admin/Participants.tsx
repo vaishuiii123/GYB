@@ -228,19 +228,17 @@ export default function Participants({ user }: PageProps) {
           >
             <div style={pageHeader}>
               <h1 style={pageTitle}>Participants</h1>
-
+            
               <button
                 style={saveBtn}
-                onClick={() =>
-                  setShowParticipantModal(true)
-                }
+                onClick={() => setShowParticipantModal(true)}
               >
                 Create Participant
               </button>
-
+            
               <button
                 style={{
-                  style= ...deleteBtn,
+                  ...deleteBtn,
                   background: "#dc2626",
                 }}
                 onClick={handleDeleteSelected}
@@ -248,7 +246,6 @@ export default function Participants({ user }: PageProps) {
                 Delete Selected
               </button>
             </div>
-
             <div style={card}>
               <table
                 style={{
