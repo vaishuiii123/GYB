@@ -10,6 +10,11 @@ type PageProps = {
 
 export default function Organization({ user }: PageProps) {
 
+  const [showParticipantViewModal, setShowParticipantViewModal] =
+  useState(false);
+
+  const [selectedParticipant, setSelectedParticipant] =
+  useState<any>(null);
 
   const [showEditModal, setShowEditModal] =
   useState(false);
@@ -318,9 +323,8 @@ const [participantForm, setParticipantForm] =
 
   //======================================== Handles Participants Action Button =====================================================
   const handleParticipantView = (participant: any) => {
-  alert(
-    `Participant: ${participant.firstName}`
-  );
+  setSelectedParticipant(participant);
+  setShowParticipantViewModal(true);
 };
 
 const handleParticipantEdit = (participant: any) => {
@@ -336,9 +340,7 @@ const handleParticipantDelete = (participant: any) => {
 
   if (!confirmDelete) return;
 
-  alert(
-    `Delete API for ${participant.firstName}`
-  );
+  alert("Delete API will be called here");
 };
   return (
       <>
@@ -854,15 +856,7 @@ const handleParticipantDelete = (participant: any) => {
                           onClick={() => handleParticipantView(p)}
                         >
                           👁 View
-                        </button>
-              
-                        <button
-                          style={editBtn}
-                          onClick={() => handleParticipantEdit(p)}
-                        >
-                          ✏ Edit
-                        </button>
-              
+                        </button>          
                         <button
                           style={deleteBtn}
                           onClick={() => handleParticipantDelete(p)}
@@ -959,7 +953,45 @@ const handleParticipantDelete = (participant: any) => {
                 </div>
               )}
   </div>
-    </div>    
+    </div>
+
+              {showParticipantViewModal && (
+        <div style={modalOverlay}>
+          <div style={modalBox}>
+            <h2>Participant Details</h2>
+      
+            <p>
+              <b>Name:</b>{" "}
+              {selectedParticipant?.firstName}{" "}
+              {selectedParticipant?.lastName}
+            </p>
+      
+            <p>
+              <b>Email:</b>{" "}
+              {selectedParticipant?.email}
+            </p>
+      
+            <p>
+              <b>Phone:</b>{" "}
+              {selectedParticipant?.phoneNo}
+            </p>
+      
+            <p>
+              <b>Organization:</b>{" "}
+              {selectedParticipant?.organization}
+            </p>
+      
+            <button
+              style={saveBtn}
+              onClick={() =>
+                setShowParticipantViewModal(false)
+              }
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }  
