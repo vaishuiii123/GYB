@@ -387,7 +387,6 @@ const handleParticipantDelete = (participant: any) => {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
-              <th style={tableHeader}>Sr No.</th>
               <th style={tableHeader}>Organization Name</th>
               <th style={tableHeader}>Contact Person</th>
               <th style={tableHeader}>Email</th>
@@ -444,7 +443,6 @@ const handleParticipantDelete = (participant: any) => {
             </tbody>
           </table>
         </div>
-
       </div>
 
       {/* MODAL */}
@@ -859,7 +857,6 @@ const handleParticipantDelete = (participant: any) => {
                             </button>
                           </div>
                       </td>
-                  </tr>
                </tr>
             ))}
                     </tbody>
