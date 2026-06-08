@@ -3,7 +3,6 @@ const { TableClient } = require("@azure/data-tables");
 module.exports = async function (context, req) {
   try {
     const {
-      organization,
       firstName,
       middleName,
       lastName,
@@ -14,7 +13,6 @@ module.exports = async function (context, req) {
     } = req.body;
 
     if (
-      !organization ||
       !firstName ||
       !lastName ||
       !email ||
@@ -38,7 +36,6 @@ module.exports = async function (context, req) {
       partitionKey: "Participant",
       rowKey: Date.now().toString(),
 
-      Organisation: organization,
       First_Name: firstName,
       Middle_Name: middleName || "",
       Last_Name: lastName,
