@@ -5,7 +5,7 @@ module.exports = async function (context, req) {
     const client =
       TableClient.fromConnectionString(
         process.env.AZURE_STORAGE_CONNECTION_STRING,
-        "MasterCategory"
+        "Questionairemastercategory"
       );
 
     const categories = [];
