@@ -123,9 +123,15 @@ export default function CategoryDetails({
           state: {
             categoryName:
               category.categoryName,
-    
+      
+            categoryId:
+              category.id,
+      
             masterCategoryName:
               masterCategoryName,
+      
+            masterCategoryId:
+              masterCategoryId,
           },
         }
       );
