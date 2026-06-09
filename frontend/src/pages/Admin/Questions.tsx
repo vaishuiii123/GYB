@@ -398,15 +398,14 @@ const [options, setOptions] =
                     Create Question
                   </h2>
                 
-                  <input
-                    placeholder="Enter Option"
-                    style={{
-                      ...inputStyle,
-                      border: error
-                        ? "1px solid red"
-                        : "1px solid #d1d5db",
-                    }}
-                    placeholder="Question"
+                <input
+                  style={{
+                    ...inputStyle,
+                    border: error
+                      ? "1px solid red"
+                      : "1px solid #d1d5db",
+                  }}
+                  placeholder="Question"
                     value={
                       questionForm.question
                     }
@@ -490,11 +489,12 @@ const [options, setOptions] =
                     }
                   />
                 
-                  {(questionForm.answerType ===
-                    "Dropdown" ||
-                    questionForm.answerType ===
-                      "Multi Select") && (
-                
+               {
+                (
+                  questionForm.answerType === "Dropdown" ||
+                  questionForm.answerType === "Multi Select"
+                ) && (
+                              
                     <div>
                 
                       <label>
@@ -587,7 +587,8 @@ const [options, setOptions] =
                       </button>
                 
                     </div>
-                  )}
+                  )
+               }
                 
                   <div>
                     <label>
@@ -617,10 +618,11 @@ const [options, setOptions] =
                       gap: "10px",
                     }}
                   >
-                    <button
-                      onClick={() =>
-                        setShowModal(false)
-                      }
+                   <button
+                      onClick={() => {
+                        setError("");
+                        setShowModal(false);
+                      }}
                     >
                       Cancel
                     </button>
