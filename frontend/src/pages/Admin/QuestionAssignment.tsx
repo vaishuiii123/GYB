@@ -203,6 +203,27 @@ export default function QuestionAssignment({
               {subCategoryName}
             </h1>
 
+            <div
+              style={{
+                marginBottom: "15px",
+              }}
+            >
+              <button
+                onClick={() => window.history.back()}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "#2563eb",
+                  fontSize: "14px",
+                  fontWeight: "600",
+                  padding: 0,
+                }}
+              >
+                ← Back to Sub Categories
+              </button>
+            </div>
+
             {/* Assigned Questions */}
 
             <div style={card}>
