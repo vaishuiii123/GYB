@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   useParams,
   useLocation,
+  useNavigate,
 } from "react-router-dom";
 
 import Header from "../../components/Header";
@@ -19,6 +20,8 @@ export default function QuestionAssignment({
     useParams();
 
   const location = useLocation();
+
+  const navigate = useNavigate();
 
   const subCategoryName =
     location.state?.subCategoryName ||
@@ -191,7 +194,26 @@ export default function QuestionAssignment({
               marginTop: "70px",
             }}
           >
+               <div
+                style={{
+                  color: "#6b7280",
+                  fontSize: "14px",
+                  marginBottom: "15px",
+                }}
+              >
+                 <span
+                style={{
+                  cursor: "pointer",
+                }}
+                onClick={() =>
+                  navigate("/category")
+                }
+              >
+                   {masterCategoryName}
+              </span>
 
+               </div>
+           
             <h1
               style={{
                 fontSize: "30px",
