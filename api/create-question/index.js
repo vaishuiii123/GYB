@@ -29,11 +29,13 @@ module.exports = async function (context, req) {
         "QuestionnaireQuestions"
       );
 
+    const questionId =
+      Date.now().toString();
+
     await client.createEntity({
       partitionKey: "Question",
 
-      rowKey:
-        Date.now().toString(),
+      rowKey: questionId,
 
       Question:
         question,
@@ -52,6 +54,7 @@ module.exports = async function (context, req) {
       status: 200,
       body: {
         success: true,
+        questionId: questionId,
       },
     };
 
