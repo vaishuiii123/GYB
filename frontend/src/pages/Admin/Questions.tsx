@@ -10,22 +10,24 @@ export default function Questions({
   user,
 }: PageProps) {
 
-  const [questions, setQuestions] =
-    useState<any[]>([]);
+  const [questions, setQuestions] = useState<any[]>([]);
 
-  const [showModal, setShowModal] =
-    useState(false);
+  const [showModal, setShowModal] = useState(false);
 
-  const [error, setError] =
-    useState("");
+  const [error, setError] =  useState("");
 
-  const [questionForm,
-    setQuestionForm] =
-    useState({
-      question: "",
-      answerType: "Textbox",
-      color: "#2563eb",
-    });
+ const [questionForm,
+  setQuestionForm] =
+  useState({
+    question: "",
+    answerType: "Textbox",
+    required: "No",
+    weightage: 0,
+    color: "#2563eb",
+  });
+
+const [options, setOptions] =
+  useState<string[]>([""]);
 
   useEffect(() => {
     fetchQuestions();
@@ -92,6 +94,15 @@ export default function Questions({
 
                 createdBy:
                   user?.username || "",
+
+                required:
+                  questionForm.required === "Yes",
+                
+                weightage:
+                  Number(questionForm.weightage),
+                
+                options:
+                  options.join("|"),
               }),
             }
           );
@@ -105,13 +116,15 @@ export default function Questions({
 
           setError("");
 
-          setQuestionForm({
+         setQuestionForm({
             question: "",
-            answerType:
-              "Textbox",
-            color:
-              "#2563eb",
+            answerType: "Textbox",
+            required: "No",
+            weightage: 0,
+            color: "#2563eb",
           });
+          
+          setOptions([""]);
 
           fetchQuestions();
         }
@@ -121,15 +134,32 @@ export default function Questions({
       }
     };
 
+
   const handleView = (
-    question: any
-  ) => {
-
-    alert(
-      question.question
-    );
-  };
-
+      question: any
+    ) => {
+    
+      const questionOptions =
+        question.options
+          ? question.options
+              .split("|")
+              .join("\n")
+          : "No Options";
+    
+      alert(
+    `Question: ${question.question}
+    
+    Answer Type: ${question.answerType}
+    
+    Required: ${question.required ? "Yes" : "No"}
+    
+    Weightage: ${question.weightage}
+    
+    Options:
+    ${questionOptions}`
+      );
+    };
+  
   const handleEdit = (
     question: any
   ) => {
@@ -182,7 +212,8 @@ export default function Questions({
               <button
                 style={saveBtn}
                 onClick={() =>
-                  setShowModal(true)
+                  setError("");
+                  setShowModal(true);
                 }
               >
                 Create Question
@@ -197,30 +228,36 @@ export default function Questions({
                     "collapse",
                 }}
               >
-                <thead>
+              <thead>
                   <tr>
-
+                
                     <th style={tableHeader}>
                       Question
                     </th>
-
+                
                     <th style={tableHeader}>
                       Answer Type
                     </th>
-
+                
+                    <th style={tableHeader}>
+                      Required
+                    </th>
+                
+                    <th style={tableHeader}>
+                      Weightage
+                    </th>
+                
                     <th style={tableHeader}>
                       Color
                     </th>
-
+                
                     <th style={tableHeader}>
                       Actions
                     </th>
-
+                
                   </tr>
                 </thead>
-
                 <tbody>
-
                   {questions.map(
                     (question) => (
                       <tr
@@ -228,7 +265,7 @@ export default function Questions({
                           question.id
                         }
                       >
-
+                
                         <td
                           style={
                             tableCell
@@ -238,7 +275,7 @@ export default function Questions({
                             question.question
                           }
                         </td>
-
+                
                         <td
                           style={
                             tableCell
@@ -248,7 +285,29 @@ export default function Questions({
                             question.answerType
                           }
                         </td>
-
+                
+                        <td
+                          style={
+                            tableCell
+                          }
+                        >
+                          {
+                            question.required
+                              ? "Yes"
+                              : "No"
+                          }
+                        </td>
+                
+                        <td
+                          style={
+                            tableCell
+                          }
+                        >
+                          {
+                            question.weightage
+                          }
+                        </td>
+                
                         <td
                           style={
                             tableCell
@@ -256,10 +315,8 @@ export default function Questions({
                         >
                           <div
                             style={{
-                              width:
-                                "25px",
-                              height:
-                                "25px",
+                              width: "25px",
+                              height: "25px",
                               borderRadius:
                                 "50%",
                               background:
@@ -267,7 +324,7 @@ export default function Questions({
                             }}
                           />
                         </td>
-
+                
                         <td
                           style={
                             tableCell
@@ -275,12 +332,11 @@ export default function Questions({
                         >
                           <div
                             style={{
-                              display:
-                                "flex",
+                              display: "flex",
                               gap: "8px",
                             }}
                           >
-
+                
                             <button
                               style={
                                 viewBtn
@@ -293,7 +349,7 @@ export default function Questions({
                             >
                               👁 View
                             </button>
-
+                
                             <button
                               style={
                                 editBtn
@@ -306,7 +362,7 @@ export default function Questions({
                             >
                               ✏ Edit
                             </button>
-
+                
                             <button
                               style={
                                 deleteBtn
@@ -319,14 +375,14 @@ export default function Questions({
                             >
                               🗑 Delete
                             </button>
-
+                
                           </div>
                         </td>
-
+                
                       </tr>
                     )
                   )}
-
+                
                 </tbody>
               </table>
             </div>
@@ -337,14 +393,13 @@ export default function Questions({
                   modalOverlay
                 }
               >
-                <div
-                  style={modalBox}
-                >
+               <div style={modalBox}>
                   <h2>
                     Create Question
                   </h2>
-
+                
                   <input
+                    placeholder="Enter Option"
                     style={{
                       ...inputStyle,
                       border: error
@@ -356,17 +411,17 @@ export default function Questions({
                       questionForm.question
                     }
                     onChange={(e) => {
-
+                
                       setQuestionForm({
                         ...questionForm,
                         question:
                           e.target.value,
                       });
-
+                
                       setError("");
                     }}
                   />
-
+                
                   {error && (
                     <div
                       style={{
@@ -377,11 +432,9 @@ export default function Questions({
                       {error}
                     </div>
                   )}
-
+                
                   <select
-                    style={
-                      inputStyle
-                    }
+                    style={inputStyle}
                     value={
                       questionForm.answerType
                     }
@@ -393,36 +446,154 @@ export default function Questions({
                       })
                     }
                   >
-                    <option>
-                      Textbox
-                    </option>
-
-                    <option>
-                      Textarea
-                    </option>
-
-                    <option>
-                      Yes / No
-                    </option>
-
-                    <option>
-                      Dropdown
-                    </option>
-
-                    <option>
-                      Number
-                    </option>
-
-                    <option>
-                      Date
-                    </option>
+                    <option>Textbox</option>
+                    <option>Textarea</option>
+                    <option>Yes / No</option>
+                    <option>Dropdown</option>
+                    <option>Multi Select</option>
+                    <option>Number</option>
+                    <option>Date</option>
                   </select>
-
+                
+                  <select
+                    style={inputStyle}
+                    value={
+                      questionForm.required
+                    }
+                    onChange={(e) =>
+                      setQuestionForm({
+                        ...questionForm,
+                        required:
+                          e.target.value,
+                      })
+                    }
+                  >
+                    <option>No</option>
+                    <option>Yes</option>
+                  </select>
+                
+                  <input
+                    type="number"
+                    placeholder="Weightage"
+                    style={inputStyle}
+                    value={
+                      questionForm.weightage
+                    }
+                    onChange={(e) =>
+                      setQuestionForm({
+                        ...questionForm,
+                        weightage:
+                          Number(
+                            e.target.value
+                          ),
+                      })
+                    }
+                  />
+                
+                  {(questionForm.answerType ===
+                    "Dropdown" ||
+                    questionForm.answerType ===
+                      "Multi Select") && (
+                
+                    <div>
+                
+                      <label>
+                        Options
+                      </label>
+                
+                      {options.map(
+                        (
+                          option,
+                          index
+                        ) => (
+                          <div
+                            key={index}
+                            style={{
+                              display:
+                                "flex",
+                              gap: "10px",
+                              marginTop:
+                                "8px",
+                            }}
+                          >
+                            <input
+                              style={{
+                                ...inputStyle,
+                                flex: 1,
+                              }}
+                              value={option}
+                              onChange={(e) => {
+                
+                                const updated =
+                                  [...options];
+                
+                                updated[
+                                  index
+                                ] =
+                                  e.target.value;
+                
+                                setOptions(
+                                  updated
+                                );
+                              }}
+                            />
+                
+                            <button
+                              style={
+                                deleteBtn
+                              }
+                              type="button"
+                              onClick={() => {
+                
+                                const updated =
+                                  options.filter(
+                                    (
+                                      _,
+                                      i
+                                    ) =>
+                                      i !==
+                                      index
+                                  );
+                
+                                setOptions(
+                                  updated.length
+                                    ? updated
+                                    : [""]
+                                );
+                              }}
+                            >
+                              X
+                            </button>
+                
+                          </div>
+                        )
+                      )}
+                
+                      <button
+                        type="button"
+                        style={{
+                          ...saveBtn,
+                          marginTop:
+                            "10px",
+                        }}
+                        onClick={() =>
+                          setOptions([
+                            ...options,
+                            "",
+                          ])
+                        }
+                      >
+                        + Add Option
+                      </button>
+                
+                    </div>
+                  )}
+                
                   <div>
                     <label>
                       Question Color
                     </label>
-
+                
                     <input
                       type="color"
                       value={
@@ -437,27 +608,23 @@ export default function Questions({
                       }
                     />
                   </div>
-
+                
                   <div
                     style={{
-                      display:
-                        "flex",
+                      display: "flex",
                       justifyContent:
                         "end",
                       gap: "10px",
                     }}
                   >
-
                     <button
                       onClick={() =>
-                        setShowModal(
-                          false
-                        )
+                        setShowModal(false)
                       }
                     >
                       Cancel
                     </button>
-
+                
                     <button
                       style={saveBtn}
                       onClick={
@@ -466,9 +633,8 @@ export default function Questions({
                     >
                       Save
                     </button>
-
                   </div>
-
+                
                 </div>
               </div>
             )}
