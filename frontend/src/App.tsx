@@ -12,6 +12,7 @@ import Participants from "./pages/Admin/Participants";
 import Category from "./pages/Admin/Category";
 import CategoryDetails from "./pages/Admin/CategoryDetails";
 import SubCategoryDetails from "./pages/Admin/SubCategoryDetails";
+import Questions from "./pages/Admin/Questions";
 import Template from "./pages/Admin/Template";
 import Workshop from "./pages/Admin/Workshop";
 import UserLogin from "./pages/User/UserLogin";
@@ -72,6 +73,11 @@ function App() {
        <Route
         path="/subcategory/:categoryId"
         element={<SubCategoryDetails user={currentUser}/>}
+      />
+
+       <Route
+        path="/questions"
+        element={<Questions user={currentUser} />}
       />
 
        <Route
