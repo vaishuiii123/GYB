@@ -193,27 +193,7 @@ export default function QuestionAssignment({
               padding: "25px",
               marginTop: "70px",
             }}
-          >
-               <div
-                style={{
-                  color: "#6b7280",
-                  fontSize: "14px",
-                  marginBottom: "15px",
-                }}
-              >
-                 <span
-                style={{
-                  cursor: "pointer",
-                }}
-                onClick={() =>
-                  navigate("/subcategory")
-                }
-              >
-                   {masterCategoryName}
-              </span>
-
-               </div>
-           
+          >           
             <h1
               style={{
                 fontSize: "30px",
