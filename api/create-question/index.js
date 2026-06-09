@@ -3,10 +3,13 @@ const { TableClient } = require("@azure/data-tables");
 module.exports = async function (context, req) {
   try {
 
-    const {
+ const {
       question,
       answerType,
       color,
+      required,
+      weightage,
+      options,
       createdBy,
     } = req.body;
 
@@ -43,8 +46,17 @@ module.exports = async function (context, req) {
       AnswerType:
         answerType,
 
+      Required:
+        required,
+      
+      Weightage:
+        weightage,
+
       Color:
         color,
+
+      Options: 
+        options || "",
 
       Created_By:
         createdBy || "",
