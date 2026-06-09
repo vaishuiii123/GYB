@@ -205,8 +205,16 @@ export default function SubCategoryDetails({
 
               {" > "}
 
+              <span
+                style={{
+                  cursor: "pointer",
+                }}
+                onClick={() =>
+                  navigate("/subcategory")
+                }
+              >
               {masterCategoryName}
-
+              </span>
               {" > "}
 
               <b>
