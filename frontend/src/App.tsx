@@ -12,6 +12,7 @@ import Participants from "./pages/Admin/Participants";
 import Category from "./pages/Admin/Category";
 import CategoryDetails from "./pages/Admin/CategoryDetails";
 import SubCategoryDetails from "./pages/Admin/SubCategoryDetails";
+import QuestionAssignment from "./pages/Admin/QuestionAssignment";
 import Questions from "./pages/Admin/Questions";
 import Template from "./pages/Admin/Template";
 import Workshop from "./pages/Admin/Workshop";
@@ -74,6 +75,15 @@ function App() {
         path="/subcategory/:categoryId"
         element={<SubCategoryDetails user={currentUser}/>}
       />
+
+       <Route
+          path="/questions-assignment/:subCategoryId"
+          element={
+            <QuestionAssignment
+              user={currentUser}
+            />
+          }
+        />
 
        <Route
         path="/questions"
