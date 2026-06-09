@@ -4,7 +4,6 @@ import {
   useLocation,
   useNavigate,
 } from "react-router-dom";
-
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 
@@ -16,14 +15,11 @@ export default function SubCategoryDetails({
   user,
 }: PageProps) {
 
-  const { categoryId } =
-    useParams();
+  const { categoryId } = useParams();
 
-  const location =
-    useLocation();
+  const location = useLocation();
 
-  const navigate =
-    useNavigate();
+  const navigate = useNavigate();
 
   const [subCategories,
     setSubCategories] =
@@ -130,14 +126,20 @@ export default function SubCategoryDetails({
       }
     };
 
-  const handleView = (
-    subCategory: any
-  ) => {
-
-    alert(
-      `Next screen will be Questions for ${subCategory.subCategoryName}`
-    );
-  };
+ const handleView = (
+      subCategory: any
+    ) => {
+    
+      navigate(
+        `/questions-assignment/${subCategory.id}`,
+        {
+          state: {
+            subCategoryName:
+              subCategory.subCategoryName,
+          },
+        }
+      );
+    };
 
   const handleEdit = (
     subCategory: any
