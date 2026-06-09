@@ -15,19 +15,27 @@ module.exports = async function (context, req) {
       const entity of client.listEntities()
     ) {
 
-      questions.push({
-        id:
-          entity.rowKey,
-
-        question:
-          entity.Question || "",
-
-        answerType:
-          entity.AnswerType || "",
-
-        color:
-          entity.Color || "#2563eb",
-      });
+     questions.push({
+      id: entity.rowKey,
+    
+      question:
+        entity.Question || "",
+    
+      answerType:
+        entity.AnswerType || "",
+    
+      options:
+        entity.Options || "",
+    
+      required:
+        entity.Required || false,
+    
+      weightage:
+        entity.Weightage || 0,
+    
+      color:
+        entity.Color || "#2563eb",
+    });
     }
 
     context.res = {
