@@ -211,9 +211,10 @@ const [options, setOptions] =
 
               <button
                 style={saveBtn}
-                onClick={() =>
+                onClick={() => {
                   setError("");
                   setShowModal(true);
+                }}
               >
                 Create Question
               </button>
