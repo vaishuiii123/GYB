@@ -266,14 +266,16 @@ const [options, setOptions] =
                         }
                       >
                 
-                        <td
-                          style={
-                            tableCell
-                          }
+                       <td
+                          style={{
+                            ...tableCell,
+                            color:
+                              question.color ||
+                              "#111827",
+                            fontWeight: "600",
+                          }}
                         >
-                          {
-                            question.question
-                          }
+                          {question.question}
                         </td>
                 
                         <td
