@@ -116,6 +116,21 @@ export default function CategoryDetails({
       }
     };
 
+  const handleView = (category: any) => {
+      navigate(
+        `/subcategory/${category.id}`,
+        {
+          state: {
+            categoryName:
+              category.categoryName,
+    
+            masterCategoryName:
+              masterCategoryName,
+          },
+        }
+      );
+    };
+
   return (
     <>
       <div
@@ -230,8 +245,9 @@ export default function CategoryDetails({
                             }}
                           >
                             <button
-                              style={
-                                viewBtn
+                              style={viewBtn}
+                              onClick={() =>
+                                handleView(category)
                               }
                             >
                               👁 View
