@@ -206,7 +206,7 @@ export default function QuestionAssignment({
                   cursor: "pointer",
                 }}
                 onClick={() =>
-                  navigate("/category")
+                  navigate("/subcategory")
                 }
               >
                    {masterCategoryName}
