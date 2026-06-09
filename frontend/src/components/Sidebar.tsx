@@ -23,6 +23,11 @@ export default function Sidebar() {
       icon: "📂",
     },
     {
+      name: "Questions",
+      path: "/questions",
+      icon: "❓",
+    },
+    {
       name: "Template",
       path: "/template",
       icon: "📄",
