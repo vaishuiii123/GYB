@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 
@@ -8,6 +9,8 @@ type PageProps = {
 
 export default function Category({ user }: PageProps) {
 
+  const navigate = useNavigate();
+  
   const [selectedMasterCategory,
   setSelectedMasterCategory] =
   useState<any>(null);
@@ -84,32 +87,17 @@ export default function Category({ user }: PageProps) {
     }
   };
 
-const handleView = async (
-  masterCategory: any
-) => {
+const handleView = (category: any) => {
 
-  setSelectedMasterCategory(
-    masterCategory
-  );
-
-  try {
-
-    const response = await fetch(
-      `/api/get-categories?masterCategoryId=${masterCategory.id}`
-    );
-
-    const data =
-      await response.json();
-
-    if (data.success) {
-      setCategoriesList(
-        data.categories
-      );
+  navigate(
+    `/category/${category.id}`,
+    {
+      state: {
+        masterCategoryName:
+          category.masterCategoryName,
+      },
     }
-
-  } catch (error) {
-    console.error(error);
-  }
+  );
 };
 
   const handleEdit = (category: any) => {
