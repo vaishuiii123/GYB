@@ -214,7 +214,6 @@ const [options, setOptions] =
                 onClick={() =>
                   setError("");
                   setShowModal(true);
-                }
               >
                 Create Question
               </button>
