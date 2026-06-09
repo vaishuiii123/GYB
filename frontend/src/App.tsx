@@ -11,6 +11,7 @@ import Organization from "./pages/Admin/Organization";
 import Participants from "./pages/Admin/Participants";
 import Category from "./pages/Admin/Category";
 import CategoryDetails from "./pages/Admin/CategoryDetails";
+import SubCategoryDetails from "./pages/Admin/SubCategoryDetails";
 import Template from "./pages/Admin/Template";
 import Workshop from "./pages/Admin/Workshop";
 import UserLogin from "./pages/User/UserLogin";
@@ -66,6 +67,11 @@ function App() {
        <Route
         path="/category/:masterCategoryId"
         element={<CategoryDetails user={currentUser} />}
+      />
+
+       <Route
+        path="/subcategory/:categoryId"
+        element={<SubCategoryDetails user={currentUser}/>}
       />
 
        <Route
