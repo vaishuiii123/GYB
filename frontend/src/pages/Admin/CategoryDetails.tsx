@@ -16,7 +16,7 @@ export default function CategoryDetails({
   user,
 }: PageProps) {
 
-  const { masterCategoryId } =
+  const { categoryId } =
     useParams();
 
   const location = useLocation();
