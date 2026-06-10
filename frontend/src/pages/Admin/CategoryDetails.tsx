@@ -173,7 +173,7 @@ export default function CategoryDetails({
             >
               <span
                 onClick={() =>
-                  navigate("/category/categoryId")
+                  navigate("/subcategory/categoryId")
                 }
               >
                 Master Categories
