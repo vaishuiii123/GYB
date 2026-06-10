@@ -88,23 +88,12 @@ export default function Category({ user }: PageProps) {
   };
 
 const handleView = (category: any) => {
-
- /* navigate(
-    `/category/${category.id}`,
-    {
+ navigate(
+   `/category/${category.id}`,
+   {
       state: {
         masterCategoryName:
           category.masterCategoryName,
-      },
-    }
-  );*/
-
-    navigate(
-    `/category/${masterCategory.id}`,
-    {
-      state: {
-        masterCategoryName:
-          masterCategory.masterCategoryName,
       },
     }
   );
