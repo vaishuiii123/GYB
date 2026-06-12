@@ -31,11 +31,10 @@ export default function SubCategoryDetails({
 
   const categoryName = location.state?.categoryName || "Category";
 
-  const masterCategoryName = location.state?.masterCategoryName || "Master Category";
-  
-  const categoryName =location.state?.categoryName || "Category";
+  const masterCategoryId = location.state?.masterCategoryId;
 
   const masterCategoryName = location.state?.masterCategoryName || "Master Category";
+  
 
   useEffect(() => {
     fetchSubCategories();
