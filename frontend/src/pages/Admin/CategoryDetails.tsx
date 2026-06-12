@@ -15,29 +15,22 @@ type PageProps = {
 export default function CategoryDetails({
   user,
 }: PageProps) {
-
-  const { categoryId } =
-    useParams();
-
-  const location = useLocation();
-
+  
   const navigate = useNavigate();
+  
+  const { masterCategoryId  } = useParams();
+  
+  const location = useLocation();
+  
+  const [categories, setCategories] = useState<any[]>([]);
 
-  const [categories, setCategories] =
-    useState<any[]>([]);
+  const [showModal, setShowModal] = useState(false);
 
-  const [showModal, setShowModal] =
-    useState(false);
+  const [categoryName, setCategoryName] = useState("");
 
-  const [categoryName, setCategoryName] =
-    useState("");
+  const [error, setError] = useState("");
 
-  const [error, setError] =
-    useState("");
-
-  const masterCategoryName =
-    location.state?.masterCategoryName ||
-    "Category";
+  const masterCategoryName = location.state?.masterCategoryName || "Master Category";
 
   useEffect(() => {
     fetchCategories();
@@ -173,7 +166,7 @@ export default function CategoryDetails({
             >
               <span
                 onClick={() =>
-                  navigate("/subcategory/masterCategoryId")
+                  navigate("/category")
                 }
               >
                 Master Categories
