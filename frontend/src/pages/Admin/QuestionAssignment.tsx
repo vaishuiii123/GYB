@@ -19,13 +19,29 @@ export default function QuestionAssignment({
   const { subCategoryId } =
     useParams();
 
-  const location = useLocation();
+  const location =
+    useLocation();
 
-  const navigate = useNavigate();
+  const navigate =
+    useNavigate();
 
   const subCategoryName =
     location.state?.subCategoryName ||
     "Sub Category";
+
+  const categoryName =
+    location.state?.categoryName ||
+    "Category";
+
+  const masterCategoryName =
+    location.state?.masterCategoryName ||
+    "Master Category";
+
+  const categoryId =
+    location.state?.categoryId;
+
+  const masterCategoryId =
+    location.state?.masterCategoryId;
 
   const [questions,
     setQuestions] =
@@ -194,6 +210,9 @@ export default function QuestionAssignment({
               marginTop: "70px",
             }}
           >
+
+            {/* Breadcrumb */}
+
             <div
               style={{
                 color: "#6b7280",
@@ -204,16 +223,66 @@ export default function QuestionAssignment({
               <span
                 style={{
                   cursor: "pointer",
+                  color: "#2563eb",
                 }}
                 onClick={() =>
-                  navigate("/subcategory")
+                  navigate("/category")
                 }
               >
-                {subCategoryName}
+                Master Category
               </span>
 
               {" > "}
+
+              <span
+                style={{
+                  cursor: "pointer",
+                  color: "#2563eb",
+                }}
+                onClick={() =>
+                  navigate(
+                    `/category/${masterCategoryId}`,
+                    {
+                      state: {
+                        masterCategoryName,
+                      },
+                    }
+                  )
+                }
+              >
+                {masterCategoryName}
+              </span>
+
+              {" > "}
+
+              <span
+                style={{
+                  cursor: "pointer",
+                  color: "#2563eb",
+                }}
+                onClick={() =>
+                  navigate(
+                    `/subcategory/${categoryId}`,
+                    {
+                      state: {
+                        categoryName,
+                        masterCategoryName,
+                        masterCategoryId,
+                      },
+                    }
+                  )
+                }
+              >
+                {categoryName}
+              </span>
+
+              {" > "}
+
+              <b>
+                {subCategoryName}
+              </b>
             </div>
+
             <h1
               style={{
                 fontSize: "30px",
@@ -231,7 +300,18 @@ export default function QuestionAssignment({
               }}
             >
               <button
-                onClick={() => window.history.back()}
+                onClick={() =>
+                  navigate(
+                    `/subcategory/${categoryId}`,
+                    {
+                      state: {
+                        categoryName,
+                        masterCategoryName,
+                        masterCategoryId,
+                      },
+                    }
+                  )
+                }
                 style={{
                   background: "transparent",
                   border: "none",
@@ -376,7 +456,6 @@ export default function QuestionAssignment({
     </>
   );
 }
-
 /* STYLES */
 
 const card: any = {
