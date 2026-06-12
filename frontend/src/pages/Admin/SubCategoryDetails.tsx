@@ -21,29 +21,21 @@ export default function SubCategoryDetails({
 
   const navigate = useNavigate();
 
-  const [subCategories,
-    setSubCategories] =
-    useState<any[]>([]);
+  const [subCategories,setSubCategories] = useState<any[]>([]);
 
-  const [showModal,
-    setShowModal] =
-    useState(false);
+  const [showModal, setShowModal] = useState(false);
 
-  const [subCategoryName,
-    setSubCategoryName] =
-    useState("");
+  const [subCategoryName, setSubCategoryName] = useState("");
 
-  const [error,
-    setError] =
-    useState("");
+  const [error, setError] = useState("");
 
-  const categoryName =
-    location.state?.categoryName ||
-    "Category";
+  const categoryName = location.state?.categoryName || "Category";
 
-  const masterCategoryName =
-    location.state?.masterCategoryName ||
-    "Master Category";
+  const masterCategoryName = location.state?.masterCategoryName || "Master Category";
+  
+  const categoryName =location.state?.categoryName || "Category";
+
+  const masterCategoryName = location.state?.masterCategoryName || "Master Category";
 
   useEffect(() => {
     fetchSubCategories();
@@ -209,17 +201,16 @@ export default function SubCategoryDetails({
                 style={{
                   cursor: "pointer",
                 }}
-               onClick={() =>
-                  navigate(
-                    `/subcategory/${categoryId}`,
-                    {
-                      state: {
-                        categoryName,
-                        masterCategoryName,
-                      },
-                    }
-                  )
+           onClick={() =>
+              navigate(
+                `/category/${masterCategoryId}`,
+                {
+                  state: {
+                    masterCategoryName,
+                  },
                 }
+              )
+            }  
               >
               {masterCategoryName}
               </span>
