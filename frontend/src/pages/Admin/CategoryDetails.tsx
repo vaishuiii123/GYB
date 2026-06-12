@@ -170,14 +170,7 @@ export default function CategoryDetails({
                 color: "#2563eb",
               }}
               onClick={() =>
-                navigate(
-                  `/category/${masterCategoryId}`,
-                  {
-                    state: {
-                      masterCategoryName,
-                    },
-                  }
-                )
+                navigate("/category")
               }
             >
              Master Category
