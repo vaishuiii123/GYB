@@ -95,18 +95,12 @@ export default function Template({ user }: PageProps) {
 
       {/* TABLE */}
 
-      <div
-        style={{
-          background: "white",
-          borderRadius: "16px",
-          padding: "10px",
-          boxShadow: "0 2px 10px rgba(0,0,0,0.08)",
-        }}
-      >
+      <div style={card}>
         <table
           style={{
             width: "100%",
-            borderCollapse: "collapse",
+            borderCollapse:
+              "collapse",
           }}
         >
           <thead>
@@ -299,6 +293,14 @@ export default function Template({ user }: PageProps) {
     </div>
   );
 }
+
+const card: any = {
+  background: "white",
+  padding: "24px",
+  borderRadius: "18px",
+  boxShadow:
+    "0 4px 20px rgba(0,0,0,0.06)",
+};
 
 const thStyle = {
   textAlign: "left" as const,
