@@ -227,24 +227,37 @@ export default function Participants({ user }: PageProps) {
             }}
           >
             <div style={pageHeader}>
-              <h1 style={pageTitle}>Participants</h1>
+              <h1 style={pageTitle}>
+                Participants
+              </h1>
             
-              <button
-                style={saveBtn}
-                onClick={() => setShowParticipantModal(true)}
-              >
-                Create Participant
-              </button>
-            
-              <button
+              <div
                 style={{
-                  ...deleteBtn,
-                  background: "#dc2626",
+                  display: "flex",
+                  gap: "10px",
                 }}
-                onClick={handleDeleteSelected}
               >
-                Delete Selected
-              </button>
+                <button
+                  style={saveBtn}
+                  onClick={() =>
+                    setShowParticipantModal(true)
+                  }
+                >
+                  Create Participant
+                </button>
+            
+                <button
+                  style={{
+                    ...deleteBtn,
+                    background: "#dc2626",
+                  }}
+                  onClick={
+                    handleDeleteSelected
+                  }
+                >
+                  Delete Selected
+                </button>
+              </div>
             </div>
             <div style={card}>
               <table
