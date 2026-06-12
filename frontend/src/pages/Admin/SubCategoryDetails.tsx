@@ -29,8 +29,6 @@ export default function SubCategoryDetails({
 
   const [error, setError] = useState("");
 
-  const categoryId = location.state?.categoryId;
-
   const categoryName = location.state?.categoryName || "Category";
 
   const masterCategoryId = location.state?.masterCategoryId;
