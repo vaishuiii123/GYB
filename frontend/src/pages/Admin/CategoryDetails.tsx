@@ -180,7 +180,7 @@ export default function CategoryDetails({
                 )
               }
             >
-              {masterCategoryName}
+             Master Category
             </span>
 
               {" > "}
