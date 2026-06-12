@@ -114,413 +114,386 @@ export default function Workshop({ user }: PageProps) {
     });
   };
 
-  return (
+return (
+  <>
     <div
       style={{
-        padding: "30px",
-        background: "#eef3f7",
+        display: "flex",
         minHeight: "100vh",
+        background: "#f3f4f6",
       }}
     >
-
-      <Header user={user} />
       <Sidebar />
-      
-      {/* TITLE */}
 
       <div
         style={{
-          marginBottom: "20px",
+          flex: 1,
+          marginLeft: "220px",
         }}
       >
-        <h1
-          style={{
-            fontSize: "40px",
-            fontWeight: "700",
-            margin: 0,
-          }}
-        >
-          Workshop
-        </h1>
-      </div>
-
-      {/* FORM */}
-
-      <div
-        style={{
-          background: "white",
-          border:
-            "0px solid #d9e1e8",
-          borderRadius: "20px",
-          padding: "35px",
-          marginBottom: "30px",
-        }}
-      >
-        {/* TOP ROW */}
+        <Header user={user} />
 
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns:
-              "1fr 1fr 1fr",
-            gap: "30px",
-            marginBottom: "40px",
+            padding: "25px",
+            marginTop: "70px",
           }}
         >
-          {/* WORKSHOP NAME */}
+          <h1
+            style={{
+              fontSize: "36px",
+              fontWeight: "700",
+              marginBottom: "25px",
+            }}
+          >
+            Workshop
+          </h1>
 
-          <div>
-            <label
-              style={labelStyle}
+          {/* WORKSHOP FORM */}
+
+            <div
+              style={{
+                background: "white",
+                borderRadius: "18px",
+                padding: "30px",
+                marginBottom: "25px",
+              }}
             >
-              Workshop Name *
-            </label>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns:
+                    "1fr 1fr 1fr",
+                  gap: "30px",
+                  marginBottom: "40px",
+                }}
+              >
+                <div>
+                  <label style={labelStyle}>
+                    Workshop Name *
+                  </label>
 
-            <input
-              type="text"
-              value={
-                workshopForm.workshopName
-              }
-              onChange={(e) =>
-                setWorkshopForm({
-                  ...workshopForm,
-                  workshopName:
-                    e.target.value,
-                })
-              }
-              style={inputStyle}
-            />
-          </div>
-
-          {/* START DATE */}
-
-          <div>
-            <label
-              style={labelStyle}
-            >
-              Start Date : Time *
-            </label>
-
-            <input
-              type="datetime-local"
-              value={
-                workshopForm.startDate
-              }
-              onChange={(e) =>
-                setWorkshopForm({
-                  ...workshopForm,
-                  startDate:
-                    e.target.value,
-                })
-              }
-              style={inputStyle}
-            />
-          </div>
-
-          {/* END DATE */}
-
-          <div>
-            <label
-              style={labelStyle}
-            >
-              End Date : Time *
-            </label>
-
-            <input
-              type="datetime-local"
-              value={
-                workshopForm.endDate
-              }
-              onChange={(e) =>
-                setWorkshopForm({
-                  ...workshopForm,
-                  endDate:
-                    e.target.value,
-                })
-              }
-              style={inputStyle}
-            />
-          </div>
-        </div>
-
-        {/* SECOND ROW */}
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns:
-              "1fr 1fr",
-            gap: "30px",
-            marginBottom: "40px",
-          }}
-        >
-          {/* TEMPLATE */}
-
-          <div>
-            <label
-              style={labelStyle}
-            >
-              Select Template *
-            </label>
-
-            <select
-              value={
-                workshopForm.template
-              }
-              onChange={(e) =>
-                setWorkshopForm({
-                  ...workshopForm,
-                  template:
-                    e.target.value,
-                })
-              }
-              style={inputStyle}
-            >
-              <option value="">
-                Select Template
-              </option>
-
-              {templates.map(
-                (template) => (
-                  <option
-                    key={template}
-                    value={template}
-                  >
-                    {template}
-                  </option>
-                )
-              )}
-            </select>
-          </div>
-
-          {/* ORGANIZATION */}
-
-          <div>
-            <label
-              style={labelStyle}
-            >
-              Select Organization *
-            </label>
-
-            <select
-              value={
-                workshopForm.organization
-              }
-              onChange={(e) =>
-                setWorkshopForm({
-                  ...workshopForm,
-                  organization:
-                    e.target.value,
-                })
-              }
-              style={inputStyle}
-            >
-              <option value="">
-                Select Organization
-              </option>
-
-              {organizations.map(
-                (org: any) => (
-                  <option
-                    key={org.id}
+                  <input
+                    type="text"
                     value={
-                      org.organizationName
+                      workshopForm.workshopName
                     }
-                  >
-                    {
-                      org.organizationName
+                    onChange={(e) =>
+                      setWorkshopForm({
+                        ...workshopForm,
+                        workshopName:
+                          e.target.value,
+                      })
                     }
+                    style={inputStyle}
+                  />
+                </div>
+
+                <div>
+                  <label style={labelStyle}>
+                    Start Date : Time *
+                  </label>
+
+                  <input
+                    type="datetime-local"
+                    value={
+                      workshopForm.startDate
+                    }
+                    onChange={(e) =>
+                      setWorkshopForm({
+                        ...workshopForm,
+                        startDate:
+                          e.target.value,
+                      })
+                    }
+                    style={inputStyle}
+                  />
+               </div>
+
+               <div>
+                <label style={labelStyle}>
+                  End Date : Time *
+                </label>
+
+                <input
+                  type="datetime-local"
+                  value={
+                    workshopForm.endDate
+                  }
+                  onChange={(e) =>
+                    setWorkshopForm({
+                      ...workshopForm,
+                      endDate:
+                        e.target.value,
+                    })
+                  }
+                  style={inputStyle}
+                />
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  "1fr 1fr",
+                gap: "30px",
+                marginBottom: "40px",
+              }}
+            >
+              <div>
+                <label style={labelStyle}>
+                  Select Template *
+                </label>
+
+                <select
+                  value={
+                    workshopForm.template
+                  }
+                  onChange={(e) =>
+                    setWorkshopForm({
+                      ...workshopForm,
+                      template:
+                        e.target.value,
+                    })
+                  }
+                  style={inputStyle}
+                >
+                  <option value="">
+                    Select Template
                   </option>
-                )
-              )}
-            </select>
+
+                  {templates.map(
+                    (template) => (
+                      <option
+                        key={template}
+                        value={template}
+                      >
+                        {template}
+                      </option>
+                    )
+                  )}
+                </select>
+              </div>
+
+              <div>
+                <label style={labelStyle}>
+                  Select Organization *
+                </label>
+
+                <select
+                  value={
+                    workshopForm.organization
+                  }
+                  onChange={(e) =>
+                    setWorkshopForm({
+                      ...workshopForm,
+                      organization:
+                        e.target.value,
+                    })
+                  }
+                  style={inputStyle}
+                >
+                  <option value="">
+                    Select Organization
+                  </option>
+
+                  {organizations.map(
+                    (org: any) => (
+                      <option
+                        key={org.id}
+                        value={
+                          org.organizationName
+                        }
+                      >
+                        {
+                          org.organizationName
+                        }
+                      </option>
+                    )
+                  )}
+                </select>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                gap: "15px",
+              }}
+            >
+              <button
+                onClick={
+                  handleCreateWorkshop
+                }
+                style={{
+                  background:
+                    "#8B0022",
+                  color: "white",
+                  border: "none",
+                  padding:
+                    "10px 25px",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                }}
+              >
+                Create
+              </button>
+
+              <button
+                onClick={() =>
+                  setWorkshopForm({
+                    workshopName: "",
+                    startDate: "",
+                    endDate: "",
+                    template: "",
+                    organization: "",
+                  })
+                }
+                style={{
+                  background:
+                    "#374151",
+                  color: "white",
+                  border: "none",
+                  padding:
+                    "10px 25px",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+
+          {/* PARTICIPANTS */}
+
+          <div
+            style={{
+              background: "white",
+              borderRadius: "18px",
+              padding: "25px",
+            }}
+          >
+            <h2
+              style={{
+                marginBottom: "20px",
+              }}
+            >
+              Participants
+            </h2>
+
+            <table
+              style={{
+                width: "100%",
+                borderCollapse:
+                  "collapse",
+              }}
+            >
+              <thead>
+                <tr>
+                  <th style={tableHeader}>
+                    Sr No.
+                  </th>
+
+                  <th style={tableHeader}>
+                    Organization
+                  </th>
+
+                  <th style={tableHeader}>
+                    Name
+                  </th>
+
+                  <th style={tableHeader}>
+                    Email
+                  </th>
+
+                  <th style={tableHeader}>
+                    Phone
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {participants
+                  .filter(
+                    (participant) =>
+                      !workshopForm.organization ||
+                      participant.organization ===
+                        workshopForm.organization
+                  )
+                  .map(
+                    (
+                      participant,
+                      index
+                    ) => (
+                      <tr
+                        key={
+                          participant.id
+                        }
+                      >
+                        <td
+                          style={
+                            tableCell
+                          }
+                        >
+                          {index + 1}
+                        </td>
+
+                        <td
+                          style={
+                            tableCell
+                          }
+                        >
+                          {
+                            participant.organization
+                          }
+                        </td>
+
+                        <td
+                          style={
+                            tableCell
+                          }
+                        >
+                          {
+                            participant.firstName
+                          }{" "}
+                          {
+                            participant.lastName
+                          }
+                        </td>
+
+                        <td
+                          style={
+                            tableCell
+                          }
+                        >
+                          {
+                            participant.email
+                          }
+                        </td>
+
+                        <td
+                          style={
+                            tableCell
+                          }
+                        >
+                          {
+                            participant.phone
+                          }
+                        </td>
+                      </tr>
+                    )
+                  )}
+              </tbody>
+            </table>
           </div>
         </div>
-
-        {/* BUTTONS */}
-
-        <div
-          style={{
-            display: "flex",
-            gap: "20px",
-          }}
-        >
-          <button
-            onClick={
-              handleCreateWorkshop
-            }
-            style={{
-              background:
-                "#8B0022",
-              color: "white",
-              border: "none",
-              padding:
-                "10px 30px",
-              borderRadius:
-                "4px",
-              cursor: "pointer",
-              fontWeight: "600",
-              fontSize: "15px",
-            }}
-          >
-            Create
-          </button>
-
-          <button
-            onClick={() =>
-              setWorkshopForm({
-                workshopName: "",
-                startDate: "",
-                endDate: "",
-                template: "",
-                organization: "",
-              })
-            }
-            style={{
-              background:
-                "#2d3e50",
-              color: "white",
-              border: "none",
-              padding:
-                "10px 30px",
-              borderRadius:
-                "4px",
-              cursor: "pointer",
-              fontWeight: "600",
-              fontSize: "15px",
-            }}
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
-
-      {/* PARTICIPANT LIST */}
-
-      <div
-        style={{
-          background: "white",
-          padding: "30px",
-          borderRadius: "12px",
-        }}
-      >
-        <h2
-          style={{
-            marginBottom: "20px",
-          }}
-        >
-          Participants
-        </h2>
-
-        <table
-          style={{
-            width: "100%",
-            borderCollapse:
-              "collapse",
-          }}
-        >
-          <thead>
-            <tr>
-              <th style={tableHeader}>
-                Sr No.
-              </th>
-
-              <th style={tableHeader}>
-                Organization
-              </th>
-
-              <th style={tableHeader}>
-                Name
-              </th>
-
-              <th style={tableHeader}>
-                Email
-              </th>
-
-              <th style={tableHeader}>
-                Phone
-              </th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {participants
-              .filter(
-                (participant) =>
-                  !workshopForm.organization ||
-                  participant.organization ===
-                    workshopForm.organization
-              )
-              .map(
-                (
-                  participant,
-                  index
-                ) => (
-                  <tr
-                    key={
-                      participant.id
-                    }
-                  >
-                    <td
-                      style={
-                        tableCell
-                      }
-                    >
-                      {index + 1}
-                    </td>
-
-                    <td
-                      style={
-                        tableCell
-                      }
-                    >
-                      {
-                        participant.organization
-                      }
-                    </td>
-
-                    <td
-                      style={
-                        tableCell
-                      }
-                    >
-                      {
-                        participant.firstName
-                      }{" "}
-                      {
-                        participant.lastName
-                      }
-                    </td>
-
-                    <td
-                      style={
-                        tableCell
-                      }
-                    >
-                      {
-                        participant.email
-                      }
-                    </td>
-
-                    <td
-                      style={
-                        tableCell
-                      }
-                    >
-                      {
-                        participant.phone
-                      }
-                    </td>
-                  </tr>
-                )
-              )}
-          </tbody>
-        </table>
       </div>
     </div>
-  );
+  </>
+);
 }
-
 /* ================= STYLES ================= */
 
 const labelStyle = {
