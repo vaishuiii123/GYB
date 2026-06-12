@@ -164,19 +164,24 @@ export default function CategoryDetails({
                 cursor: "pointer",
               }}
             >
-              <span
-                onClick={() =>
-                  navigate('/category/${masterCategoryId}',
-                    {
-                      state: {
-                        masterCategoryName,
-                      },
-                    }
-                  )
-                }
-              >
-                Master Categories
-              </span>
+             <span
+              style={{
+                cursor: "pointer",
+                color: "#2563eb",
+              }}
+              onClick={() =>
+                navigate(
+                  `/category/${masterCategoryId}`,
+                  {
+                    state: {
+                      masterCategoryName,
+                    },
+                  }
+                )
+              }
+            >
+              {masterCategoryName}
+            </span>
 
               {" > "}
 
