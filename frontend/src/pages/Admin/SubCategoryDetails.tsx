@@ -29,6 +29,8 @@ export default function SubCategoryDetails({
 
   const [error, setError] = useState("");
 
+  const categoryId = location.state?.categoryId;
+
   const categoryName = location.state?.categoryName || "Category";
 
   const masterCategoryId = location.state?.masterCategoryId;
@@ -117,7 +119,7 @@ export default function SubCategoryDetails({
       }
     };
 
- const handleView = (
+        const handleView = (
       subCategory: any
     ) => {
     
@@ -127,6 +129,14 @@ export default function SubCategoryDetails({
           state: {
             subCategoryName:
               subCategory.subCategoryName,
+    
+            categoryName,
+    
+            categoryId,
+    
+            masterCategoryName,
+    
+            masterCategoryId,
           },
         }
       );
