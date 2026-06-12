@@ -52,42 +52,37 @@ export default function Template({ user }: PageProps) {
   return (
     <div
       style={{
+        display: "flex",
         background: "#f3f4f6",
         minHeight: "100vh",
       }}
     >
-      <Header user={user} />
-      <Sidebar />
+        <Sidebar />
+     
 
       <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "30px",
-        }}
-      >
-        <h1
           style={{
-            margin: 0,
-            fontSize: "34px",
-            fontWeight: "700",
+            flex: 1,
+            marginLeft: "220px",
           }}
         >
-          Template
-        </h1>
+    
+       <Header user={user} />
+      <div
+        style={{
+          padding: "25px",
+           marginTop: "70px",
+        }}
+      >
+        
+         <div style={pageHeader}>
+          <h1 style={pageTitle}>
+            Template
+          </h1>
 
         <button
+          style={saveBtn}
           onClick={() => setShowModal(true)}
-          style={{
-            background: "#7a0019",
-            color: "white",
-            border: "none",
-            padding: "10px 15px",
-            borderRadius: "8px",
-            fontWeight: "600",
-            cursor: "pointer",
-          }}
         >
           Create Template
         </button>
@@ -127,15 +122,7 @@ export default function Template({ user }: PageProps) {
 
                 <td style={tdStyle}>
                   <button
-                    style={{
-                      background: "#2563eb",
-                      color: "white",
-                      border: "none",
-                      padding: "10px 16px",
-                      borderRadius: "8px",
-                      cursor: "pointer",
-                      marginRight: "10px",
-                    }}
+                    style={viewBtn}
                   >
                     View
                   </button>
@@ -148,14 +135,7 @@ export default function Template({ user }: PageProps) {
                         )
                       )
                     }
-                    style={{
-                      background: "#dc2626",
-                      color: "white",
-                      border: "none",
-                      padding: "10px 16px",
-                      borderRadius: "8px",
-                      cursor: "pointer",
-                    }}
+                    style={viewBtn}
                   >
                     Delete
                   </button>
@@ -289,11 +269,36 @@ export default function Template({ user }: PageProps) {
             </div>
           </div>
         </div>
-      )}
+            )}
+      </div>
+    </div>
     </div>
   );
 }
 
+const pageHeader: any = {
+  display: "flex",
+  justifyContent:
+    "space-between",
+  alignItems: "center",
+  marginBottom: "20px",
+};
+
+const pageTitle: any = {
+  fontSize: "32px",
+  fontWeight: "700",
+  color: "#111827",
+  margin: 0,
+};
+
+const saveBtn: any = {
+  background: "#3b5bcc",
+  color: "white",
+  padding: "10px 16px",
+  border: "none",
+  borderRadius: "8px",
+  cursor: "pointer",
+};
 const card: any = {
   background: "white",
   padding: "24px",
