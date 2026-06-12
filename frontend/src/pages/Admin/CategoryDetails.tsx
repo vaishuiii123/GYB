@@ -173,6 +173,7 @@ export default function CategoryDetails({
                       },
                     }
                   )
+                }
               >
                 Master Categories
               </span>
