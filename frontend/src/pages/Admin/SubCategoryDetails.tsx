@@ -209,8 +209,16 @@ export default function SubCategoryDetails({
                 style={{
                   cursor: "pointer",
                 }}
-                onClick={() =>
-                  navigate("/subcategory")
+               onClick={() =>
+                  navigate(
+                    `/subcategory/${categoryId}`,
+                    {
+                      state: {
+                        categoryName,
+                        masterCategoryName,
+                      },
+                    }
+                  )
                 }
               >
               {masterCategoryName}
