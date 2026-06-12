@@ -166,8 +166,13 @@ export default function CategoryDetails({
             >
               <span
                 onClick={() =>
-                  navigate("/category")
-                }
+                  navigate('/category/${masterCategoryId}',
+                    {
+                      state: {
+                        masterCategoryName,
+                      },
+                    }
+                  )
               >
                 Master Categories
               </span>
