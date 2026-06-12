@@ -50,236 +50,321 @@ export default function Template({ user }: PageProps) {
   };
 
   return (
+  <div
+    style={{
+      display: "flex",
+      background: "#f3f4f6",
+      minHeight: "100vh",
+    }}
+  >
+    <Sidebar />
+
     <div
       style={{
-        display: "flex",
-        background: "#f3f4f6",
-        minHeight: "100vh",
+        flex: 1,
+        marginLeft: "220px",
       }}
     >
-        <Sidebar />
-     
+      <Header user={user} />
 
-      <div
-          style={{
-            flex: 1,
-            marginLeft: "220px",
-          }}
-        >
-    
-       <Header user={user} />
       <div
         style={{
           padding: "25px",
-           marginTop: "70px",
+          marginTop: "70px",
         }}
       >
-        
-         <div style={pageHeader}>
+        <div style={pageHeader}>
           <h1 style={pageTitle}>
             Template
           </h1>
 
-        <button
-          style={saveBtn}
-          onClick={() => setShowModal(true)}
-        >
-          Create Template
-        </button>
-      </div>
+          <button
+            style={saveBtn}
+            onClick={() =>
+              setShowModal(true)
+            }
+          >
+            Create Template
+          </button>
+        </div>
 
-      {/* TABLE */}
-
-      <div style={card}>
-        <table
-          style={{
-            width: "100%",
-            borderCollapse:
-              "collapse",
-          }}
-        >
-          <thead>
-            <tr>
-              <th style={thStyle}>Sr No.</th>
-              <th style={thStyle}>Template Name</th>
-              <th style={thStyle}>Question Count</th>
-              <th style={thStyle}>Action</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {templates.map((template, index) => (
-              <tr key={template.id}>
-                <td style={tdStyle}>{index + 1}</td>
-
-                <td style={tdStyle}>
-                  {template.name}
-                </td>
-
-                <td style={tdStyle}>
-                  {template.questions.length}
-                </td>
-
-                <td style={tdStyle}>
-                  <button
-                    style={viewBtn}
-                  >
-                    View
-                  </button>
-
-                  <button
-                    onClick={() =>
-                      setTemplates(
-                        templates.filter(
-                          (t) => t.id !== template.id
-                        )
-                      )
-                    }
-                    style={viewBtn}
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* MODAL */}
-
-      {showModal && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.5)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            zIndex: 999,
-          }}
-        >
-          <div
+        <div style={card}>
+          <table
             style={{
-              width: "700px",
-              background: "white",
-              borderRadius: "16px",
-              padding: "30px",
-              maxHeight: "90vh",
-              overflowY: "auto",
+              width: "100%",
+              borderCollapse:
+                "collapse",
             }}
           >
-            <h2
+            <thead>
+              <tr>
+                <th style={thStyle}>
+                  Sr No.
+                </th>
+
+                <th style={thStyle}>
+                  Template Name
+                </th>
+
+                <th style={thStyle}>
+                  Question Count
+                </th>
+
+                <th style={thStyle}>
+                  Action
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {templates.map(
+                (
+                  template,
+                  index
+                ) => (
+                  <tr
+                    key={template.id}
+                  >
+                    <td style={tdStyle}>
+                      {index + 1}
+                    </td>
+
+                    <td style={tdStyle}>
+                      {template.name}
+                    </td>
+
+                    <td style={tdStyle}>
+                      {
+                        template.questions
+                          .length
+                      }
+                    </td>
+
+                    <td style={tdStyle}>
+                      <button
+                        style={viewBtn}
+                      >
+                        View
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          setTemplates(
+                            templates.filter(
+                              (t) =>
+                                t.id !==
+                                template.id
+                            )
+                          )
+                        }
+                        style={{
+                          background:
+                            "#dc2626",
+                          color:
+                            "white",
+                          border:
+                            "none",
+                          padding:
+                            "8px 12px",
+                          borderRadius:
+                            "6px",
+                          cursor:
+                            "pointer",
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                )
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {showModal && (
+          <div
+            style={{
+              position:
+                "fixed",
+              inset: 0,
+              background:
+                "rgba(0,0,0,0.5)",
+              display: "flex",
+              justifyContent:
+                "center",
+              alignItems:
+                "center",
+              zIndex: 999,
+            }}
+          >
+            <div
               style={{
-                marginBottom: "25px",
-                fontSize: "32px",
+                width: "700px",
+                background:
+                  "white",
+                borderRadius:
+                  "16px",
+                padding:
+                  "30px",
+                maxHeight:
+                  "90vh",
+                overflowY:
+                  "auto",
               }}
             >
-              Create Template
-            </h2>
+              <h2
+                style={{
+                  marginBottom:
+                    "25px",
+                  fontSize:
+                    "32px",
+                }}
+              >
+                Create Template
+              </h2>
 
-            <input
-              type="text"
-              placeholder="Template Name"
-              value={templateName}
-              onChange={(e) =>
-                setTemplateName(e.target.value)
-              }
-              style={inputStyle}
-            />
-
-            <h3
-              style={{
-                marginBottom: "15px",
-              }}
-            >
-              Questions
-            </h3>
-
-            {questions.map((question, index) => (
               <input
-                key={index}
                 type="text"
-                placeholder={`Question ${
-                  index + 1
-                }`}
-                value={question}
+                placeholder="Template Name"
+                value={
+                  templateName
+                }
                 onChange={(e) =>
-                  handleQuestionChange(
-                    index,
+                  setTemplateName(
                     e.target.value
                   )
                 }
                 style={inputStyle}
               />
-            ))}
 
-            <button
-              onClick={addQuestionField}
-              style={{
-                background: "#16a34a",
-                color: "white",
-                border: "none",
-                padding: "12px 20px",
-                borderRadius: "8px",
-                cursor: "pointer",
-                marginBottom: "30px",
-              }}
-            >
-              + Add Question
-            </button>
+              <h3
+                style={{
+                  marginBottom:
+                    "15px",
+                }}
+              >
+                Questions
+              </h3>
 
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "flex-end",
-                gap: "15px",
-              }}
-            >
+              {questions.map(
+                (
+                  question,
+                  index
+                ) => (
+                  <input
+                    key={index}
+                    type="text"
+                    placeholder={`Question ${
+                      index + 1
+                    }`}
+                    value={
+                      question
+                    }
+                    onChange={(e) =>
+                      handleQuestionChange(
+                        index,
+                        e.target.value
+                      )
+                    }
+                    style={
+                      inputStyle
+                    }
+                  />
+                )
+              )}
+
               <button
-                onClick={() =>
-                  setShowModal(false)
+                onClick={
+                  addQuestionField
                 }
                 style={{
-                  background: "#6b7280",
-                  color: "white",
-                  border: "none",
-                  padding: "12px 22px",
-                  borderRadius: "8px",
-                  cursor: "pointer",
+                  background:
+                    "#16a34a",
+                  color:
+                    "white",
+                  border:
+                    "none",
+                  padding:
+                    "12px 20px",
+                  borderRadius:
+                    "8px",
+                  cursor:
+                    "pointer",
+                  marginBottom:
+                    "30px",
                 }}
               >
-                Cancel
+                + Add Question
               </button>
 
-              <button
-                onClick={createTemplate}
+              <div
                 style={{
-                  background: "#7a0019",
-                  color: "white",
-                  border: "none",
-                  padding: "12px 22px",
-                  borderRadius: "8px",
-                  cursor: "pointer",
+                  display:
+                    "flex",
+                  justifyContent:
+                    "flex-end",
+                  gap: "15px",
                 }}
               >
-                Save
-              </button>
+                <button
+                  onClick={() =>
+                    setShowModal(
+                      false
+                    )
+                  }
+                  style={{
+                    background:
+                      "#6b7280",
+                    color:
+                      "white",
+                    border:
+                      "none",
+                    padding:
+                      "12px 22px",
+                    borderRadius:
+                      "8px",
+                    cursor:
+                      "pointer",
+                  }}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  onClick={
+                    createTemplate
+                  }
+                  style={{
+                    background:
+                      "#7a0019",
+                    color:
+                      "white",
+                    border:
+                      "none",
+                    padding:
+                      "12px 22px",
+                    borderRadius:
+                      "8px",
+                    cursor:
+                      "pointer",
+                  }}
+                >
+                  Save
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-            )}
+        )}
       </div>
     </div>
-    </div>
-  );
+  </div>
+);
 }
 
 const pageHeader: any = {
   display: "flex",
-  justifyContent:
-    "space-between",
+  justifyContent: "space-between",
   alignItems: "center",
   marginBottom: "20px",
 };
@@ -299,12 +384,22 @@ const saveBtn: any = {
   borderRadius: "8px",
   cursor: "pointer",
 };
+
+const viewBtn: any = {
+  background: "#2563eb",
+  color: "white",
+  border: "none",
+  padding: "8px 12px",
+  borderRadius: "6px",
+  cursor: "pointer",
+  marginRight: "8px",
+};
+
 const card: any = {
   background: "white",
   padding: "24px",
   borderRadius: "18px",
-  boxShadow:
-    "0 4px 20px rgba(0,0,0,0.06)",
+  boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
 };
 
 const thStyle = {
