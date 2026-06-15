@@ -82,6 +82,8 @@ export default function Organization({ user }: PageProps) {
   const handleView = async (
       org: any
     ) => {
+
+      
       setSelectedOrganization(org);
     
       setShowViewModal(true);
@@ -108,6 +110,7 @@ export default function Organization({ user }: PageProps) {
             )
           );
         }
+        console.log(assignedParticipants);
       } catch (error) {
         console.error(error);
       }
