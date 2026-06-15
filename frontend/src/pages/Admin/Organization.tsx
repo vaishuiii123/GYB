@@ -10,9 +10,16 @@ type PageProps = {
 
 export default function Organization({ user }: PageProps) {
 
-  const [showEditModal, setShowEditModal] =
-  useState(false);
+  const [assignedParticipants, setAssignedParticipants] = useState<any[]>([]);
 
+const [allParticipants, setAllParticipants] = useState<any[]>([]);
+
+const [showParticipantModal, setShowParticipantModal] = useState(false);
+
+const [selectedParticipantIds, setSelectedParticipantIds] = useState<string[]>([]);
+  
+  const [showEditModal, setShowEditModal] = useState(false);
+  
  const [editOrganization, setEditOrganization] =
   useState<any>({
     id: "",
@@ -29,9 +36,10 @@ export default function Organization({ user }: PageProps) {
   
 
 
- useEffect(() => {
+useEffect(() => {
   if (user?.email) {
     fetchOrganizations();
+    loadParticipants();
   }
 }, [user]);
 
@@ -73,10 +81,6 @@ export default function Organization({ user }: PageProps) {
   );
 };
 
-  const handleView = (org: any) => {
-  setSelectedOrganization(org);
-  setShowViewModal(true);
-};
 
   //============================= UPDATE ORGANIZATION =====================================
 
@@ -195,6 +199,136 @@ export default function Organization({ user }: PageProps) {
     } catch (err) {
       console.error(err);
       alert("Failed to create organization");
+    }
+  };
+
+  //===================================== VIEW ORGANIZATION AND ADD PARTICIPANTS INTO ORGANIZATION ======================================================
+
+  const handleView = async (
+  organization: any
+) => {
+    console.log(organization);
+
+  setSelectedOrganization(
+    organization
+  );
+
+  setShowViewModal(true);
+
+  const response =
+    await fetch(
+      `/api/get-organization-participants?organizationId=${organization.id}`
+    );
+
+  const data =
+    await response.json();
+
+  if (data.success) {
+
+    setAssignedParticipants(
+      data.participants
+    );
+
+    setSelectedParticipantIds(
+      data.participants.map(
+        (p: any) => p.id
+      )
+    );
+  }
+};
+
+// ====================================================== LOAD PARTICIPANTS ===========================================================================
+
+  const loadParticipants =
+  async () => {
+
+    const response =
+      await fetch(
+        "/api/get-participants"
+      );
+
+    const data =
+      await response.json();
+
+    if (data.success) {
+
+      setAllParticipants(
+        data.participants
+      );
+    }
+  };
+
+  const toggleParticipant =
+  (
+    participantId: string
+  ) => {
+
+    if (
+      selectedParticipantIds.includes(
+        participantId
+      )
+    ) {
+
+      setSelectedParticipantIds(
+        selectedParticipantIds.filter(
+          (id) =>
+            id !==
+            participantId
+        )
+      );
+
+    } else {
+
+      setSelectedParticipantIds([
+        ...selectedParticipantIds,
+        participantId,
+      ]);
+    }
+  };
+
+  const saveParticipants =
+  async () => {
+
+    const response =
+      await fetch(
+        "/api/save-organization-participants",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+
+          body: JSON.stringify({
+            organizationId:
+              selectedOrganization.id,
+
+            participantIds:
+              selectedParticipantIds,
+
+            createdBy:
+              user?.username,
+          }),
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (data.success) {
+
+      alert(
+        "Participants Assigned Successfully"
+      );
+
+      setShowParticipantModal(
+        false
+      );
+
+      handleView(
+        selectedOrganization
+      );
     }
   };
 
@@ -325,7 +459,6 @@ export default function Organization({ user }: PageProps) {
                     setOrgForm({ ...orgForm, email: e.target.value })
                   }
                 />
-
                 <div style={{ display: "flex", gap: "10px", justifyContent: "end" }}>
                   <button onClick={() => setShowOrgModal(false)}>Cancel</button>
                   <button onClick={handleCreateOrganization} style={saveBtn}>
@@ -337,44 +470,226 @@ export default function Organization({ user }: PageProps) {
             </div>
           )}    
 
-            {showViewModal && (
-            <div style={modalOverlay}>
-              <div style={modalBox}>
-                <h2>Organization Details</h2>
-          
-                <p>
-                  <b>Organization Name:</b>{" "}
-                  {selectedOrganization?.organizationName}
-                </p>
-          
-                <p>
-                  <b>Contact Person:</b>{" "}
-                  {selectedOrganization?.contactPerson}
-                </p>
-          
-                <p>
-                  <b>Email:</b>{" "}
-                  {selectedOrganization?.email}
-                </p>
-          
+          {showParticipantModal && (
+              <div style={modalOverlay}>
                 <div
                   style={{
-                    display: "flex",
-                    justifyContent: "end",
+                    ...modalBox,
+                    width: "500px",
+                    maxHeight: "600px",
+                    overflowY: "auto",
                   }}
                 >
+                  <h2>
+                    Add Participants
+                  </h2>
+            
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "10px",
+                    }}
+                  >
+                    {allParticipants.length > 0 ? (
+                      allParticipants.map(
+                        (participant) => (
+                          <label
+                            key={participant.id}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "10px",
+                              padding: "8px",
+                              borderBottom:
+                                "1px solid #f1f1f1",
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedParticipantIds.includes(
+                                participant.id
+                              )}
+                              onChange={() =>
+                                toggleParticipant(
+                                  participant.id
+                                )
+                              }
+                            />
+            
+                            <span>
+                              {
+                                participant.firstName
+                              }{" "}
+                              {
+                                participant.lastName
+                              }
+                            </span>
+                          </label>
+                        )
+                      )
+                    ) : (
+                      <p>
+                        No Participants Found
+                      </p>
+                    )}
+                  </div>
+            
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent:
+                        "flex-end",
+                      gap: "10px",
+                      marginTop: "20px",
+                    }}
+                  >
+                    <button
+                      onClick={() =>
+                        setShowParticipantModal(
+                          false
+                        )
+                      }
+                    >
+                      Cancel
+                    </button>
+            
+                    <button
+                      style={saveBtn}
+                      onClick={
+                        saveParticipants
+                      }
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {showViewModal && (
+              <div style={modalOverlay}>
+                <div
+                  style={{
+                    ...modalBox,
+                    width: "700px",
+                  }}
+                >
+                  <h2>Organization Details</h2>
+            
+                  <p>
+                    <b>Organization Name:</b>{" "}
+                    {selectedOrganization?.organizationName}
+                  </p>
+            
+                  <p>
+                    <b>Contact Person:</b>{" "}
+                    {selectedOrganization?.contactPerson}
+                  </p>
+            
+                  <p>
+                    <b>Email:</b>{" "}
+                    {selectedOrganization?.email}
+                  </p>
+            
                   <button
                     style={saveBtn}
                     onClick={() =>
-                      setShowViewModal(false)
+                      setShowParticipantModal(true)
                     }
                   >
-                    Close
+                    Add Participant
                   </button>
+            
+                  <h3
+                    style={{
+                      marginTop: "20px",
+                      marginBottom: "10px",
+                    }}
+                  >
+                    Assigned Participants
+                  </h3>
+            
+                  <table
+                    style={{
+                      width: "100%",
+                      borderCollapse: "collapse",
+                    }}
+                  >
+                    <thead>
+                      <tr>
+                        <th style={tableHeader}>
+                          Name
+                        </th>
+            
+                        <th style={tableHeader}>
+                          Email
+                        </th>
+                      </tr>
+                    </thead>
+            
+                    <tbody>
+                      {assignedParticipants.length >
+                      0 ? (
+                        assignedParticipants.map(
+                          (participant) => (
+                            <tr
+                              key={
+                                participant.id
+                              }
+                            >
+                              <td style={tableCell}>
+                                {
+                                  participant.firstName
+                                }{" "}
+                                {
+                                  participant.lastName
+                                }
+                              </td>
+            
+                              <td style={tableCell}>
+                                {
+                                  participant.email
+                                }
+                              </td>
+                            </tr>
+                          )
+                        )
+                      ) : (
+                        <tr>
+                          <td
+                            colSpan={2}
+                            style={{
+                              padding: "12px",
+                              textAlign: "center",
+                            }}
+                          >
+                            No Participants Assigned
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+            
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "flex-end",
+                      marginTop: "20px",
+                    }}
+                  >
+                    <button
+                      style={saveBtn}
+                      onClick={() =>
+                        setShowViewModal(false)
+                      }
+                    >
+                      Close
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
             {showEditModal && (
               <div style={modalOverlay}>
