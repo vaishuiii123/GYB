@@ -1,12 +1,16 @@
 import { useState } from "react";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
+import { useNavigate } from "react-router-dom";
 
 type PageProps = {
   user?: any;
 };
 
 export default function Template({ user }: PageProps) {
+
+  const navigate = useNavigate();
+  
   const [templates, setTemplates] = useState<any[]>([]);
 
   const [showModal, setShowModal] = useState(false);
@@ -80,9 +84,7 @@ export default function Template({ user }: PageProps) {
 
           <button
             style={saveBtn}
-            onClick={() =>
-              setShowModal(true)
-            }
+            onClick={() => navigate("/create-template")}
           >
             Create Template
           </button>
