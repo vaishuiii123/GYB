@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import { useNavigate } from "react-router-dom";
@@ -13,15 +13,10 @@ export default function CreateTemplate({
 
   const navigate = useNavigate();
 
-  const [templateName, setTemplateName] =
-    useState("");
-
-  const [category, setCategory] =
-    useState("");
-
-  const [selectedQuestions,
-    setSelectedQuestions] =
-    useState<string[]>([]);
+  const [templateName, setTemplateName] = useState("");
+  const [category, setCategory] = useState("");
+  const [categories, setCategories] = useState<any[]>([]);
+  const [selectedQuestions,setSelectedQuestions] = useState<string[]>([]);
 
   const questions = [
     {
@@ -62,6 +57,28 @@ export default function CreateTemplate({
       ]);
     }
   };
+
+  useEffect(() => {
+  loadCategories();
+}, []);
+
+  //=========================== LOAD CATEGORIES ============================
+
+    const loadCategories = async () => {
+      try {
+        const response = await fetch(
+          "/api/get-categories"
+        );
+    
+        const data = await response.json();
+    
+        if (data.success) {
+          setCategories(data.categories);
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    };
 
   return (
     <div
@@ -173,10 +190,17 @@ export default function CreateTemplate({
                 <option value="">
                   Select Question Category
                 </option>
-
-                <option>
-                  Marketing & Sales
-                </option>
+                  
+                  {categories.map(
+                    (category) => (
+                      <option
+                        key={category.id}
+                        value={category.id}
+                      >
+                        {category.categoryName}
+                      </option>
+                    )
+                  )}
               </select>
             </div>
 
