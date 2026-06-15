@@ -79,11 +79,7 @@ function App() {
 
        <Route
           path="/questions-assignment/:subCategoryId"
-          element={
-            <QuestionAssignment
-              user={currentUser}
-            />
-          }
+          element={<QuestionAssignment user={currentUser}/>}
         />
 
        <Route
@@ -103,11 +99,7 @@ function App() {
 
        <Route
           path="/create-template"
-          element={
-            <CreateTemplate
-              user={user}
-            />
-          }
+          element={<CreateTemplate user={currentUser} />}
         />
 
        <Route
