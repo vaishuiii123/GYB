@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
+import { useNavigate } from "react-router-dom";
 
 type PageProps = {
   user?: any;
@@ -9,6 +10,8 @@ type PageProps = {
 export default function CreateTemplate({
   user,
 }: PageProps) {
+
+  const navigate = useNavigate();
 
   const [templateName, setTemplateName] =
     useState("");
@@ -84,6 +87,48 @@ export default function CreateTemplate({
             marginTop: "70px",
           }}
         >
+
+          {/* Breadcrumb */}
+
+          <div
+            style={{
+              color: "#6b7280",
+              fontSize: "14px",
+              marginBottom: "15px",
+            }}
+          >
+            <span
+              style={{
+                cursor: "pointer",
+                color: "#2563eb",
+              }}
+              onClick={() =>
+                navigate("/template")
+              }
+            >
+              Template
+            </span>
+
+            {" > "}
+
+            <span>
+              Create Template
+            </span>
+          </div>
+
+          {/* Page Title */}
+
+          <h1
+            style={{
+              fontSize: "32px",
+              fontWeight: "700",
+              marginBottom: "20px",
+              color: "#111827",
+            }}
+          >
+            Create Template
+          </h1>
+
           <div style={card}>
 
             <div
@@ -104,6 +149,9 @@ export default function CreateTemplate({
                 style={{
                   flex: 1,
                   padding: "12px",
+                  border:
+                    "1px solid #d1d5db",
+                  borderRadius: "8px",
                 }}
               />
 
@@ -117,6 +165,9 @@ export default function CreateTemplate({
                 style={{
                   flex: 1,
                   padding: "12px",
+                  border:
+                    "1px solid #d1d5db",
+                  borderRadius: "8px",
                 }}
               >
                 <option value="">
@@ -138,10 +189,21 @@ export default function CreateTemplate({
             >
               <thead>
                 <tr>
-                  <th>Sr No.</th>
-                  <th>Question</th>
-                  <th>Question Category</th>
-                  <th></th>
+                  <th style={thStyle}>
+                    Sr No.
+                  </th>
+
+                  <th style={thStyle}>
+                    Question
+                  </th>
+
+                  <th style={thStyle}>
+                    Question Category
+                  </th>
+
+                  <th style={thStyle}>
+                    Select
+                  </th>
                 </tr>
               </thead>
 
@@ -156,23 +218,23 @@ export default function CreateTemplate({
                         question.id
                       }
                     >
-                      <td>
+                      <td style={tdStyle}>
                         {index + 1}
                       </td>
 
-                      <td>
+                      <td style={tdStyle}>
                         {
                           question.question
                         }
                       </td>
 
-                      <td>
+                      <td style={tdStyle}>
                         {
                           question.category
                         }
                       </td>
 
-                      <td>
+                      <td style={tdStyle}>
                         <input
                           type="checkbox"
                           checked={selectedQuestions.includes(
@@ -210,3 +272,34 @@ export default function CreateTemplate({
     </div>
   );
 }
+
+// =================== STYLES ===================
+
+const card = {
+  background: "white",
+  padding: "24px",
+  borderRadius: "18px",
+  boxShadow:
+    "0 4px 20px rgba(0,0,0,0.06)",
+};
+
+const saveBtn = {
+  background: "#3b5bcc",
+  color: "white",
+  padding: "10px 16px",
+  border: "none",
+  borderRadius: "8px",
+  cursor: "pointer",
+};
+
+const thStyle = {
+  textAlign: "left" as const,
+  padding: "14px",
+  borderBottom: "1px solid #e5e7eb",
+  fontWeight: "600",
+};
+
+const tdStyle = {
+  padding: "14px",
+  borderBottom: "1px solid #f3f4f6",
+};
