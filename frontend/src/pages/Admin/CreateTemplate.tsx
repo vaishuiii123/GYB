@@ -71,6 +71,8 @@ export default function CreateTemplate({
         );
     
         const data = await response.json();
+            console.log("Categories API Response:", data);
+
     
         if (data.success) {
           setCategories(data.categories);
