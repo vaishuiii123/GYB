@@ -10,14 +10,9 @@ type PageProps = {
 
 export default function Organization({ user }: PageProps) {
 
-  const [assignedParticipants, setAssignedParticipants] = useState<any[]>([]);
+  const [showEditModal, setShowEditModal] =
+  useState(false);
 
-  const [allParticipants, setAllParticipants] = useState<any[]>([]);
-  
-  const [selectedParticipantIds, setSelectedParticipantIds] = useState<string[]>([]);
-  
-  const [showEditModal, setShowEditModal] = useState(false);
-  
  const [editOrganization, setEditOrganization] =
   useState<any>({
     id: "",
@@ -34,10 +29,9 @@ export default function Organization({ user }: PageProps) {
   
 
 
-useEffect(() => {
+ useEffect(() => {
   if (user?.email) {
     fetchOrganizations();
-    loadParticipants();
   }
 }, [user]);
 
@@ -79,6 +73,10 @@ useEffect(() => {
   );
 };
 
+  const handleView = (org: any) => {
+  setSelectedOrganization(org);
+  setShowViewModal(true);
+};
 
   //============================= UPDATE ORGANIZATION =====================================
 
@@ -198,131 +196,6 @@ useEffect(() => {
       console.error(err);
       alert("Failed to create organization");
     }
-  };
-
-  //===================================== VIEW ORGANIZATION AND ADD PARTICIPANTS INTO ORGANIZATION ======================================================
-
-  const handleView = async (
-  organization: any
-) => {
-    console.log(organization);
-
-  setSelectedOrganization(
-    organization
-  );
-
-  setShowViewModal(true);
-
-  const response =
-    await fetch(
-      `/api/get-organization-participants?organizationId=${organization.id}`
-    );
-
-  const data =
-    await response.json();
-
-  if (data.success) {
-
-    setAssignedParticipants(
-      data.participants
-    );
-
-    setSelectedParticipantIds(
-      data.participants.map(
-        (p: any) => p.id
-      )
-    );
-  }
-};
-
-// ====================================================== LOAD PARTICIPANTS ===========================================================================
-
-  const loadParticipants =
-  async () => {
-
-    const response =
-      await fetch(
-        "/api/get-participants"
-      );
-
-    const data =
-      await response.json();
-
-    if (data.success) {
-
-      setAllParticipants(
-        data.participants
-      );
-    }
-  };
-
-  const toggleParticipant =
-  (
-    participantId: string
-  ) => {
-
-    if (
-      selectedParticipantIds.includes(
-        participantId
-      )
-    ) {
-
-      setSelectedParticipantIds(
-        selectedParticipantIds.filter(
-          (id) =>
-            id !==
-            participantId
-        )
-      );
-
-    } else {
-
-      setSelectedParticipantIds([
-        ...selectedParticipantIds,
-        participantId,
-      ]);
-    }
-  };
-
-  const saveParticipants =
-  async () => {
-
-    const response =
-      await fetch(
-        "/api/save-organization-participants",
-        {
-          method: "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-
-          body: JSON.stringify({
-            organizationId:
-              selectedOrganization.id,
-
-            participantIds:
-              selectedParticipantIds,
-
-            createdBy:
-              user?.username,
-          }),
-        }
-      );
-
-    const data =
-      await response.json();
-
-         if (data.success) {
-            alert(
-              "Participants Assigned Successfully"
-            );
-          
-            await handleView(
-              selectedOrganization
-            );
-          }
   };
 
    return (
@@ -452,6 +325,7 @@ useEffect(() => {
                     setOrgForm({ ...orgForm, email: e.target.value })
                   }
                 />
+
                 <div style={{ display: "flex", gap: "10px", justifyContent: "end" }}>
                   <button onClick={() => setShowOrgModal(false)}>Cancel</button>
                   <button onClick={handleCreateOrganization} style={saveBtn}>
@@ -463,17 +337,9 @@ useEffect(() => {
             </div>
           )}    
 
-
-          {showViewModal && (
+            {showViewModal && (
             <div style={modalOverlay}>
-              <div
-                style={{
-                  ...modalBox,
-                  width: "700px",
-                  maxHeight: "80vh",
-                  overflowY: "auto",
-                }}
-              >
+              <div style={modalBox}>
                 <h2>Organization Details</h2>
           
                 <p>
@@ -491,155 +357,19 @@ useEffect(() => {
                   {selectedOrganization?.email}
                 </p>
           
-                <h3
-                  style={{
-                    marginTop: "20px",
-                    marginBottom: "10px",
-                  }}
-                >
-                  Assigned Participants
-                </h3>
-          
-                <table
-                  style={{
-                    width: "100%",
-                    borderCollapse: "collapse",
-                  }}
-                >
-                  <thead>
-                    <tr>
-                      <th style={tableHeader}>
-                        Name
-                      </th>
-          
-                      <th style={tableHeader}>
-                        Email
-                      </th>
-                    </tr>
-                  </thead>
-          
-                  <tbody>
-                    {assignedParticipants.length >
-                    0 ? (
-                      assignedParticipants.map(
-                        (participant) => (
-                          <tr
-                            key={participant.id}
-                          >
-                            <td style={tableCell}>
-                              {
-                                participant.firstName
-                              }{" "}
-                              {
-                                participant.lastName
-                              }
-                            </td>
-          
-                            <td style={tableCell}>
-                              {
-                                participant.email
-                              }
-                            </td>
-                          </tr>
-                        )
-                      )
-                    ) : (
-                      <tr>
-                        <td
-                          colSpan={2}
-                          style={{
-                            textAlign:
-                              "center",
-                            padding: "12px",
-                          }}
-                        >
-                          No Participants Assigned
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-          
-                <h3
-                  style={{
-                    marginTop: "25px",
-                    marginBottom: "10px",
-                  }}
-                >
-                  Add Participants
-                </h3>
-          
-                <div
-                  style={{
-                    maxHeight: "250px",
-                    overflowY: "auto",
-                    border:
-                      "1px solid #e5e7eb",
-                    borderRadius: "8px",
-                    padding: "12px",
-                  }}
-                >
-                  {allParticipants.map(
-                    (participant) => (
-                      <label
-                        key={participant.id}
-                        style={{
-                          display: "block",
-                          marginBottom:
-                            "10px",
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedParticipantIds.includes(
-                            participant.id
-                          )}
-                          onChange={() =>
-                            toggleParticipant(
-                              participant.id
-                            )
-                          }
-                        />
-          
-                        {" "}
-          
-                        {
-                          participant.firstName
-                        }{" "}
-                        {
-                          participant.lastName
-                        }
-                      </label>
-                    )
-                  )}
-                </div>
-          
                 <div
                   style={{
                     display: "flex",
-                    justifyContent:
-                      "flex-end",
-                    gap: "10px",
-                    marginTop: "20px",
+                    justifyContent: "end",
                   }}
                 >
                   <button
+                    style={saveBtn}
                     onClick={() =>
-                      setShowViewModal(
-                        false
-                      )
+                      setShowViewModal(false)
                     }
                   >
                     Close
-                  </button>
-          
-                  <button
-                    style={saveBtn}
-                    onClick={
-                      saveParticipants
-                    }
-                  >
-                    Save Participants
                   </button>
                 </div>
               </div>
