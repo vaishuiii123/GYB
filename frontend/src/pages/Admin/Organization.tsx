@@ -316,20 +316,18 @@ useEffect(() => {
     const data =
       await response.json();
 
-    if (data.success) {
-
-      alert(
-        "Participants Assigned Successfully"
-      );
-
-      setShowParticipantModal(
-        false
-      );
-
-      handleView(
-        selectedOrganization
-      );
-    }
+            if (data.success) {
+        
+          alert(
+            "Participants Assigned Successfully"
+          );
+        
+          setShowParticipantModal(false);
+        
+          handleView(selectedOrganization);
+        
+          setShowViewModal(true);
+        }
   };
 
    return (
@@ -591,15 +589,15 @@ useEffect(() => {
                     <b>Email:</b>{" "}
                     {selectedOrganization?.email}
                   </p>
-            
-                  <button
-                    style={saveBtn}
-                    onClick={() =>
-                      setShowParticipantModal(true)
-                    }
-                  >
-                    Add Participant
-                  </button>
+            <button
+              style={saveBtn}
+              onClick={() => {
+                setShowViewModal(false);
+                setShowParticipantModal(true);
+              }}
+            >
+              Add Participant
+            </button>
             
                   <h3
                     style={{
