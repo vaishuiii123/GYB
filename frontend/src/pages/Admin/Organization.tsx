@@ -12,11 +12,9 @@ export default function Organization({ user }: PageProps) {
 
   const [assignedParticipants, setAssignedParticipants] = useState<any[]>([]);
 
-const [allParticipants, setAllParticipants] = useState<any[]>([]);
-
-const [showParticipantModal, setShowParticipantModal] = useState(false);
-
-const [selectedParticipantIds, setSelectedParticipantIds] = useState<string[]>([]);
+  const [allParticipants, setAllParticipants] = useState<any[]>([]);
+  
+  const [selectedParticipantIds, setSelectedParticipantIds] = useState<string[]>([]);
   
   const [showEditModal, setShowEditModal] = useState(false);
   
@@ -316,18 +314,15 @@ useEffect(() => {
     const data =
       await response.json();
 
-            if (data.success) {
-        
-          alert(
-            "Participants Assigned Successfully"
-          );
-        
-          setShowParticipantModal(false);
-        
-          handleView(selectedOrganization);
-        
-          setShowViewModal(true);
-        }
+         if (data.success) {
+            alert(
+              "Participants Assigned Successfully"
+            );
+          
+            await handleView(
+              selectedOrganization
+            );
+          }
   };
 
    return (
@@ -468,226 +463,188 @@ useEffect(() => {
             </div>
           )}    
 
-          {showParticipantModal && (
-              <div style={modalOverlay}>
-                <div
+
+          {showViewModal && (
+            <div style={modalOverlay}>
+              <div
+                style={{
+                  ...modalBox,
+                  width: "700px",
+                  maxHeight: "80vh",
+                  overflowY: "auto",
+                }}
+              >
+                <h2>Organization Details</h2>
+          
+                <p>
+                  <b>Organization Name:</b>{" "}
+                  {selectedOrganization?.organizationName}
+                </p>
+          
+                <p>
+                  <b>Contact Person:</b>{" "}
+                  {selectedOrganization?.contactPerson}
+                </p>
+          
+                <p>
+                  <b>Email:</b>{" "}
+                  {selectedOrganization?.email}
+                </p>
+          
+                <h3
                   style={{
-                    ...modalBox,
-                    width: "500px",
-                    maxHeight: "600px",
-                    overflowY: "auto",
+                    marginTop: "20px",
+                    marginBottom: "10px",
                   }}
                 >
-                  <h2>
-                    Add Participants
-                  </h2>
-            
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "10px",
-                    }}
-                  >
-                    {allParticipants.length > 0 ? (
-                      allParticipants.map(
+                  Assigned Participants
+                </h3>
+          
+                <table
+                  style={{
+                    width: "100%",
+                    borderCollapse: "collapse",
+                  }}
+                >
+                  <thead>
+                    <tr>
+                      <th style={tableHeader}>
+                        Name
+                      </th>
+          
+                      <th style={tableHeader}>
+                        Email
+                      </th>
+                    </tr>
+                  </thead>
+          
+                  <tbody>
+                    {assignedParticipants.length >
+                    0 ? (
+                      assignedParticipants.map(
                         (participant) => (
-                          <label
+                          <tr
                             key={participant.id}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "10px",
-                              padding: "8px",
-                              borderBottom:
-                                "1px solid #f1f1f1",
-                            }}
                           >
-                            <input
-                              type="checkbox"
-                              checked={selectedParticipantIds.includes(
-                                participant.id
-                              )}
-                              onChange={() =>
-                                toggleParticipant(
-                                  participant.id
-                                )
-                              }
-                            />
-            
-                            <span>
+                            <td style={tableCell}>
                               {
                                 participant.firstName
                               }{" "}
                               {
                                 participant.lastName
                               }
-                            </span>
-                          </label>
+                            </td>
+          
+                            <td style={tableCell}>
+                              {
+                                participant.email
+                              }
+                            </td>
+                          </tr>
                         )
                       )
                     ) : (
-                      <p>
-                        No Participants Found
-                      </p>
+                      <tr>
+                        <td
+                          colSpan={2}
+                          style={{
+                            textAlign:
+                              "center",
+                            padding: "12px",
+                          }}
+                        >
+                          No Participants Assigned
+                        </td>
+                      </tr>
                     )}
-                  </div>
-            
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent:
-                        "flex-end",
-                      gap: "10px",
-                      marginTop: "20px",
-                    }}
-                  >
-                    <button
-                      onClick={() =>
-                        setShowParticipantModal(
-                          false
-                        )
-                      }
-                    >
-                      Cancel
-                    </button>
-            
-                    <button
-                      style={saveBtn}
-                      onClick={
-                        saveParticipants
-                      }
-                    >
-                      Save
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {showViewModal && (
-              <div style={modalOverlay}>
-                <div
+                  </tbody>
+                </table>
+          
+                <h3
                   style={{
-                    ...modalBox,
-                    width: "700px",
+                    marginTop: "25px",
+                    marginBottom: "10px",
                   }}
                 >
-                  <h2>Organization Details</h2>
-            
-                  <p>
-                    <b>Organization Name:</b>{" "}
-                    {selectedOrganization?.organizationName}
-                  </p>
-            
-                  <p>
-                    <b>Contact Person:</b>{" "}
-                    {selectedOrganization?.contactPerson}
-                  </p>
-            
-                  <p>
-                    <b>Email:</b>{" "}
-                    {selectedOrganization?.email}
-                  </p>
-            <button
-              style={saveBtn}
-              onClick={() => {
-                setShowViewModal(false);
-                setShowParticipantModal(true);
-              }}
-            >
-              Add Participant
-            </button>
-            
-                  <h3
-                    style={{
-                      marginTop: "20px",
-                      marginBottom: "10px",
-                    }}
+                  Add Participants
+                </h3>
+          
+                <div
+                  style={{
+                    maxHeight: "250px",
+                    overflowY: "auto",
+                    border:
+                      "1px solid #e5e7eb",
+                    borderRadius: "8px",
+                    padding: "12px",
+                  }}
+                >
+                  {allParticipants.map(
+                    (participant) => (
+                      <label
+                        key={participant.id}
+                        style={{
+                          display: "block",
+                          marginBottom:
+                            "10px",
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedParticipantIds.includes(
+                            participant.id
+                          )}
+                          onChange={() =>
+                            toggleParticipant(
+                              participant.id
+                            )
+                          }
+                        />
+          
+                        {" "}
+          
+                        {
+                          participant.firstName
+                        }{" "}
+                        {
+                          participant.lastName
+                        }
+                      </label>
+                    )
+                  )}
+                </div>
+          
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent:
+                      "flex-end",
+                    gap: "10px",
+                    marginTop: "20px",
+                  }}
+                >
+                  <button
+                    onClick={() =>
+                      setShowViewModal(
+                        false
+                      )
+                    }
                   >
-                    Assigned Participants
-                  </h3>
-            
-                  <table
-                    style={{
-                      width: "100%",
-                      borderCollapse: "collapse",
-                    }}
+                    Close
+                  </button>
+          
+                  <button
+                    style={saveBtn}
+                    onClick={
+                      saveParticipants
+                    }
                   >
-                    <thead>
-                      <tr>
-                        <th style={tableHeader}>
-                          Name
-                        </th>
-            
-                        <th style={tableHeader}>
-                          Email
-                        </th>
-                      </tr>
-                    </thead>
-            
-                    <tbody>
-                      {assignedParticipants.length >
-                      0 ? (
-                        assignedParticipants.map(
-                          (participant) => (
-                            <tr
-                              key={
-                                participant.id
-                              }
-                            >
-                              <td style={tableCell}>
-                                {
-                                  participant.firstName
-                                }{" "}
-                                {
-                                  participant.lastName
-                                }
-                              </td>
-            
-                              <td style={tableCell}>
-                                {
-                                  participant.email
-                                }
-                              </td>
-                            </tr>
-                          )
-                        )
-                      ) : (
-                        <tr>
-                          <td
-                            colSpan={2}
-                            style={{
-                              padding: "12px",
-                              textAlign: "center",
-                            }}
-                          >
-                            No Participants Assigned
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-            
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "flex-end",
-                      marginTop: "20px",
-                    }}
-                  >
-                    <button
-                      style={saveBtn}
-                      onClick={() =>
-                        setShowViewModal(false)
-                      }
-                    >
-                      Close
-                    </button>
-                  </div>
+                    Save Participants
+                  </button>
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
             {showEditModal && (
               <div style={modalOverlay}>
