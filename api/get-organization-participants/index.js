@@ -48,22 +48,26 @@ module.exports = async function (context, req) {
         )
       ) {
 
-        participants.push({
-          id:
-            participant.rowKey,
-
-          firstName:
-            participant.FirstName || "",
-
-          middleName:
-            participant.MiddleName || "",
-
-          lastName:
-            participant.LastName || "",
-
-          email:
-            participant.Email || "",
-        });
+       participants.push({
+          participants.push({
+            id:
+              participant.rowKey,
+          
+            firstName:
+              participant.First_Name || "",
+          
+            middleName:
+              participant.Middle_Name || "",
+          
+            lastName:
+              participant.Last_Name || "",
+          
+            email:
+              participant.Email || "",
+          
+            phoneNo:
+              participant.Phone_No || "",
+          });
       }
     }
 
