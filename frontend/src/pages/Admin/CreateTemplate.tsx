@@ -62,8 +62,8 @@ useEffect(() => {
   const loadCategories = async () => {
   try {
     const response = await fetch(
-      "/api/get-categories"
-    );
+        "/api/get-all-categories"
+      );
 
     const data = await response.json();
 
