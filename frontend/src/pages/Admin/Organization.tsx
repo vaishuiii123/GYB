@@ -83,59 +83,60 @@ export default function Organization({ user }: PageProps) {
   );
 };
 
+  //=========================== DELETE PARTICIPANT ========================================
+
   const deleteParticipant = async (
   participantId: string
 ) => {
 
-  if (
-    !window.confirm(
-      "Remove this participant from the organization?"
-    )
-  ) {
-    return;
-  }
-
-  try {
-
-    const response =
-      await fetch(
-        "/api/delete-organization-participants",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-          body: JSON.stringify({
-            organizationId:
-              selectedOrganization.id,
-            participantId,
-          }),
-        }
-      );
-
-    const data =
-      await response.json();
-
-    if (data.success) {
-
-      await loadAssignedParticipants(
-        selectedOrganization.id
-      );
-
-      setSuccessMessage(
-        "Participant removed successfully"
-      );
-
-      setTimeout(() => {
-        setSuccessMessage("");
-      }, 3000);
+  await fetch(
+    "/api/delete-organization-participants",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type":
+          "application/json",
+      },
+      body: JSON.stringify({
+        organizationId:
+          selectedOrganization.id,
+        participantIds: [
+          participantId,
+        ],
+      }),
     }
+  );
 
-  } catch (error) {
+  loadAssignedParticipants(
+    selectedOrganization.id
+  );
+};
 
-    console.error(error);
-  }
+  const deleteSelectedParticipants =
+  async () => {
+
+    await fetch(
+      "/api/delete-organization-participants",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+        body: JSON.stringify({
+          organizationId:
+            selectedOrganization.id,
+          participantIds:
+            selectedAssignedParticipants,
+        }),
+      }
+    );
+
+    setSelectedAssignedParticipants([]);
+
+    loadAssignedParticipants(
+      selectedOrganization.id
+    );
 };
 
 
