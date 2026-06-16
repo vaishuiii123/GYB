@@ -16,6 +16,7 @@ import QuestionAssignment from "./pages/Admin/QuestionAssignment";
 import Questions from "./pages/Admin/Questions";
 import Template from "./pages/Admin/Template";
 import CreateTemplate from "./pages/Admin/CreateTemplate";
+import TemplateDetails from "./pages/Admin/TemplateDetails";
 import Workshop from "./pages/Admin/Workshop";
 import UserLogin from "./pages/User/UserLogin";
 import UserDashboard from "./pages/User/UserDashboard";
@@ -100,6 +101,11 @@ function App() {
        <Route
           path="/create-template"
           element={<CreateTemplate user={currentUser} />}
+        />
+
+       <Route
+          path="/template-details/:id"
+          element={<TemplateDetails />}
         />
 
        <Route
