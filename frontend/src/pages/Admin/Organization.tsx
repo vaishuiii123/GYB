@@ -673,244 +673,348 @@ export default function Organization({ user }: PageProps) {
               <div style={modalOverlay}>
                 <div
                   style={{
-                    ...modalBox,
-                    width: "700px",
+                    background: "#fff",
+                    borderRadius: "20px",
+                    width: "900px",
+                    maxHeight: "85vh",
+                    overflow: "hidden",
+                    display: "flex",
+                    flexDirection: "column",
+                    boxShadow:
+                      "0 20px 40px rgba(0,0,0,0.15)",
                   }}
                 >
-                  <h2>
-                    Organization Details
-                  </h2>
+                  {/* Scrollable Content */}
                   <div
                     style={{
-                      background: "#fff",
-                      border: "1px solid #e5e7eb",
-                      borderRadius: "14px",
-                      padding: "24px",
-                      marginBottom: "20px",
+                      padding: "30px",
+                      overflowY: "auto",
+                      flex: 1,
                     }}
                   >
+                    <h2
+                      style={{
+                        marginTop: 0,
+                        marginBottom: "20px",
+                        fontSize: "32px",
+                        fontWeight: "700",
+                      }}
+                    >
+                      Organization Details
+                    </h2>
+            
+                    {/* Organization Card */}
                     <div
                       style={{
-                        paddingBottom: "18px",
-                        borderBottom: "1px solid #e5e7eb",
-                        marginBottom: "18px",
+                        background: "#fff",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "14px",
+                        padding: "24px",
+                        marginBottom: "20px",
                       }}
                     >
                       <div
                         style={{
-                          fontSize: "14px",
-                          color: "#6b7280",
+                          paddingBottom: "18px",
+                          borderBottom: "1px solid #e5e7eb",
+                          marginBottom: "18px",
                         }}
                       >
-                        Organization Name
+                        <div
+                          style={{
+                            fontSize: "13px",
+                            color: "#6b7280",
+                            marginBottom: "5px",
+                          }}
+                        >
+                          Organization Name
+                        </div>
+            
+                        <div
+                          style={{
+                            fontSize: "18px",
+                            fontWeight: "600",
+                          }}
+                        >
+                          {selectedOrganization?.organizationName}
+                        </div>
                       </div>
-                  
+            
                       <div
                         style={{
-                          fontSize: "28px",
+                          paddingBottom: "18px",
+                          borderBottom: "1px solid #e5e7eb",
+                          marginBottom: "18px",
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: "13px",
+                            color: "#6b7280",
+                            marginBottom: "5px",
+                          }}
+                        >
+                          Contact Person
+                        </div>
+            
+                        <div
+                          style={{
+                            fontSize: "16px",
+                            fontWeight: "500",
+                          }}
+                        >
+                          {selectedOrganization?.contactPerson}
+                        </div>
+                      </div>
+            
+                      <div>
+                        <div
+                          style={{
+                            fontSize: "13px",
+                            color: "#6b7280",
+                            marginBottom: "5px",
+                          }}
+                        >
+                          Email
+                        </div>
+            
+                        <div
+                          style={{
+                            fontSize: "15px",
+                          }}
+                        >
+                          {selectedOrganization?.email}
+                        </div>
+                      </div>
+                    </div>
+            
+                    {/* Add Participants */}
+                    <button
+                      style={{
+                        ...saveBtn,
+                        marginBottom: "25px",
+                      }}
+                      onClick={() => {
+                        setShowViewModal(false);
+                        setShowParticipantModal(true);
+                      }}
+                    >
+                      Add Participants
+                    </button>
+            
+                    {/* Assigned Participants Card */}
+                    <div
+                      style={{
+                        background: "#fff",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "14px",
+                        padding: "20px",
+                      }}
+                    >
+                      <h3
+                        style={{
+                          marginTop: 0,
+                          marginBottom: "20px",
+                          fontSize: "22px",
                           fontWeight: "600",
                         }}
                       >
-                        {selectedOrganization?.organizationName}
-                      </div>
-                    </div>
-                  
-                    <div
-                      style={{
-                        paddingBottom: "18px",
-                        borderBottom: "1px solid #e5e7eb",
-                        marginBottom: "18px",
-                      }}
-                    >
+                        Assigned Participants (
+                        {assignedParticipants.length})
+                      </h3>
+            
                       <div
                         style={{
-                          fontSize: "14px",
-                          color: "#6b7280",
+                          maxHeight: "250px",
+                          overflowY: "auto",
+                          border: "1px solid #e5e7eb",
+                          borderRadius: "10px",
                         }}
                       >
-                        Contact Person
-                      </div>
-                  
-                      <div
-                        style={{
-                          fontSize: "24px",
-                          fontWeight: "500",
-                        }}
-                      >
-                        {selectedOrganization?.contactPerson}
-                      </div>
-                    </div>
-                  
-                    <div>
-                      <div
-                        style={{
-                          fontSize: "14px",
-                          color: "#6b7280",
-                        }}
-                      >
-                        Email
-                      </div>
-                  
-                      <div
-                        style={{
-                          fontSize: "22px",
-                        }}
-                      >
-                        {selectedOrganization?.email}
+                        <table
+                          style={{
+                            width: "100%",
+                            borderCollapse: "collapse",
+                          }}
+                        >
+                          <thead>
+                            <tr>
+                              <th style={tableHeader}>
+                                <input
+                                  type="checkbox"
+                                  checked={
+                                    assignedParticipants.length > 0 &&
+                                    selectedAssignedParticipants.length ===
+                                      assignedParticipants.length
+                                  }
+                                  onChange={
+                                    toggleSelectAllParticipants
+                                  }
+                                />
+                              </th>
+            
+                              <th style={tableHeader}>
+                                Name
+                              </th>
+            
+                              <th style={tableHeader}>
+                                Email
+                              </th>
+            
+                              <th style={tableHeader}>
+                                Action
+                              </th>
+                            </tr>
+                          </thead>
+            
+                          <tbody>
+                            {assignedParticipants.length >
+                            0 ? (
+                              assignedParticipants.map(
+                                (participant) => (
+                                  <tr
+                                    key={participant.id}
+                                  >
+                                    <td
+                                      style={tableCell}
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={selectedAssignedParticipants.includes(
+                                          participant.id
+                                        )}
+                                        onChange={() =>
+                                          toggleAssignedParticipant(
+                                            participant.id
+                                          )
+                                        }
+                                      />
+                                    </td>
+            
+                                    <td
+                                      style={tableCell}
+                                    >
+                                      {
+                                        participant.firstName
+                                      }{" "}
+                                      {
+                                        participant.lastName
+                                      }
+                                    </td>
+            
+                                    <td
+                                      style={tableCell}
+                                    >
+                                      {
+                                        participant.email
+                                      }
+                                    </td>
+            
+                                    <td
+                                      style={tableCell}
+                                    >
+                                      <button
+                                        onClick={() =>
+                                          deleteParticipant(
+                                            participant.id
+                                          )
+                                        }
+                                        style={{
+                                          background:
+                                            "#dc2626",
+                                          color:
+                                            "white",
+                                          border:
+                                            "none",
+                                          padding:
+                                            "8px 12px",
+                                          borderRadius:
+                                            "6px",
+                                          cursor:
+                                            "pointer",
+                                        }}
+                                      >
+                                        Delete
+                                      </button>
+                                    </td>
+                                  </tr>
+                                )
+                              )
+                            ) : (
+                              <tr>
+                                <td
+                                  colSpan={4}
+                                  style={{
+                                    textAlign:
+                                      "center",
+                                    padding:
+                                      "20px",
+                                  }}
+                                >
+                                  No Participants Assigned
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
                       </div>
                     </div>
                   </div>
-              <button
-                style={saveBtn}
-                onClick={() => {
-                  setShowViewModal(false);
-                  setShowParticipantModal(true);
-                }}
-              >
-                Add Participants
-              </button>
             
-                  <h3>
-                    Assigned Participants
-                  </h3>
-                  <table
-                    style={{
-                      width: "100%",
-                      borderCollapse: "collapse",
-                    }}
-                  >
-                    <thead>
-                      <tr>
-                        <th style={tableHeader}>
-                          <input
-                            type="checkbox"
-                            checked={
-                              assignedParticipants.length > 0 &&
-                              selectedAssignedParticipants.length ===
-                                assignedParticipants.length
-                            }
-                            onChange={toggleSelectAllParticipants}
-                          />
-                        </th>
-                  
-                        <th style={tableHeader}>Name</th>
-                  
-                        <th style={tableHeader}>Email</th>
-                  
-                        <th style={tableHeader}>Action</th>
-                      </tr>
-                    </thead>
-                  
-                    <tbody>
-                      {assignedParticipants?.length > 0 ? (
-                        assignedParticipants.map((participant) => (
-                          <tr key={participant.id}>
-                            <td style={tableCell}>
-                              <input
-                                type="checkbox"
-                                checked={selectedAssignedParticipants.includes(
-                                  participant.id
-                                )}
-                                onChange={() =>
-                                  toggleAssignedParticipant(
-                                    participant.id
-                                  )
-                                }
-                              />
-                            </td>
-                  
-                            <td style={tableCell}>
-                              {participant.firstName}{" "}
-                              {participant.lastName}
-                            </td>
-                  
-                            <td style={tableCell}>
-                              {participant.email}
-                            </td>
-                  
-                            <td style={tableCell}>
-                              <button
-                                onClick={() =>
-                                  deleteParticipant(
-                                    participant.id
-                                  )
-                                }
-                                style={{
-                                  background: "#dc2626",
-                                  color: "white",
-                                  border: "none",
-                                  padding: "8px 12px",
-                                  borderRadius: "6px",
-                                  cursor: "pointer",
-                                }}
-                              >
-                                Delete
-                              </button>
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td
-                            colSpan={4}
-                            style={{
-                              textAlign: "center",
-                              padding: "20px",
-                            }}
-                          >
-                            No Participants Assigned
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                  
+                  {/* Footer */}
                   <div
                     style={{
-                      marginTop: "15px",
-                      textAlign: "right",
+                      borderTop:
+                        "1px solid #e5e7eb",
+                      padding: "20px 30px",
+                      display: "flex",
+                      justifyContent:
+                        "flex-end",
+                      gap: "15px",
                     }}
                   >
                     <button
-                      onClick={deleteSelectedParticipants}
+                      style={{
+                        padding: "10px 20px",
+                        border:
+                          "1px solid #d1d5db",
+                        background: "#fff",
+                        borderRadius: "8px",
+                        cursor: "pointer",
+                      }}
+                      onClick={() =>
+                        setShowViewModal(false)
+                      }
+                    >
+                      Close
+                    </button>
+            
+                    <button
+                      onClick={
+                        deleteSelectedParticipants
+                      }
                       disabled={
-                        selectedAssignedParticipants.length === 0
+                        selectedAssignedParticipants.length ===
+                        0
                       }
                       style={{
                         background:
-                          selectedAssignedParticipants.length === 0
+                          selectedAssignedParticipants.length ===
+                          0
                             ? "#9ca3af"
                             : "#dc2626",
                         color: "white",
                         border: "none",
-                        padding: "10px 16px",
+                        padding: "10px 18px",
                         borderRadius: "8px",
                         cursor:
-                          selectedAssignedParticipants.length === 0
+                          selectedAssignedParticipants.length ===
+                          0
                             ? "not-allowed"
                             : "pointer",
                       }}
                     >
                       Delete Selected
-                    </button>
-                  </div>
-            
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent:
-                        "end",
-                    }}
-                  >
-                    <button
-                      style={saveBtn}
-                      onClick={() =>
-                        setShowViewModal(
-                          false
-                        )
-                      }
-                    >
-                      Close
                     </button>
                   </div>
                 </div>
