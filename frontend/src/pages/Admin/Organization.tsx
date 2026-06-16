@@ -83,6 +83,61 @@ export default function Organization({ user }: PageProps) {
   );
 };
 
+  const deleteParticipant = async (
+  participantId: string
+) => {
+
+  if (
+    !window.confirm(
+      "Remove this participant from the organization?"
+    )
+  ) {
+    return;
+  }
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/delete-organization-participants",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify({
+            organizationId:
+              selectedOrganization.id,
+            participantId,
+          }),
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (data.success) {
+
+      await loadAssignedParticipants(
+        selectedOrganization.id
+      );
+
+      setSuccessMessage(
+        "Participant removed successfully"
+      );
+
+      setTimeout(() => {
+        setSuccessMessage("");
+      }, 3000);
+    }
+
+  } catch (error) {
+
+    console.error(error);
+  }
+};
+
 
 
   const toggleAssignedParticipant = (
