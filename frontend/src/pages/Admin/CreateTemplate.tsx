@@ -45,9 +45,9 @@ export default function CreateTemplate({
     }
   };
 
-
-  
-  
+useEffect(() => {
+  loadCategories();
+}, []);  
 
   const loadCategories = async () => {
   try {
