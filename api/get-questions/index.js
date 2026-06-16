@@ -1,7 +1,11 @@
 const { TableClient } = require("@azure/data-tables");
 
 module.exports = async function (context, req) {
+
   try {
+
+    const categoryId =
+      req.query.categoryId;
 
     const client =
       TableClient.fromConnectionString(
@@ -15,27 +19,38 @@ module.exports = async function (context, req) {
       const entity of client.listEntities()
     ) {
 
-     questions.push({
-      id: entity.rowKey,
-    
-      question:
-        entity.Question || "",
-    
-      answerType:
-        entity.AnswerType || "",
-    
-      options:
-        entity.Options || "",
-    
-      required:
-        entity.Required || false,
-    
-      weightage:
-        entity.Weightage || 0,
-    
-      color:
-        entity.Color || "#2563eb",
-    });
+      if (
+        categoryId &&
+        entity.CategoryId !== categoryId
+      ) {
+        continue;
+      }
+
+      questions.push({
+        id:
+          entity.rowKey,
+
+        question:
+          entity.Question || "",
+
+        answerType:
+          entity.AnswerType || "",
+
+        options:
+          entity.Options || "",
+
+        required:
+          entity.Required || false,
+
+        weightage:
+          entity.Weightage || 0,
+
+        color:
+          entity.Color || "#2563eb",
+
+        categoryId:
+          entity.CategoryId || "",
+      });
     }
 
     context.res = {
