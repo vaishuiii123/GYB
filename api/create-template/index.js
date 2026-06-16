@@ -1,14 +1,16 @@
-const { TableClient } = require("@azure/data-tables");
+const {
+  TableClient,
+  TableServiceClient,
+} = require("@azure/data-tables");
 
 module.exports = async function (context, req) {
   try {
-
     const {
       templateName,
       categoryId,
       categoryName,
       questionIds,
-      createdBy
+      createdBy,
     } = req.body;
 
     if (
@@ -21,10 +23,33 @@ module.exports = async function (context, req) {
         status: 400,
         body: {
           success: false,
-          message: "Required fields missing"
-        }
+          message: "Required fields missing",
+        },
       };
       return;
+    }
+
+    // Create table if it doesn't exist
+    const serviceClient =
+      TableServiceClient.fromConnectionString(
+        process.env.AZURE_STORAGE_CONNECTION_STRING
+      );
+
+    try {
+      await serviceClient.createTable(
+        "Template"
+      );
+
+      context.log(
+        "Template table created"
+      );
+
+    } catch (err) {
+
+      // Ignore if already exists
+      context.log(
+        "Template table already exists"
+      );
     }
 
     const client =
@@ -38,6 +63,7 @@ module.exports = async function (context, req) {
 
     const entity = {
       partitionKey: "Template",
+
       rowKey: templateId,
 
       TemplateName:
@@ -56,29 +82,35 @@ module.exports = async function (context, req) {
         createdBy || "",
 
       CreatedDate:
-        new Date().toISOString()
+        new Date().toISOString(),
     };
 
-    await client.createEntity(entity);
+    await client.createEntity(
+      entity
+    );
 
     context.res = {
       status: 200,
       body: {
         success: true,
-        templateId
-      }
+        templateId,
+      },
     };
 
   } catch (error) {
 
-    context.log(error);
+    context.log(
+      "Create Template Error:",
+      error
+    );
 
     context.res = {
       status: 500,
       body: {
         success: false,
-        error: error.message
-      }
+        error:
+          error.message,
+      },
     };
   }
 };
