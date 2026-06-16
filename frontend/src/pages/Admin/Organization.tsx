@@ -86,60 +86,135 @@ export default function Organization({ user }: PageProps) {
   //=========================== DELETE PARTICIPANT ========================================
 
   const deleteParticipant = async (
-  participantId: string
-) => {
-
-  await fetch(
-    "/api/delete-organization-participants",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type":
-          "application/json",
-      },
-      body: JSON.stringify({
-        organizationId:
-          selectedOrganization.id,
-        participantIds: [
-          participantId,
-        ],
-      }),
-    }
-  );
-
-  loadAssignedParticipants(
-    selectedOrganization.id
-  );
-};
-
-  const deleteSelectedParticipants =
-  async () => {
-
-    await fetch(
-      "/api/delete-organization-participants",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type":
-            "application/json",
-        },
-        body: JSON.stringify({
-          organizationId:
-            selectedOrganization.id,
-          participantIds:
-            selectedAssignedParticipants,
-        }),
-      }
-    );
-
-    setSelectedAssignedParticipants([]);
-
-    loadAssignedParticipants(
-      selectedOrganization.id
-    );
-};
-
-
+        participantId: string
+      ) => {
+      
+        const confirmDelete =
+          window.confirm(
+            "Remove this participant from the organization?"
+          );
+      
+        if (!confirmDelete) {
+          return;
+        }
+      
+        try {
+      
+          const response =
+            await fetch(
+              "/api/delete-organization-participants",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type":
+                    "application/json",
+                },
+                body: JSON.stringify({
+                  organizationId:
+                    selectedOrganization.id,
+                  participantIds: [
+                    participantId,
+                  ],
+                }),
+              }
+            );
+      
+          const data =
+            await response.json();
+      
+          if (data.success) {
+      
+            await loadAssignedParticipants(
+              selectedOrganization.id
+            );
+      
+            setSuccessMessage(
+              "Participant removed successfully"
+            );
+      
+            setTimeout(() => {
+              setSuccessMessage("");
+            }, 3000);
+          }
+      
+        } catch (error) {
+      
+          console.error(error);
+      
+          alert(
+            "Failed to remove participant"
+          );
+        }
+      };
+      
+      const deleteSelectedParticipants =
+        async () => {
+      
+          if (
+            selectedAssignedParticipants.length === 0
+          ) {
+            return;
+          }
+      
+          const confirmDelete =
+            window.confirm(
+              `Remove ${selectedAssignedParticipants.length} participant(s) from this organization?`
+            );
+      
+          if (!confirmDelete) {
+            return;
+          }
+      
+          try {
+      
+            const response =
+              await fetch(
+                "/api/delete-organization-participants",
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type":
+                      "application/json",
+                  },
+                  body: JSON.stringify({
+                    organizationId:
+                      selectedOrganization.id,
+      
+                    participantIds:
+                      selectedAssignedParticipants,
+                  }),
+                }
+              );
+      
+            const data =
+              await response.json();
+      
+            if (data.success) {
+      
+              setSelectedAssignedParticipants([]);
+      
+              await loadAssignedParticipants(
+                selectedOrganization.id
+              );
+      
+              setSuccessMessage(
+                `${data.deletedCount || selectedAssignedParticipants.length} participant(s) removed successfully`
+              );
+      
+              setTimeout(() => {
+                setSuccessMessage("");
+              }, 3000);
+            }
+      
+          } catch (error) {
+      
+            console.error(error);
+      
+            alert(
+              "Failed to remove participants"
+            );
+          }
+        };
 
   const toggleAssignedParticipant = (
   participantId: string
@@ -178,40 +253,21 @@ export default function Organization({ user }: PageProps) {
 };
 
   const handleView = async (
-      org: any
-    ) => {
-    
-      setSelectedOrganization(organization);
-    
-      setShowViewModal(true);
-    
-      await loadParticipants(organization.id);
-    
-      try {
-        const response =
-          await fetch(
-            `/api/get-organization-participants?organizationId=${org.id}`
-          );
-    
-        const data =
-          await response.json();
-    
-        if (data.success) {
-          setAssignedParticipants(
-            data.participants
-          );
-    
-          setSelectedParticipantIds(
-            data.participants.map(
-              (p: any) => p.id
-            )
-          );
-        }
-        console.log(assignedParticipants);
-      } catch (error) {
-        console.error(error);
-      }
-    };
+  org: any
+) => {
+
+  setSelectedOrganization(org);
+
+  await loadParticipants();
+
+  await loadAssignedParticipants(
+    org.id
+  );
+
+  setShowViewModal(true);
+
+  setSelectedAssignedParticipants([]);
+};
 
   //======================================== SAVE PARTICIPANTS ====================================================================
 
@@ -247,10 +303,14 @@ export default function Organization({ user }: PageProps) {
           const data =
             await response.json();
     
-        if (data.success) {
-            alert(
-              "Participants Assigned Successfully"
-            );
+      if (data.success) {
+        setSuccessMessage(
+          "Participants Assigned Successfully"
+        );
+      
+        setTimeout(() => {
+          setSuccessMessage("");
+        }, 3000);
           
             setShowParticipantModal(false);
           
