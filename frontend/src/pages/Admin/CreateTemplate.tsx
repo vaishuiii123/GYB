@@ -44,17 +44,7 @@ export default function CreateTemplate({
       ]);
     }
   };
-useEffect(() => {
-  loadCategories();
-}, []);
-  
-useEffect(() => {
-  if (category) {
-    loadQuestions(category);
-  } else {
-    setQuestions([]);
-  }
-}, [category]);
+
 
   
   
@@ -68,38 +58,20 @@ useEffect(() => {
     const data = await response.json();
 
     if (data.success) {
-      setCategories(data.categories);
-    }
+        setCategories(
+          data.categories
+        );
+      
+       console.log(
+  "Categories with Questions:",
+  data.categories
+);
+      }
   } catch (error) {
     console.error(error);
   }
 };
   
-  //=========================== LOAD CATEGORIES ============================
-
-  const loadQuestions = async (
-      categoryId: string
-    ) => {
-      try {
-    
-        const response =
-          await fetch(
-            `/api/get-questions?categoryId=${categoryId}`
-          );
-    
-        const data =
-          await response.json();
-    
-        if (data.success) {
-          setQuestions(
-            data.questions
-          );
-        }
-    
-      } catch (error) {
-        console.error(error);
-      }
-    };
 
   //================================= SAVE TEMPLATE =============================================
 
@@ -271,11 +243,24 @@ useEffect(() => {
              <select
                 value={category}
                 onChange={(e) => {
+                  const selectedCategoryId =
+                    e.target.value;
                   setCategory(
-                    e.target.value
+                    selectedCategoryId
                   );
-              
+                
                   setSelectedQuestions([]);
+                
+                  const selectedCategory =
+                    categories.find(
+                      (c) =>
+                        c.id ===
+                        selectedCategoryId
+                    );
+                
+                  setQuestions(
+                    selectedCategory?.questions || []
+                  );
                 }}
                 style={{
                   flex: 1,
@@ -353,9 +338,12 @@ useEffect(() => {
                           {question.question}
                         </td>
               
-                        <td style={tdStyle}>
+                       <td style={tdStyle}>
                           {
-                            question.categoryName
+                            categories.find(
+                              (c) =>
+                                c.id === category
+                            )?.categoryName
                           }
                         </td>
               
