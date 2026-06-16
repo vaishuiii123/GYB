@@ -547,8 +547,8 @@ export default function Organization({ user }: PageProps) {
                     assignedParticipants.map((participant) => (
                       <tr key={participant.id}>
                         <td style={tableCell}>
-                          {participant.FirstName} {participant.LastName}
-                        </td>       
+                          {participant.firstName} {participant.lastName}
+                        </td>
                         <td style={tableCell}>
                           {participant.email}
                         </td>
