@@ -56,6 +56,63 @@ export default function Template({ user }: PageProps) {
         );
       }
     };
+
+  //=========================================== DELETE TEMPLATE ==============================================================
+
+  const deleteTemplate = async (
+      templateId: string
+    ) => {
+    
+      const confirmed =
+        window.confirm(
+          "Are you sure you want to delete this template?"
+        );
+    
+      if (!confirmed) return;
+    
+      try {
+    
+        const response =
+          await fetch(
+            `/api/delete-template?id=${templateId}`,
+            {
+              method: "DELETE",
+            }
+          );
+    
+        const data =
+          await response.json();
+    
+        if (data.success) {
+    
+          setTemplates(
+            templates.filter(
+              (item) =>
+                item.id !== templateId
+            )
+          );
+    
+          alert(
+            "Template deleted successfully"
+          );
+    
+        } else {
+    
+          alert(
+            data.error ||
+            "Failed to delete template"
+          );
+        }
+    
+      } catch (error) {
+    
+        console.error(error);
+    
+        alert(
+          "Error deleting template"
+        );
+      }
+    };
       
   const addQuestionField = () => {
     setQuestions([...questions, ""]);
@@ -192,7 +249,7 @@ export default function Template({ user }: PageProps) {
                         {template.questionCount}
                       </td>
             
-                      <td style={tdStyle}>
+                     <td style={tdStyle}>
                         <button
                           style={viewBtn}
                           onClick={() =>
@@ -202,6 +259,15 @@ export default function Template({ user }: PageProps) {
                           }
                         >
                           View
+                        </button>
+                      
+                        <button
+                          style={deleteBtn}
+                          onClick={() =>
+                            deleteTemplate(template.id)
+                          }
+                        >
+                          Delete
                         </button>
                       </td>
             
@@ -428,6 +494,15 @@ const viewBtn: any = {
   borderRadius: "6px",
   cursor: "pointer",
   marginRight: "8px",
+};
+
+const deleteBtn: any = {
+  background: "#dc2626",
+  color: "white",
+  border: "none",
+  padding: "8px 12px",
+  borderRadius: "6px",
+  cursor: "pointer",
 };
 
 const card: any = {
