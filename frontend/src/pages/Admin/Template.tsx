@@ -195,6 +195,11 @@ export default function Template({ user }: PageProps) {
                       <td style={tdStyle}>
                         <button
                           style={viewBtn}
+                          onClick={() =>
+                            navigate(
+                              `/template-details/${template.id}`
+                            )
+                          }
                         >
                           View
                         </button>
