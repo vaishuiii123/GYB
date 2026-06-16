@@ -10,6 +10,8 @@ type PageProps = {
 
 export default function Organization({ user }: PageProps) {
 
+  const [selectedAssignedParticipants, setSelectedAssignedParticipants,] = useState<string[]>([]);
+  
   const [showEditModal, setShowEditModal] = useState(false);
 
  const [editOrganization, setEditOrganization] =
@@ -48,6 +50,7 @@ export default function Organization({ user }: PageProps) {
   setShowEditModal(true);
 };
 
+  
   const handleDelete = async (org: any) => {
 
   const response = await fetch(
@@ -78,6 +81,44 @@ export default function Organization({ user }: PageProps) {
   alert(
     "Delete API will be called here."
   );
+};
+
+
+
+  const toggleAssignedParticipant = (
+  participantId: string
+) => {
+  if (
+    selectedAssignedParticipants.includes(
+      participantId
+    )
+  ) {
+    setSelectedAssignedParticipants(
+      selectedAssignedParticipants.filter(
+        (id) => id !== participantId
+      )
+    );
+  } else {
+    setSelectedAssignedParticipants([
+      ...selectedAssignedParticipants,
+      participantId,
+    ]);
+  }
+};
+
+  const toggleSelectAllParticipants = () => {
+  if (
+    selectedAssignedParticipants.length ===
+    assignedParticipants.length
+  ) {
+    setSelectedAssignedParticipants([]);
+  } else {
+    setSelectedAssignedParticipants(
+      assignedParticipants.map(
+        (participant) => participant.id
+      )
+    );
+  }
 };
 
   const handleView = async (
@@ -530,46 +571,127 @@ export default function Organization({ user }: PageProps) {
                   <h3>
                     Assigned Participants
                   </h3>
-            <table
-                style={{
-                  width: "100%",
-                  borderCollapse: "collapse",
-                }}
-              >
-                <thead>
-                  <tr>
-                    <th style={tableHeader}>Name</th>
-                    <th style={tableHeader}>Email</th>
-                  </tr>
-                </thead>
-              
-                <tbody>
-                  {assignedParticipants?.length > 0 ? (
-                    assignedParticipants.map((participant) => (
-                      <tr key={participant.id}>
-                        <td style={tableCell}>
-                          {participant.firstName} {participant.lastName}
-                        </td>
-                        <td style={tableCell}>
-                          {participant.email}
-                        </td>
+                  <table
+                    style={{
+                      width: "100%",
+                      borderCollapse: "collapse",
+                    }}
+                  >
+                    <thead>
+                      <tr>
+                        <th style={tableHeader}>
+                          <input
+                            type="checkbox"
+                            checked={
+                              assignedParticipants.length > 0 &&
+                              selectedAssignedParticipants.length ===
+                                assignedParticipants.length
+                            }
+                            onChange={toggleSelectAllParticipants}
+                          />
+                        </th>
+                  
+                        <th style={tableHeader}>Name</th>
+                  
+                        <th style={tableHeader}>Email</th>
+                  
+                        <th style={tableHeader}>Action</th>
                       </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td
-                        colSpan={2}
-                        style={{
-                          textAlign: "center",
-                          padding: "20px",
-                        }}
-                      >
-                        No Participants Assigned
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                    </thead>
+                  
+                    <tbody>
+                      {assignedParticipants?.length > 0 ? (
+                        assignedParticipants.map((participant) => (
+                          <tr key={participant.id}>
+                            <td style={tableCell}>
+                              <input
+                                type="checkbox"
+                                checked={selectedAssignedParticipants.includes(
+                                  participant.id
+                                )}
+                                onChange={() =>
+                                  toggleAssignedParticipant(
+                                    participant.id
+                                  )
+                                }
+                              />
+                            </td>
+                  
+                            <td style={tableCell}>
+                              {participant.firstName}{" "}
+                              {participant.lastName}
+                            </td>
+                  
+                            <td style={tableCell}>
+                              {participant.email}
+                            </td>
+                  
+                            <td style={tableCell}>
+                              <button
+                                onClick={() =>
+                                  deleteParticipant(
+                                    participant.id
+                                  )
+                                }
+                                style={{
+                                  background: "#dc2626",
+                                  color: "white",
+                                  border: "none",
+                                  padding: "8px 12px",
+                                  borderRadius: "6px",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                Delete
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td
+                            colSpan={4}
+                            style={{
+                              textAlign: "center",
+                              padding: "20px",
+                            }}
+                          >
+                            No Participants Assigned
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                  
+                  <div
+                    style={{
+                      marginTop: "15px",
+                      textAlign: "right",
+                    }}
+                  >
+                    <button
+                      onClick={deleteSelectedParticipants}
+                      disabled={
+                        selectedAssignedParticipants.length === 0
+                      }
+                      style={{
+                        background:
+                          selectedAssignedParticipants.length === 0
+                            ? "#9ca3af"
+                            : "#dc2626",
+                        color: "white",
+                        border: "none",
+                        padding: "10px 16px",
+                        borderRadius: "8px",
+                        cursor:
+                          selectedAssignedParticipants.length === 0
+                            ? "not-allowed"
+                            : "pointer",
+                      }}
+                    >
+                      Delete Selected
+                    </button>
+                  </div>
             
                   <div
                     style={{
