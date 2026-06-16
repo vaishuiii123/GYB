@@ -6,12 +6,13 @@ module.exports = async function (context, req) {
 
     const {
       organizationId,
-      participantId,
+      participantIds,
     } = req.body;
 
     if (
       !organizationId ||
-      !participantId
+      !participantIds ||
+      !Array.isArray(participantIds)
     ) {
 
       context.res = {
@@ -19,7 +20,7 @@ module.exports = async function (context, req) {
         body: {
           success: false,
           message:
-            "organizationId and participantId are required",
+            "organizationId and participantIds are required",
         },
       };
 
@@ -32,7 +33,7 @@ module.exports = async function (context, req) {
         "OrganizationParticipants"
       );
 
-    let entityToDelete = null;
+    let deletedCount = 0;
 
     for await (
       const entity of client.listEntities()
@@ -41,40 +42,27 @@ module.exports = async function (context, req) {
       if (
         entity.OrganizationId ===
           organizationId &&
-        entity.ParticipantId ===
-          participantId
+        participantIds.includes(
+          entity.ParticipantId
+        )
       ) {
 
-        entityToDelete = entity;
-        break;
+        await client.deleteEntity(
+          entity.partitionKey,
+          entity.rowKey
+        );
+
+        deletedCount++;
       }
     }
-
-    if (!entityToDelete) {
-
-      context.res = {
-        status: 404,
-        body: {
-          success: false,
-          message:
-            "Participant assignment not found",
-        },
-      };
-
-      return;
-    }
-
-    await client.deleteEntity(
-      entityToDelete.partitionKey,
-      entityToDelete.rowKey
-    );
 
     context.res = {
       status: 200,
       body: {
         success: true,
+        deletedCount,
         message:
-          "Participant removed successfully",
+          "Participant(s) removed successfully",
       },
     };
 
