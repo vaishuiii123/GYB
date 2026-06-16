@@ -1,15 +1,17 @@
 const { TableClient } = require("@azure/data-tables");
 
 module.exports = async function (context, req) {
+
   try {
 
- const {
+    const {
       question,
       answerType,
       color,
       required,
       weightage,
       options,
+      categoryId,
       createdBy,
     } = req.body;
 
@@ -36,9 +38,12 @@ module.exports = async function (context, req) {
       Date.now().toString();
 
     await client.createEntity({
-      partitionKey: "Question",
 
-      rowKey: questionId,
+      partitionKey:
+        "Question",
+
+      rowKey:
+        questionId,
 
       Question:
         question,
@@ -48,15 +53,18 @@ module.exports = async function (context, req) {
 
       Required:
         required,
-      
+
       Weightage:
         weightage,
 
       Color:
         color,
 
-      Options: 
+      Options:
         options || "",
+
+      CategoryId:
+        categoryId || "",
 
       Created_By:
         createdBy || "",
@@ -66,7 +74,7 @@ module.exports = async function (context, req) {
       status: 200,
       body: {
         success: true,
-        questionId: questionId,
+        questionId,
       },
     };
 
@@ -78,7 +86,8 @@ module.exports = async function (context, req) {
       status: 500,
       body: {
         success: false,
-        error: error.message,
+        error:
+          error.message,
       },
     };
   }
