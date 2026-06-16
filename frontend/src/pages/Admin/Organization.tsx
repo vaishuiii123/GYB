@@ -180,13 +180,12 @@ export default function Organization({ user }: PageProps) {
   const handleView = async (
       org: any
     ) => {
-
-      
-      setSelectedOrganization(org);
+    
+      setSelectedOrganization(organization);
     
       setShowViewModal(true);
     
-      await loadParticipants();
+      await loadParticipants(organization.id);
     
       try {
         const response =
@@ -439,6 +438,34 @@ export default function Organization({ user }: PageProps) {
         );
       }
     } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const loadAssignedParticipants =
+  async (
+    organizationId: string
+  ) => {
+
+    try {
+
+      const response =
+        await fetch(
+          `/api/get-organization-participants?organizationId=${organizationId}`
+        );
+
+      const data =
+        await response.json();
+
+      if (data.success) {
+
+        setAssignedParticipants(
+          data.participants
+        );
+      }
+
+    } catch (error) {
+
       console.error(error);
     }
   };
