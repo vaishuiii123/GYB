@@ -4,34 +4,81 @@ module.exports = async function (context, req) {
 
   try {
 
-    const client =
+    const categoryClient =
       TableClient.fromConnectionString(
         process.env.AZURE_STORAGE_CONNECTION_STRING,
         "QuestionnaireCategory"
       );
 
+    const questionClient =
+      TableClient.fromConnectionString(
+        process.env.AZURE_STORAGE_CONNECTION_STRING,
+        "QuestionnaireQuestions"
+      );
+
     const categories = [];
 
+    // Load Categories
     for await (
-      const entity of client.listEntities()
+      const category of categoryClient.listEntities()
     ) {
 
-      // Ignore old test records
       if (
-        entity.partitionKey === "Category"
+        category.partitionKey ===
+        "Category"
       ) {
 
+        const questions = [];
+
+        // Load Questions for this category
+        for await (
+          const question of questionClient.listEntities()
+        ) {
+
+          if (
+            question.CategoryId ===
+            category.rowKey
+          ) {
+
+            questions.push({
+              id:
+                question.rowKey,
+
+              question:
+                question.Question || "",
+
+              answerType:
+                question.AnswerType || "",
+
+              options:
+                question.Options || "",
+
+              required:
+                question.Required || false,
+
+              weightage:
+                question.Weightage || 0,
+
+              color:
+                question.Color || "#2563eb",
+            });
+          }
+        }
+
         categories.push({
-          id: entity.rowKey,
+          id:
+            category.rowKey,
 
           categoryName:
-            entity.CategoryName || "",
+            category.CategoryName || "",
 
           masterCategoryId:
-            entity.MasterCategoryId || "",
+            category.MasterCategoryId || "",
 
           createdBy:
-            entity.Created_By || "",
+            category.Created_By || "",
+
+          questions,
         });
       }
     }
