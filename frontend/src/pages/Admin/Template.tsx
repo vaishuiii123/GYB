@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import { useNavigate } from "react-router-dom";
@@ -19,6 +19,44 @@ export default function Template({ user }: PageProps) {
 
   const [questions, setQuestions] = useState<string[]>([""]);
 
+  useEffect(() => {
+    loadTemplates();
+  }, []);
+
+    const loadTemplates = async () => {
+      try {
+    
+        const response = await fetch(
+          "/api/get-templates"
+        );
+    
+        const data =
+          await response.json();
+    
+        if (data.success) {
+    
+          const formatted =
+            data.templates.map(
+              (item: any) => ({
+                id: item.id,
+                name: item.templateName,
+                questionCount:
+                  item.questionCount
+              })
+            );
+    
+          setTemplates(formatted);
+        }
+    
+      } catch (error) {
+    
+        console.error(
+          "Error loading templates",
+          error
+        );
+      }
+    };
+      
   const addQuestionField = () => {
     setQuestions([...questions, ""]);
   };
@@ -118,68 +156,56 @@ export default function Template({ user }: PageProps) {
               </tr>
             </thead>
 
-            <tbody>
-              {templates.map(
-                (
-                  template,
-                  index
-                ) => (
-                  <tr
-                    key={template.id}
+           <tbody>
+              {templates.length === 0 ? (
+            
+                <tr>
+                  <td
+                    colSpan={4}
+                    style={{
+                      textAlign: "center",
+                      padding: "30px"
+                    }}
                   >
-                    <td style={tdStyle}>
-                      {index + 1}
-                    </td>
-
-                    <td style={tdStyle}>
-                      {template.name}
-                    </td>
-
-                    <td style={tdStyle}>
-                      {
-                        template.questions
-                          .length
-                      }
-                    </td>
-
-                    <td style={tdStyle}>
-                      <button
-                        style={viewBtn}
-                      >
-                        View
-                      </button>
-
-                      <button
-                        onClick={() =>
-                          setTemplates(
-                            templates.filter(
-                              (t) =>
-                                t.id !==
-                                template.id
-                            )
-                          )
-                        }
-                        style={{
-                          background:
-                            "#dc2626",
-                          color:
-                            "white",
-                          border:
-                            "none",
-                          padding:
-                            "8px 12px",
-                          borderRadius:
-                            "6px",
-                          cursor:
-                            "pointer",
-                        }}
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
+                    No templates found
+                  </td>
+                </tr>
+            
+              ) : (
+            
+                templates.map(
+                  (
+                    template,
+                    index
+                  ) => (
+                    <tr key={template.id}>
+            
+                      <td style={tdStyle}>
+                        {index + 1}
+                      </td>
+            
+                      <td style={tdStyle}>
+                        {template.name}
+                      </td>
+            
+                      <td style={tdStyle}>
+                        {template.questionCount}
+                      </td>
+            
+                      <td style={tdStyle}>
+                        <button
+                          style={viewBtn}
+                        >
+                          View
+                        </button>
+                      </td>
+            
+                    </tr>
+                  )
                 )
+            
               )}
+            
             </tbody>
           </table>
         </div>
