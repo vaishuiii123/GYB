@@ -18,22 +18,9 @@ export default function CreateTemplate({
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedQuestions,setSelectedQuestions] = useState<string[]>([]);
 
-  const questions = [
-    {
-      id: "1",
-      question:
-        "Focus on most profitable products & services",
-      category:
-        "Marketing & Sales",
-    },
-    {
-      id: "2",
-      question:
-        "Focus on most effective sales & advertising channels",
-      category:
-        "Marketing & Sales",
-    },
-  ];
+  const [questions, setQuestions] = useState<any[]>([]);
+
+  const [saving, setSaving] = useState(false);
 
   const toggleQuestion = (
     id: string
@@ -57,28 +44,134 @@ export default function CreateTemplate({
       ]);
     }
   };
-
-  useEffect(() => {
+useEffect(() => {
   loadCategories();
 }, []);
+  
+useEffect(() => {
+  if (category) {
+    loadQuestions(category);
+  } else {
+    setQuestions([]);
+  }
+}, [category]);
 
+  
+  
+
+  const loadCategories = async () => {
+  try {
+    const response = await fetch(
+      "/api/get-categories"
+    );
+
+    const data = await response.json();
+
+    if (data.success) {
+      setCategories(data.categories);
+    }
+  } catch (error) {
+    console.error(error);
+  }
+};
+  
   //=========================== LOAD CATEGORIES ============================
 
-    const loadCategories = async () => {
+  const loadQuestions = async (
+      categoryId: string
+    ) => {
       try {
-        const response = await fetch(
-          "/api/get-categories"
-        );
     
-        const data = await response.json();
-            console.log("Categories API Response:", data);
-
+        const response =
+          await fetch(
+            `/api/get-questions?categoryId=${categoryId}`
+          );
+    
+        const data =
+          await response.json();
     
         if (data.success) {
-          setCategories(data.categories);
+          setQuestions(
+            data.questions
+          );
         }
+    
       } catch (error) {
         console.error(error);
+      }
+    };
+
+  //================================= SAVE TEMPLATE =============================================
+
+  const saveTemplate = async () => {
+      if (!templateName.trim()) {
+        alert("Template Name is required");
+        return;
+      }
+    
+      if (!category) {
+        alert("Select Category");
+        return;
+      }
+    
+      if (selectedQuestions.length === 0) {
+        alert("Select at least one question");
+        return;
+      }
+    
+      try {
+    
+        setSaving(true);
+    
+        const response = await fetch(
+          "/api/create-template",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify({
+              templateName,
+              categoryId: category,
+              questionIds:
+                selectedQuestions,
+              createdBy:
+                user?.email,
+            }),
+          }
+        );
+    
+        const data =
+          await response.json();
+    
+        if (data.success) {
+    
+          alert(
+            "Template Created Successfully"
+          );
+    
+          navigate("/template");
+    
+        } else {
+    
+          alert(
+            data.message ||
+            "Failed to create template"
+          );
+        }
+    
+      } catch (error) {
+    
+        console.error(error);
+    
+        alert(
+          "Error creating template"
+        );
+    
+      } finally {
+    
+        setSaving(false);
       }
     };
 
@@ -158,7 +251,7 @@ export default function CreateTemplate({
               }}
             >
               <input
-                placeholder="Template Name"
+                placeholder="Enter Template Name"
                 value={templateName}
                 onChange={(e) =>
                   setTemplateName(
@@ -171,16 +264,19 @@ export default function CreateTemplate({
                   border:
                     "1px solid #d1d5db",
                   borderRadius: "8px",
+                  fontSize: "15px"
                 }}
               />
 
-              <select
+             <select
                 value={category}
-                onChange={(e) =>
+                onChange={(e) => {
                   setCategory(
                     e.target.value
-                  )
-                }
+                  );
+              
+                  setSelectedQuestions([]);
+                }}
                 style={{
                   flex: 1,
                   padding: "12px",
@@ -205,7 +301,14 @@ export default function CreateTemplate({
                   )}
               </select>
             </div>
-
+          <div
+            style={{
+              border:
+                "1px solid #e5e7eb",
+              borderRadius: "10px",
+              overflow: "hidden",
+            }}
+          >
             <table
               style={{
                 width: "100%",
@@ -233,51 +336,65 @@ export default function CreateTemplate({
                 </tr>
               </thead>
 
-              <tbody>
-                {questions.map(
-                  (
-                    question,
-                    index
-                  ) => (
-                    <tr
-                      key={
-                        question.id
-                      }
-                    >
-                      <td style={tdStyle}>
-                        {index + 1}
-                      </td>
-
-                      <td style={tdStyle}>
-                        {
-                          question.question
-                        }
-                      </td>
-
-                      <td style={tdStyle}>
-                        {
-                          question.category
-                        }
-                      </td>
-
-                      <td style={tdStyle}>
-                        <input
-                          type="checkbox"
-                          checked={selectedQuestions.includes(
-                            question.id
-                          )}
-                          onChange={() =>
-                            toggleQuestion(
-                              question.id
-                            )
+             <tbody>
+                {questions.length > 0 ? (
+              
+                  questions.map(
+                    (
+                      question,
+                      index
+                    ) => (
+                      <tr key={question.id}>
+                        <td style={tdStyle}>
+                          {index + 1}
+                        </td>
+              
+                        <td style={tdStyle}>
+                          {question.question}
+                        </td>
+              
+                        <td style={tdStyle}>
+                          {
+                            question.categoryName
                           }
-                        />
-                      </td>
-                    </tr>
+                        </td>
+              
+                        <td style={tdStyle}>
+                          <input
+                            type="checkbox"
+                            checked={selectedQuestions.includes(
+                              question.id
+                            )}
+                            onChange={() =>
+                              toggleQuestion(
+                                question.id
+                              )
+                            }
+                          />
+                        </td>
+                      </tr>
+                    )
                   )
+              
+                ) : (
+              
+                  <tr>
+                    <td
+                      colSpan={4}
+                      style={{
+                        textAlign: "center",
+                        padding: "20px",
+                        color: "#6b7280",
+                      }}
+                    >
+                      Select a category to load questions
+                    </td>
+                  </tr>
+              
                 )}
               </tbody>
             </table>
+          </div>  
 
             <div
               style={{
@@ -285,10 +402,17 @@ export default function CreateTemplate({
                 textAlign: "right",
               }}
             >
-              <button
-                style={saveBtn}
+             <button
+                style={{
+                  ...saveBtn,
+                  opacity: saving ? 0.7 : 1,
+                }}
+                onClick={saveTemplate}
+                disabled={saving}
               >
-                Save Template
+                {saving
+                  ? "Saving..."
+                  : "Save Template"}
               </button>
             </div>
 
