@@ -680,27 +680,86 @@ export default function Organization({ user }: PageProps) {
                   <h2>
                     Organization Details
                   </h2>
-            
-                  <p>
-                    <b>Organization Name:</b>{" "}
-                    {
-                      selectedOrganization?.organizationName
-                    }
-                  </p>
-            
-                  <p>
-                    <b>Contact Person:</b>{" "}
-                    {
-                      selectedOrganization?.contactPerson
-                    }
-                  </p>
-            
-                  <p>
-                    <b>Email:</b>{" "}
-                    {
-                      selectedOrganization?.email
-                    }
-                    </p>
+                  <div
+                    style={{
+                      background: "#fff",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "14px",
+                      padding: "24px",
+                      marginBottom: "20px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        paddingBottom: "18px",
+                        borderBottom: "1px solid #e5e7eb",
+                        marginBottom: "18px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: "14px",
+                          color: "#6b7280",
+                        }}
+                      >
+                        Organization Name
+                      </div>
+                  
+                      <div
+                        style={{
+                          fontSize: "28px",
+                          fontWeight: "600",
+                        }}
+                      >
+                        {selectedOrganization?.organizationName}
+                      </div>
+                    </div>
+                  
+                    <div
+                      style={{
+                        paddingBottom: "18px",
+                        borderBottom: "1px solid #e5e7eb",
+                        marginBottom: "18px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: "14px",
+                          color: "#6b7280",
+                        }}
+                      >
+                        Contact Person
+                      </div>
+                  
+                      <div
+                        style={{
+                          fontSize: "24px",
+                          fontWeight: "500",
+                        }}
+                      >
+                        {selectedOrganization?.contactPerson}
+                      </div>
+                    </div>
+                  
+                    <div>
+                      <div
+                        style={{
+                          fontSize: "14px",
+                          color: "#6b7280",
+                        }}
+                      >
+                        Email
+                      </div>
+                  
+                      <div
+                        style={{
+                          fontSize: "22px",
+                        }}
+                      >
+                        {selectedOrganization?.email}
+                      </div>
+                    </div>
+                  </div>
               <button
                 style={saveBtn}
                 onClick={() => {
@@ -859,116 +918,241 @@ export default function Organization({ user }: PageProps) {
             )}
 
           {showParticipantModal && (
-            <div style={modalOverlay}>
-              <div
-                style={{
-                  ...modalBox,
-                  width: "600px",
-                }}
-              >
-                <h2>
-                  Add Participants
-                </h2>
-          
-                <input
-                  type="text"
-                  placeholder="Search Participant"
-                  value={searchText}
-                  onChange={(e) =>
-                    setSearchText(
-                      e.target.value
-                    )
-                  }
-                  style={inputStyle}
-                />
-          
+              <div style={modalOverlay}>
                 <div
                   style={{
-                    maxHeight: "300px",
+                    background: "#fff",
+                    borderRadius: "20px",
+                    width: "850px",
+                    maxHeight: "85vh",
                     overflowY: "auto",
+                    padding: "30px",
+                    boxShadow:
+                      "0 20px 40px rgba(0,0,0,0.15)",
                   }}
                 >
-                  {allParticipants
-                    .filter(
-                      (
-                        participant
-                      ) =>
+                  {/* Header */}
+            
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent:
+                        "space-between",
+                      alignItems: "center",
+                      marginBottom: "25px",
+                    }}
+                  >
+                    <h2
+                      style={{
+                        margin: 0,
+                        fontSize: "32px",
+                        fontWeight: "700",
+                        color: "#1f2937",
+                      }}
+                    >
+                      Add Participants
+                    </h2>
+            
+                    <button
+                      onClick={() =>
+                        setShowParticipantModal(
+                          false
+                        )
+                      }
+                      style={{
+                        border: "none",
+                        background: "transparent",
+                        fontSize: "28px",
+                        cursor: "pointer",
+                        color: "#6b7280",
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+            
+                  {/* Search */}
+            
+                  <input
+                    type="text"
+                    placeholder="Search Participant"
+                    value={searchText}
+                    onChange={(e) =>
+                      setSearchText(
+                        e.target.value
+                      )
+                    }
+                    style={{
+                      width: "100%",
+                      padding: "14px",
+                      border:
+                        "1px solid #d1d5db",
+                      borderRadius: "10px",
+                      marginBottom: "20px",
+                      fontSize: "15px",
+                      boxSizing: "border-box",
+                    }}
+                  />
+            
+                  {/* Participants List */}
+            
+                  <div
+                    style={{
+                      border:
+                        "1px solid #e5e7eb",
+                      borderRadius: "12px",
+                      padding: "15px",
+                      maxHeight: "350px",
+                      overflowY: "auto",
+                      marginBottom: "25px",
+                    }}
+                  >
+                    {allParticipants
+                      .filter(
+                        (participant) =>
+                          `${participant.firstName} ${participant.lastName}`
+                            .toLowerCase()
+                            .includes(
+                              searchText.toLowerCase()
+                            )
+                      )
+                      .map(
+                        (participant) => (
+                          <label
+                            key={
+                              participant.id
+                            }
+                            style={{
+                              display:
+                                "flex",
+                              alignItems:
+                                "center",
+                              gap: "12px",
+                              padding:
+                                "12px 8px",
+                              borderBottom:
+                                "1px solid #f3f4f6",
+                              cursor:
+                                "pointer",
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedParticipantIds.includes(
+                                participant.id
+                              )}
+                              onChange={() =>
+                                toggleParticipant(
+                                  participant.id
+                                )
+                              }
+                            />
+            
+                            <span
+                              style={{
+                                fontSize:
+                                  "16px",
+                                color:
+                                  "#111827",
+                              }}
+                            >
+                              {
+                                participant.firstName
+                              }{" "}
+                              {
+                                participant.lastName
+                              }
+                            </span>
+                          </label>
+                        )
+                      )}
+            
+                    {allParticipants.filter(
+                      (participant) =>
                         `${participant.firstName} ${participant.lastName}`
                           .toLowerCase()
                           .includes(
                             searchText.toLowerCase()
                           )
-                    )
-                    .map(
-                      (
-                        participant
-                      ) => (
-                        <label
-                          key={
-                            participant.id
-                          }
-                          style={{
-                            display:
-                              "block",
-                            marginBottom:
-                              "10px",
-                          }}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selectedParticipantIds.includes(
-                              participant.id
-                            )}
-                            onChange={() =>
-                              toggleParticipant(
-                                participant.id
-                              )
-                            }
-                          />
-          
-                          {" "}
-          
-                          {
-                            participant.firstName
-                          }{" "}
-                          {
-                            participant.lastName
-                          }
-                        </label>
-                      )
+                    ).length === 0 && (
+                      <div
+                        style={{
+                          textAlign:
+                            "center",
+                          padding:
+                            "20px",
+                          color:
+                            "#6b7280",
+                        }}
+                      >
+                        No participants found
+                      </div>
                     )}
-                </div>
-          
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent:
-                      "end",
-                    gap: "10px",
-                  }}
-                >
-                  <button
-                    onClick={() =>
-                      setShowParticipantModal(
-                        false
-                      )
-                    }
+                  </div>
+            
+                  {/* Footer Buttons */}
+            
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent:
+                        "flex-end",
+                      gap: "12px",
+                      borderTop:
+                        "1px solid #e5e7eb",
+                      paddingTop: "20px",
+                    }}
                   >
-                    Cancel
-                  </button>
-          
-                  <button
-                    style={saveBtn}
-                    onClick={
-                      saveParticipants
-                    }
-                  >
-                    Save
-                  </button>
+                    <button
+                      onClick={() =>
+                        setShowParticipantModal(
+                          false
+                        )
+                      }
+                      style={{
+                        padding:
+                          "12px 24px",
+                        borderRadius:
+                          "10px",
+                        border:
+                          "1px solid #d1d5db",
+                        background:
+                          "#fff",
+                        cursor:
+                          "pointer",
+                        fontWeight:
+                          "500",
+                      }}
+                    >
+                      Cancel
+                    </button>
+            
+                    <button
+                      style={{
+                        background:
+                          "#3b5bcc",
+                        color: "white",
+                        border: "none",
+                        padding:
+                          "12px 24px",
+                        borderRadius:
+                          "10px",
+                        cursor:
+                          "pointer",
+                        fontWeight:
+                          "600",
+                      }}
+                      onClick={
+                        saveParticipants
+                      }
+                    >
+                      Save
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+                      
             {showEditModal && (
               <div style={modalOverlay}>
                 <div style={modalBox}>
