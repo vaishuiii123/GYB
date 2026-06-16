@@ -20,8 +20,9 @@ export default function Organization({ user }: PageProps) {
     email: "",
   });
 
-  const [showViewModal, setShowViewModal] =
-  useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+
+  const [successMessage, setSuccessMessage] = useState("");
 
   const [selectedOrganization, setSelectedOrganization] = useState<any>(null);
   const [showParticipantModal, setShowParticipantModal] = useState(false);
@@ -754,6 +755,27 @@ export default function Organization({ user }: PageProps) {
               </div>
             )}
 
+          {successMessage && (
+              <div
+                style={{
+                  position: "fixed",
+                  top: "90px",
+                  right: "30px",
+                  background: "#22c55e",
+                  color: "white",
+                  padding: "14px 22px",
+                  borderRadius: "10px",
+                  fontWeight: "600",
+                  fontSize: "14px",
+                  boxShadow:
+                    "0 8px 20px rgba(0,0,0,0.15)",
+                  zIndex: 99999,
+                  animation: "slideIn 0.3s ease",
+                }}
+              >
+                ✅ Participants Assigned Successfully
+              </div>
+            )}
         </div> {/* Main Content */}
 
       </div> {/* Right Side */}  
