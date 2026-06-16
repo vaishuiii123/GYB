@@ -1,95 +1,237 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
-export default function TemplateDetails() {
+import Header from "../../components/Header";
+import Sidebar from "../../components/Sidebar";
 
-  const { id } =
-    useParams();
+type PageProps = {
+  user?: any;
+};
+
+export default function TemplateDetails({
+  user,
+}: PageProps) {
+
+  const { id } = useParams();
 
   const [template, setTemplate] =
     useState<any>(null);
 
   useEffect(() => {
-
     loadTemplate();
-
   }, []);
 
   const loadTemplate =
     async () => {
 
-      const response =
-        await fetch(
-          `/api/get-template-details?templateId=${id}`
-        );
+      try {
 
-      const data =
-        await response.json();
+        const response =
+          await fetch(
+            `/api/get-template-details?templateId=${id}`
+          );
 
-      if (data.success) {
+        const data =
+          await response.json();
 
-        setTemplate(
-          data.template
-        );
+        if (data.success) {
+
+          setTemplate(
+            data.template
+          );
+        }
+
+      } catch (error) {
+
+        console.error(error);
       }
     };
 
-  if (!template)
-    return <div>Loading...</div>;
+  if (!template) {
+
+    return (
+
+      <div
+        style={{
+          display: "flex",
+          background: "#f3f4f6",
+          minHeight: "100vh",
+        }}
+      >
+        <Sidebar />
+
+        <div
+          style={{
+            flex: 1,
+            marginLeft: "220px",
+          }}
+        >
+          <Header user={user} />
+
+          <div
+            style={{
+              padding: "25px",
+              marginTop: "70px",
+            }}
+          >
+            Loading...
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
 
-    <div>
+    <div
+      style={{
+        display: "flex",
+        background: "#f3f4f6",
+        minHeight: "100vh",
+      }}
+    >
+      <Sidebar />
 
-      <h2>
-        {template.templateName}
-      </h2>
+      <div
+        style={{
+          flex: 1,
+          marginLeft: "220px",
+        }}
+      >
+        <Header user={user} />
 
-      <h4>
-        {template.categoryName}
-      </h4>
+        <div
+          style={{
+            padding: "25px",
+            marginTop: "70px",
+          }}
+        >
+          <h1
+            style={{
+              fontSize: "48px",
+              fontWeight: "700",
+              marginBottom: "25px",
+            }}
+          >
+            Template Details
+          </h1>
 
-      <table>
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: "18px",
+              padding: "25px",
+              boxShadow:
+                "0 4px 20px rgba(0,0,0,0.06)",
+              marginBottom: "25px",
+            }}
+          >
+            <div
+              style={{
+                marginBottom: "15px",
+              }}
+            >
+              <strong>
+                Template Name:
+              </strong>{" "}
+              {template.templateName}
+            </div>
 
-        <thead>
+            <div>
+              <strong>
+                Category:
+              </strong>{" "}
+              {template.categoryName}
+            </div>
+          </div>
 
-          <tr>
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: "18px",
+              padding: "25px",
+              boxShadow:
+                "0 4px 20px rgba(0,0,0,0.06)",
+            }}
+          >
+            <table
+              style={{
+                width: "100%",
+                borderCollapse:
+                  "collapse",
+              }}
+            >
+              <thead>
+                <tr>
+                  <th style={thStyle}>
+                    Sr No.
+                  </th>
 
-            <th>
-              Question
-            </th>
+                  <th style={thStyle}>
+                    Question
+                  </th>
 
-            <th>
-              Answer Type
-            </th>
+                  <th style={thStyle}>
+                    Answer Type
+                  </th>
 
-          </tr>
+                  <th style={thStyle}>
+                    Required
+                  </th>
+                </tr>
+              </thead>
 
-        </thead>
+              <tbody>
+                {template.questions.map(
+                  (
+                    q: any,
+                    index: number
+                  ) => (
 
-        <tbody>
+                    <tr key={q.id}>
 
-          {template.questions.map(
-            (q: any) => (
+                      <td style={tdStyle}>
+                        {index + 1}
+                      </td>
 
-              <tr key={q.id}>
+                      <td style={tdStyle}>
+                        {q.question}
+                      </td>
 
-                <td>
-                  {q.question}
-                </td>
+                      <td style={tdStyle}>
+                        {q.answerType}
+                      </td>
 
-                <td>
-                  {q.answerType}
-                </td>
+                      <td style={tdStyle}>
+                        {q.required
+                          ? "Yes"
+                          : "No"}
+                      </td>
 
-              </tr>
-            )
-          )}
+                    </tr>
+                  )
+                )}
+              </tbody>
+            </table>
+          </div>
 
-        </tbody>
-
-      </table>
-
+        </div>
+      </div>
     </div>
   );
 }
+
+const thStyle = {
+  textAlign: "left" as const,
+  padding: "16px",
+  borderBottom:
+    "1px solid #ddd",
+  fontSize: "15px",
+};
+
+const tdStyle = {
+  padding: "16px",
+  borderBottom:
+    "1px solid #eee",
+  fontSize: "16px",
+};
