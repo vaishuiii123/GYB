@@ -29,7 +29,7 @@ export default function Header({ user }: any) {
         left: 0, // ✅ full width header
         right: 0,
         height: "60px",
-        background: "#F5F5F5", // ✅ KNAV header color
+        background: "#741D34", // ✅ KNAV header color
         display: "flex",
         alignItems: "center",
         padding: "0 30px",
