@@ -50,39 +50,42 @@ export default function Organization({ user }: PageProps) {
   setShowEditModal(true);
 };
 
+  // ========================== DELETE ORGANIZATION ======================================
+
+  const handleDelete = async (
+      org: any
+    ) => {
+      const confirmDelete = window.confirm(`Delete ${org.organizationName}?`);
+    
+      if (!confirmDelete) 
+        { return; }
+        try {
+          const response = await fetch("/api/delete-organization",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+              body: JSON.stringify({
+                organizationId:
+                  org.id,
+              }),
+            }
+          );
+        const data = await response.json();
+        if (data.success) {
+          alert("Organization deleted successfully");
+          fetchOrganizations();
+        } else {
+          alert(data.message || data.error);
+        }
+      } catch (error) {
+          console.error(error);
+          alert("Failed to delete organization");
+      }
+    };
   
-  const handleDelete = async (org: any) => {
-
-  const response = await fetch(
-    `/api/get-participants?organization=${encodeURIComponent(
-      org.organizationName
-    )}`
-  );
-
-  const data = await response.json();
-
-  if (
-    data.participants &&
-    data.participants.length > 0
-  ) {
-    alert(
-      "You cannot delete this organization because participants are already added."
-    );
-    return;
-  }
-
-  const confirmDelete =
-    window.confirm(
-      `Delete ${org.organizationName}?`
-    );
-
-  if (!confirmDelete) return;
-
-  alert(
-    "Delete API will be called here."
-  );
-};
-
   //=========================== DELETE PARTICIPANT ========================================
 
   const deleteParticipant = async (
