@@ -99,17 +99,111 @@ const handleView = (category: any) => {
   );
 };
 
-  const handleEdit = (category: any) => {
-    alert(
-      `Edit clicked for ${category.masterCategoryName}`
-    );
-  };
+ const handleEdit = async (
+      category: any
+    ) => {
+    
+      const newName =
+        prompt(
+          "Enter Master Category Name",
+          category.masterCategoryName
+        );
+    
+      if (
+        !newName ||
+        !newName.trim()
+      ) {
+        return;
+      }
+    
+      try {
+    
+        const response =
+          await fetch(
+            "/api/update-master-category",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+              body: JSON.stringify({
+                id: category.id,
+                masterCategoryName:
+                  newName,
+              }),
+            }
+          );
+    
+        const data =
+          await response.json();
+    
+        if (data.success) {
+    
+          fetchCategories();
+    
+        } else {
+    
+          alert(
+            data.message
+          );
+        }
+    
+      } catch (error) {
+    
+        console.error(error);
+      }
+    };
 
-  const handleDelete = (category: any) => {
-    alert(
-      `Delete clicked for ${category.masterCategoryName}`
-    );
-  };
+  const handleDelete = async (
+      category: any
+    ) => {
+    
+      const confirmDelete =
+        window.confirm(
+          `Delete ${category.masterCategoryName}?`
+        );
+    
+      if (!confirmDelete) {
+        return;
+      }
+    
+      try {
+    
+        const response =
+          await fetch(
+            "/api/delete-master-category",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+              body: JSON.stringify({
+                id: category.id,
+              }),
+            }
+          );
+    
+        const data =
+          await response.json();
+    
+        if (data.success) {
+    
+          fetchCategories();
+    
+        } else {
+    
+          alert(
+            data.message
+          );
+        }
+    
+      } catch (error) {
+    
+        console.error(error);
+      }
+    };
 
   return (
     <>
