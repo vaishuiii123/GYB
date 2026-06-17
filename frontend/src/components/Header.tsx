@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import logo from "../images/knav_logo.png"; // ✅ rename file to avoid space issue
+import logo from "../images/KNAV_logo.png"; // ✅ rename file to avoid space issue
 
 export default function Header({ user }: any) {
   const navigate = useNavigate();
