@@ -28,9 +28,16 @@ export default function Workshop({
     });
   
   useEffect(() => {
+    console.log(
+    "User:",
+    user
+  );
+  if (user?.email) {
     loadTemplates();
     loadOrganizations();
-  }, []);
+  }
+
+}, [user]);
   
   useEffect(() => {
     if (
@@ -54,7 +61,10 @@ export default function Workshop({
             "/api/get-templates"
           );
         const data = await response.json();
-  
+   console.log(
+      "Templates:",
+      data
+    );
         if (data.success) {
           setTemplates(
             data.templates || []
@@ -71,6 +81,12 @@ export default function Workshop({
         const response = await fetch(`/api/get-organization?createdBy=${user?.email}` );
   
         const data = await response.json();
+
+         console.log(
+      "Organizations:",
+      data
+    );
+        
         if (data.success) { 
           setOrganizations(
             data.organizations || []
