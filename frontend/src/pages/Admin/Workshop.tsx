@@ -52,35 +52,56 @@ export default function Workshop({
 
   }, [formData.organizationId]);
 
-  const loadDropdowns =
-    async () => {
+  const loadDropdowns = async () => {
 
-      try {
+  try {
 
-        const response =
-          await fetch(
-            "/api/get-workshop-dropdown-data"
-          );
+    const [templateResponse, organizationResponse] =
+      await Promise.all([
+        fetch("/api/get-template"),
+        fetch(
+          `/api/get-organization?createdBy=${user?.email}`
+        ),
+      ]);
 
-        const data =
-          await response.json();
+    const templateData =
+      await templateResponse.json();
 
-        if (data.success) {
+    const organizationData =
+      await organizationResponse.json();
 
-          setTemplates(
-            data.templates || []
-          );
+    if (templateData.success) {
 
-          setOrganizations(
-            data.organizations || []
-          );
-        }
+      setTemplates(
+        templateData.templates || []
+      );
+    }
 
-      } catch (error) {
+    if (organizationData.success) {
 
-        console.error(error);
-      }
-    };
+      setOrganizations(
+        organizationData.organizations || []
+      );
+    }
+
+    console.log(
+  "Templates:",
+  templateData
+);
+
+console.log(
+  "Organizations:",
+  organizationData
+);
+
+  } catch (error) {
+
+    console.error(
+      "Error loading dropdowns:",
+      error
+    );
+  }
+};
 
   const loadParticipants =
     async (
@@ -360,14 +381,11 @@ export default function Workshop({
                 </label>
 
                 <select
-                  value={
-                    formData.templateId
-                  }
+                  value={formData.templateId}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
-                      templateId:
-                        e.target.value,
+                      templateId: e.target.value,
                     })
                   }
                   style={input}
@@ -375,20 +393,14 @@ export default function Workshop({
                   <option value="">
                     Select Template
                   </option>
-
+                
                   {templates.map(
-                    (template) => (
+                    (template: any) => (
                       <option
-                        key={
-                          template.id
-                        }
-                        value={
-                          template.id
-                        }
+                        key={template.id}
+                        value={template.id}
                       >
-                        {
-                          template.templateName
-                        }
+                        {template.templateName}
                       </option>
                     )
                   )}
@@ -401,35 +413,31 @@ export default function Workshop({
                 </label>
 
                 <select
-                  value={
-                    formData.organizationId
-                  }
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      organizationId:
-                        e.target.value,
-                    })
-                  }
-                  style={input}
-                >
-                  <option value="">
-                    Select Organization
-                  </option>
-
-                  {organizations.map(
-                    (org) => (
-                      <option
-                        key={org.id}
-                        value={org.id}
-                      >
-                        {
-                          org.organizationName
-                        }
-                      </option>
-                    )
-                  )}
-                </select>
+                    value={formData.organizationId}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        organizationId:
+                          e.target.value,
+                      })
+                    }
+                    style={input}
+                  >
+                    <option value="">
+                      Select Organization
+                    </option>
+                  
+                    {organizations.map(
+                      (org: any) => (
+                        <option
+                          key={org.id}
+                          value={org.id}
+                        >
+                          {org.organizationName}
+                        </option>
+                      )
+                    )}
+                  </select>
               </div>
             </div>
 
