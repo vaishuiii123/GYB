@@ -1,126 +1,238 @@
+import { useEffect, useState } from "react";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
-
-import {
-  useState,
-  useEffect,
-} from "react";
 
 type PageProps = {
   user?: any;
 };
 
-export default function Workshop({ user }: PageProps) {
-  const [workshops, setWorkshops] =
-    useState<any[]>([]);
+export default function Workshop({
+  user,
+}: PageProps) {
 
-  const [participants, setParticipants] =
+  const [templates, setTemplates] =
     useState<any[]>([]);
 
   const [organizations, setOrganizations] =
     useState<any[]>([]);
 
-  const [workshopForm, setWorkshopForm] =
+  const [participants, setParticipants] =
+    useState<any[]>([]);
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const [formData, setFormData] =
     useState({
       workshopName: "",
       startDate: "",
       endDate: "",
-      template: "",
-      organization: "",
+      templateId: "",
+      organizationId: "",
     });
 
-  // ================= TEMPLATES =================
-
-  const templates = [
-    "Cyber Security",
-    "AI Workshop",
-    "Digital Transformation",
-    "Leadership Workshop",
-  ];
-
-  // ================= FETCH ORGANIZATIONS =================
-
   useEffect(() => {
-    const savedOrganizations =
-      JSON.parse(
-        localStorage.getItem(
-          "organizations"
-        ) || "[]"
-      );
-
-    setOrganizations(
-      savedOrganizations
-    );
+    loadDropdowns();
   }, []);
 
-  // ================= FETCH PARTICIPANTS =================
-
   useEffect(() => {
-    const savedParticipants =
-      JSON.parse(
-        localStorage.getItem(
-          "participants"
-        ) || "[]"
-      );
 
-    setParticipants(
-      savedParticipants
-    );
-  }, []);
-
-  // ================= CREATE WORKSHOP =================
-
-  const handleCreateWorkshop = () => {
     if (
-      !workshopForm.workshopName ||
-      !workshopForm.startDate ||
-      !workshopForm.endDate ||
-      !workshopForm.template ||
-      !workshopForm.organization
+      formData.organizationId
     ) {
-      alert("Please fill all fields");
-      return;
+
+      loadParticipants(
+        formData.organizationId
+      );
+    }
+    else {
+
+      setParticipants([]);
     }
 
-    const newWorkshop = {
-      id: Date.now(),
-      ...workshopForm,
+  }, [formData.organizationId]);
+
+  const loadDropdowns =
+    async () => {
+
+      try {
+
+        const response =
+          await fetch(
+            "/api/get-workshop-dropdown-data"
+          );
+
+        const data =
+          await response.json();
+
+        if (data.success) {
+
+          setTemplates(
+            data.templates || []
+          );
+
+          setOrganizations(
+            data.organizations || []
+          );
+        }
+
+      } catch (error) {
+
+        console.error(error);
+      }
     };
 
-    const updatedWorkshops = [
-      ...workshops,
-      newWorkshop,
-    ];
+  const loadParticipants =
+    async (
+      organizationId: string
+    ) => {
 
-    setWorkshops(updatedWorkshops);
+      try {
 
-    localStorage.setItem(
-      "workshops",
-      JSON.stringify(
-        updatedWorkshops
-      )
-    );
+        const response =
+          await fetch(
+            `/api/get-participants-by-organization?organizationId=${organizationId}`
+          );
 
-    alert(
-      "Workshop Scheduled Successfully"
-    );
+        const data =
+          await response.json();
 
-    setWorkshopForm({
-      workshopName: "",
-      startDate: "",
-      endDate: "",
-      template: "",
-      organization: "",
-    });
-  };
+        if (data.success) {
 
-return (
-  <>
+          setParticipants(
+            data.participants || []
+          );
+        }
+
+      } catch (error) {
+
+        console.error(error);
+      }
+    };
+
+  const handleCreateWorkshop =
+    async () => {
+
+      if (
+        !formData.workshopName ||
+        !formData.startDate ||
+        !formData.endDate ||
+        !formData.templateId ||
+        !formData.organizationId
+      ) {
+
+        alert(
+          "Please fill all required fields"
+        );
+
+        return;
+      }
+
+      try {
+
+        setLoading(true);
+
+        const selectedTemplate =
+          templates.find(
+            (t) =>
+              t.id ===
+              formData.templateId
+          );
+
+        const selectedOrganization =
+          organizations.find(
+            (o) =>
+              o.id ===
+              formData.organizationId
+          );
+
+        const response =
+          await fetch(
+            "/api/create-workshop",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+              body: JSON.stringify({
+                workshopName:
+                  formData.workshopName,
+
+                startDate:
+                  formData.startDate,
+
+                endDate:
+                  formData.endDate,
+
+                templateId:
+                  selectedTemplate?.id,
+
+                templateName:
+                  selectedTemplate?.templateName,
+
+                organizationId:
+                  selectedOrganization?.id,
+
+                organizationName:
+                  selectedOrganization?.organizationName,
+
+                participantCount:
+                  participants.length,
+
+                createdBy:
+                  user?.name || "",
+              }),
+            }
+          );
+
+        const data =
+          await response.json();
+
+        if (data.success) {
+
+          alert(
+            "Workshop created successfully"
+          );
+
+          setFormData({
+            workshopName: "",
+            startDate: "",
+            endDate: "",
+            templateId: "",
+            organizationId: "",
+          });
+
+          setParticipants([]);
+        }
+        else {
+
+          alert(
+            data.error ||
+            "Failed to create workshop"
+          );
+        }
+
+      } catch (error) {
+
+        console.error(error);
+
+        alert(
+          "Failed to create workshop"
+        );
+
+      } finally {
+
+        setLoading(false);
+      }
+    };
+
+  return (
     <div
       style={{
         display: "flex",
         minHeight: "100vh",
-        background: "#f3f4f6",
+        background: "#f5f6fa",
       }}
     >
       <Sidebar />
@@ -135,99 +247,99 @@ return (
 
         <div
           style={{
-            padding: "25px",
-            marginTop: "60px",
+            padding: "30px",
+            marginTop: "70px",
           }}
         >
           <h1
             style={{
-              fontSize: "36px",
-              fontWeight: "700",
+              fontSize: "38px",
+              fontWeight: 700,
               marginBottom: "25px",
             }}
           >
-            Workshop
+            Create Workshop
           </h1>
 
-          {/* WORKSHOP FORM */}
-
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: "12px",
+              padding: "30px",
+              boxShadow:
+                "0 1px 5px rgba(0,0,0,0.08)",
+            }}
+          >
             <div
               style={{
-                background: "white",
-                borderRadius: "18px",
-                padding: "30px",
+                display: "grid",
+                gridTemplateColumns:
+                  "1fr 1fr 1fr",
+                gap: "20px",
                 marginBottom: "25px",
               }}
             >
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns:
-                    "1fr 1fr 1fr",
-                  gap: "30px",
-                  marginBottom: "40px",
-                }}
-              >
-                <div>
-                  <label style={labelStyle}>
-                    Workshop Name *
-                  </label>
+              <div>
+                <label style={label}>
+                  Workshop Name *
+                </label>
 
-                  <input
-                    type="text"
-                    value={
-                      workshopForm.workshopName
-                    }
-                    onChange={(e) =>
-                      setWorkshopForm({
-                        ...workshopForm,
-                        workshopName:
-                          e.target.value,
-                      })
-                    }
-                    style={inputStyle}
-                  />
-                </div>
+                <input
+                  type="text"
+                  value={
+                    formData.workshopName
+                  }
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      workshopName:
+                        e.target.value,
+                    })
+                  }
+                  style={input}
+                  placeholder="Enter workshop name"
+                />
+              </div>
 
-                <div>
-                  <label style={labelStyle}>
-                    Start Date : Time *
-                  </label>
-
-                  <input
-                    type="datetime-local"
-                    value={
-                      workshopForm.startDate
-                    }
-                    onChange={(e) =>
-                      setWorkshopForm({
-                        ...workshopForm,
-                        startDate:
-                          e.target.value,
-                      })
-                    }
-                    style={inputStyle}
-                  />
-               </div>
-
-               <div>
-                <label style={labelStyle}>
-                  End Date : Time *
+              <div>
+                <label style={label}>
+                  Start Date - Time *
                 </label>
 
                 <input
                   type="datetime-local"
                   value={
-                    workshopForm.endDate
+                    formData.startDate
                   }
                   onChange={(e) =>
-                    setWorkshopForm({
-                      ...workshopForm,
+                    setFormData({
+                      ...formData,
+                      startDate:
+                        e.target.value,
+                    })
+                  }
+                  style={input}
+                />
+              </div>
+
+              <div>
+                <label style={label}>
+                  End Date - Time *
+                </label>
+
+                <input
+                  type="datetime-local"
+                  value={
+                    formData.endDate
+                  }
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
                       endDate:
                         e.target.value,
                     })
                   }
-                  style={inputStyle}
+                  style={input}
                 />
               </div>
             </div>
@@ -237,27 +349,27 @@ return (
                 display: "grid",
                 gridTemplateColumns:
                   "1fr 1fr",
-                gap: "30px",
-                marginBottom: "40px",
+                gap: "20px",
+                marginBottom: "30px",
               }}
             >
               <div>
-                <label style={labelStyle}>
+                <label style={label}>
                   Select Template *
                 </label>
 
                 <select
                   value={
-                    workshopForm.template
+                    formData.templateId
                   }
                   onChange={(e) =>
-                    setWorkshopForm({
-                      ...workshopForm,
-                      template:
+                    setFormData({
+                      ...formData,
+                      templateId:
                         e.target.value,
                     })
                   }
-                  style={inputStyle}
+                  style={input}
                 >
                   <option value="">
                     Select Template
@@ -266,10 +378,16 @@ return (
                   {templates.map(
                     (template) => (
                       <option
-                        key={template}
-                        value={template}
+                        key={
+                          template.id
+                        }
+                        value={
+                          template.id
+                        }
                       >
-                        {template}
+                        {
+                          template.templateName
+                        }
                       </option>
                     )
                   )}
@@ -277,34 +395,32 @@ return (
               </div>
 
               <div>
-                <label style={labelStyle}>
+                <label style={label}>
                   Select Organization *
                 </label>
 
                 <select
                   value={
-                    workshopForm.organization
+                    formData.organizationId
                   }
                   onChange={(e) =>
-                    setWorkshopForm({
-                      ...workshopForm,
-                      organization:
+                    setFormData({
+                      ...formData,
+                      organizationId:
                         e.target.value,
                     })
                   }
-                  style={inputStyle}
+                  style={input}
                 >
                   <option value="">
                     Select Organization
                   </option>
 
                   {organizations.map(
-                    (org: any) => (
+                    (org) => (
                       <option
                         key={org.id}
-                        value={
-                          org.organizationName
-                        }
+                        value={org.id}
                       >
                         {
                           org.organizationName
@@ -319,211 +435,154 @@ return (
             <div
               style={{
                 display: "flex",
-                gap: "15px",
+                gap: "12px",
               }}
             >
               <button
                 onClick={
                   handleCreateWorkshop
                 }
-                style={{
-                  background:
-                    "#8B0022",
-                  color: "white",
-                  border: "none",
-                  padding:
-                    "10px 25px",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                }}
+                disabled={loading}
+                style={primaryBtn}
               >
-                Create
+                {loading
+                  ? "Creating..."
+                  : "Create"}
               </button>
 
               <button
                 onClick={() =>
-                  setWorkshopForm({
+                  setFormData({
                     workshopName: "",
                     startDate: "",
                     endDate: "",
-                    template: "",
-                    organization: "",
+                    templateId: "",
+                    organizationId: "",
                   })
                 }
-                style={{
-                  background:
-                    "#374151",
-                  color: "white",
-                  border: "none",
-                  padding:
-                    "10px 25px",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                }}
+                style={secondaryBtn}
               >
                 Cancel
               </button>
             </div>
           </div>
 
-          {/* PARTICIPANTS */}
-
-          <div
-            style={{
-              background: "white",
-              borderRadius: "18px",
-              padding: "25px",
-            }}
-          >
-            <h2
+          {participants.length > 0 && (
+            <div
               style={{
-                marginBottom: "20px",
+                background: "#fff",
+                marginTop: "25px",
+                padding: "25px",
+                borderRadius: "12px",
               }}
             >
-              Participants
-            </h2>
+              <h3>
+                Participants
+              </h3>
 
-            <table
-              style={{
-                width: "100%",
-                borderCollapse:
-                  "collapse",
-              }}
-            >
-              <thead>
-                <tr>
-                  <th style={tableHeader}>
-                    Sr No.
-                  </th>
+              <table
+                style={{
+                  width: "100%",
+                  borderCollapse:
+                    "collapse",
+                }}
+              >
+                <thead>
+                  <tr>
+                    <th style={th}>
+                      Sr No
+                    </th>
+                    <th style={th}>
+                      Name
+                    </th>
+                    <th style={th}>
+                      Email
+                    </th>
+                    <th style={th}>
+                      Phone
+                    </th>
+                  </tr>
+                </thead>
 
-                  <th style={tableHeader}>
-                    Organization
-                  </th>
-
-                  <th style={tableHeader}>
-                    Name
-                  </th>
-
-                  <th style={tableHeader}>
-                    Email
-                  </th>
-
-                  <th style={tableHeader}>
-                    Phone
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {participants
-                  .filter(
-                    (participant) =>
-                      !workshopForm.organization ||
-                      participant.organization ===
-                        workshopForm.organization
-                  )
-                  .map(
+                <tbody>
+                  {participants.map(
                     (
-                      participant,
+                      p,
                       index
                     ) => (
                       <tr
-                        key={
-                          participant.id
-                        }
+                        key={p.id}
                       >
-                        <td
-                          style={
-                            tableCell
-                          }
-                        >
+                        <td style={td}>
                           {index + 1}
                         </td>
 
-                        <td
-                          style={
-                            tableCell
-                          }
-                        >
+                        <td style={td}>
                           {
-                            participant.organization
-                          }
-                        </td>
-
-                        <td
-                          style={
-                            tableCell
-                          }
-                        >
-                          {
-                            participant.firstName
+                            p.firstName
                           }{" "}
                           {
-                            participant.lastName
+                            p.lastName
                           }
                         </td>
 
-                        <td
-                          style={
-                            tableCell
-                          }
-                        >
-                          {
-                            participant.email
-                          }
+                        <td style={td}>
+                          {p.email}
                         </td>
 
-                        <td
-                          style={
-                            tableCell
-                          }
-                        >
-                          {
-                            participant.phone
-                          }
+                        <td style={td}>
+                          {p.phoneNo}
                         </td>
                       </tr>
                     )
                   )}
-              </tbody>
-            </table>
-          </div>
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </div>
-  </>
-);
+  );
 }
-/* ================= STYLES ================= */
 
-const labelStyle = {
+const label = {
   display: "block",
-  marginBottom: "10px",
-  color: "#666",
-  fontSize: "15px",
+  marginBottom: "8px",
+  fontWeight: 500,
 };
 
-const inputStyle = {
+const input = {
   width: "100%",
+  padding: "12px",
+  border: "1px solid #d1d5db",
+  borderRadius: "6px",
+};
+
+const primaryBtn = {
+  background: "#1d4ed8",
+  color: "#fff",
   border: "none",
-  borderBottom:
-    "2px dotted #999",
-  padding: "12px 0",
-  fontSize: "18px",
-  outline: "none",
-  background: "transparent",
+  padding: "10px 25px",
+  borderRadius: "6px",
+  cursor: "pointer",
 };
 
-const tableHeader = {
+const secondaryBtn = {
+  background: "#e5e7eb",
+  border: "none",
+  padding: "10px 25px",
+  borderRadius: "6px",
+  cursor: "pointer",
+};
+
+const th = {
   textAlign: "left" as const,
-  padding: "15px",
-  borderBottom:
-    "1px solid #ddd",
-  fontSize: "16px",
+  padding: "12px",
+  borderBottom: "1px solid #ddd",
 };
 
-const tableCell = {
-  padding: "15px",
-  borderBottom:
-    "1px solid #eee",
+const td = {
+  padding: "12px",
+  borderBottom: "1px solid #eee",
 };
