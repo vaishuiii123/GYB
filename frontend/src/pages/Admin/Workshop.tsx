@@ -248,6 +248,7 @@ export default function Workshop({
         <div
           style={{
             padding: "30px",
+            overflow: "hidden",
             marginTop: "70px",
           }}
         >
@@ -554,9 +555,11 @@ const label = {
 
 const input = {
   width: "100%",
-  padding: "12px",
+  height: "48px",
+  padding: "0 12px",
   border: "1px solid #d1d5db",
   borderRadius: "6px",
+  boxSizing: "border-box" as const,
 };
 
 const primaryBtn = {
