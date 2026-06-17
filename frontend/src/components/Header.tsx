@@ -2,14 +2,21 @@ import { useNavigate } from "react-router-dom";
 import logo from "../images/KNAV logo.png";
 
 export default function Header({ user }: any) {
+
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    const confirmLogout = window.confirm("Do you really want to logout?");
+
+    const confirmLogout =
+      window.confirm(
+        "Do you really want to logout?"
+      );
 
     if (confirmLogout) {
+
       localStorage.clear();
       sessionStorage.clear();
+
       navigate("/");
     }
   };
@@ -17,94 +24,117 @@ export default function Header({ user }: any) {
   const initials =
     user?.name
       ?.split(" ")
-      .map((word: string) => word[0])
+      .map(
+        (word: string) => word[0]
+      )
       .join("")
       .toUpperCase() || "U";
 
   return (
+
     <div
       style={{
         position: "fixed",
         top: 0,
-        left: 0, // ✅ full width header
+        left: "220px",
         right: 0,
-        height: "60px",
-        background: "#741D34", // ✅ KNAV header color
+        height: "70px",
+        background: "#741D34",
         display: "flex",
         alignItems: "center",
+        justifyContent: "space-between",
         padding: "0 30px",
         boxSizing: "border-box",
         zIndex: 1000,
-        borderBottom: "1px solid #E0E0E0",
+
+        boxShadow:
+          "0 4px 12px rgba(0,0,0,0.12)",
       }}
     >
 
-      
-          <img
-              src={logo}
-              alt="KNAV Logo"
-              style={{
-                height: "35px",
-                objectFit: "contain",
-              }}
-            />
+      {/* Logo */}
 
       <div
         style={{
           display: "flex",
           alignItems: "center",
-          gap: "25px",
-          color: "#2C2C2C", // ✅ dark text
-          marginLeft: "auto",
         }}
       >
+        <img
+          src={logo}
+          alt="KNAV Logo"
+          style={{
+            height: "40px",
+            objectFit: "contain",
+          }}
+        />
+      </div>
+
+      {/* Right Section */}
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "18px",
+        }}
+      >
+
+        {/* User Avatar */}
+
         <div
           style={{
+            width: "42px",
+            height: "42px",
+            borderRadius: "50%",
+            background: "#FCECEF",
+            color: "#741D34",
+            border:
+              "1px solid rgba(255,255,255,0.25)",
+
             display: "flex",
+            justifyContent: "center",
             alignItems: "center",
-            gap: "10px",
+
+            fontWeight: 700,
+            fontSize: "14px",
           }}
         >
-          <div
-            style={{
-              width: "42px",
-              height: "42px",
-              borderRadius: "50%",
-              background: "#741D34", // ✅ KNAV maroon
-              color: "white",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              fontWeight: "600",
-            }}
-          >
-            {initials}
-          </div>
+          {initials}
         </div>
+
+        {/* Separator */}
 
         <div
           style={{
             width: "1px",
-            height: "35px",
-            background: "#D0D0D0",
+            height: "32px",
+            background:
+              "rgba(255,255,255,0.30)",
           }}
         />
+
+        {/* Logout */}
 
         <div
           onClick={handleLogout}
           style={{
             display: "flex",
             alignItems: "center",
-            gap: "10px",
+            gap: "8px",
             cursor: "pointer",
-            fontWeight: "600",
-            fontSize: "16px",
-            color: "#741D34", // ✅ KNAV maroon logout
+
+            color: "#FFFFFF",
+            fontWeight: 600,
+            fontSize: "15px",
+            userSelect: "none",
           }}
         >
           ⮕ Logout
         </div>
+
       </div>
+
     </div>
   );
 }
