@@ -2,48 +2,20 @@ import { NavLink } from "react-router-dom";
 
 export default function Sidebar() {
   const menuItems = [
-    {
-      name: "Dashboard",
-      path: "/dashboard",
-      icon: "📊",
-    },
-    {
-      name: "Organization",
-      path: "/organization",
-      icon: "🏢",
-    },
-     {
-      name: "Participants",
-      path: "/participants",
-      icon: "🏢",
-    },
-    {
-      name: "Category Management",
-      path: "/category",
-      icon: "📂",
-    },
-    {
-      name: "Questions",
-      path: "/questions",
-      icon: "❓",
-    },
-    {
-      name: "Template",
-      path: "/template",
-      icon: "📄",
-    },
-    {
-      name: "Workshop",
-      path: "/workshop",
-      icon: "🎓",
-    },
+    { name: "Dashboard", path: "/dashboard", icon: "📊" },
+    { name: "Organization", path: "/organization", icon: "🏢" },
+    { name: "Participants", path: "/participants", icon: "🏢" },
+    { name: "Category Management", path: "/category", icon: "📂" },
+    { name: "Questions", path: "/questions", icon: "❓" },
+    { name: "Template", path: "/template", icon: "📄" },
+    { name: "Workshop", path: "/workshop", icon: "🎓" },
   ];
 
   return (
     <div
       style={{
         width: "220px",
-        background: "#0A1F5C",
+        background: "#741D34", // ✅ KNAV primary
         position: "fixed",
         left: 0,
         top: 0,
@@ -52,27 +24,23 @@ export default function Sidebar() {
         flexDirection: "column",
         justifyContent: "space-between",
         zIndex: 1001,
+        fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif', // ✅ font updated
       }}
     >
       <div>
+        {/* Logo/Header */}
         <div
           style={{
             padding: "25px 20px",
             borderBottom: "1px solid rgba(255,255,255,0.1)",
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-            }}
-          >
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             <div
               style={{
                 width: "48px",
                 height: "48px",
-                background: "#2952D5",
+                background: "#8A2D45", // ✅ lighter maroon
                 borderRadius: "12px",
                 display: "flex",
                 justifyContent: "center",
@@ -89,7 +57,7 @@ export default function Sidebar() {
                 style={{
                   color: "white",
                   fontSize: "18px",
-                  fontWeight: "700",
+                  fontWeight: "600",
                 }}
               >
                 KNAV Portal
@@ -107,6 +75,7 @@ export default function Sidebar() {
           </div>
         </div>
 
+        {/* Menu */}
         <div
           style={{
             padding: "15px",
@@ -122,14 +91,15 @@ export default function Sidebar() {
               style={({ isActive }) => ({
                 textDecoration: "none",
                 color: "white",
-                background: isActive ? "#2E5BFF" : "transparent",
+                background: isActive ? "#8A2D45" : "transparent", // ✅ active color
                 padding: "12px 16px",
-                borderRadius: "12px",
+                borderRadius: "10px",
                 display: "flex",
                 alignItems: "center",
                 gap: "12px",
-                fontSize: "15px",
+                fontSize: "14px",
                 fontWeight: isActive ? "600" : "500",
+                transition: "all 0.2s ease",
               })}
             >
               <span>{item.icon}</span>
