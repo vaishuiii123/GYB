@@ -11,21 +11,39 @@ export default function Category({ user }: PageProps) {
 
   const navigate = useNavigate();
   
-  const [selectedMasterCategory,
-  setSelectedMasterCategory] =
-  useState<any>(null);
-
-  const [categoriesList,setCategoriesList] = useState<any[]>([]);
-
-  const [showCategoryModal,setShowCategoryModal] =useState(false);
+  const [showEditModal, setShowEditModal] =
+    useState(false);
   
-  const [categoryName,setCategoryName] =useState("");
-
-  const [categoryError, setCategoryError] = useState("");
+  const [showDeleteModal, setShowDeleteModal] =
+    useState(false);
   
-  const [categories, setCategories] = useState<any[]>([]);
-  const [showModal, setShowModal] = useState(false);
-
+  const [selectedCategory, setSelectedCategory] =
+    useState<any>(null);
+  
+  const [editCategoryName, setEditCategoryName] =
+    useState("");
+  
+  const [selectedMasterCategory, setSelectedMasterCategory] =
+    useState<any>(null);
+  
+  const [categoriesList, setCategoriesList] =
+    useState<any[]>([]);
+  
+  const [showCategoryModal, setShowCategoryModal] =
+    useState(false);
+  
+  const [categoryName, setCategoryName] =
+    useState("");
+  
+  const [categoryError, setCategoryError] =
+    useState("");
+  
+  const [categories, setCategories] =
+    useState<any[]>([]);
+  
+  const [showModal, setShowModal] =
+    useState(false);
+  
   const [masterCategoryName, setMasterCategoryName] =
     useState("");
 
@@ -99,112 +117,118 @@ const handleView = (category: any) => {
   );
 };
 
- const handleEdit = async (
-      category: any
-    ) => {
-    
-      const newName =
-        prompt(
-          "Enter Master Category Name",
-          category.masterCategoryName
-        );
-    
-      if (
-        !newName ||
-        !newName.trim()
-      ) {
-        return;
-      }
-    
-      try {
-    
-        const response =
-          await fetch(
-            "/api/update-master-category",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type":
-                  "application/json",
-              },
-              body: JSON.stringify({
-                id: category.id,
-                masterCategoryName:
-                  newName,
-              }),
-            }
-          );
-    
-        const data =
-          await response.json();
-    
-        if (data.success) {
-    
-          fetchCategories();
-    
-        } else {
-    
-          alert(
-            data.message
-          );
-        }
-    
-      } catch (error) {
-    
-        console.error(error);
-      }
-    };
+//========================== EDIT MASTER CATEGORY ==================================
+ const handleEdit = (
+  category: any
+) => {
 
-  const handleDelete = async (
-      category: any
-    ) => {
-    
-      const confirmDelete =
-        window.confirm(
-          `Delete ${category.masterCategoryName}?`
-        );
-    
-      if (!confirmDelete) {
-        return;
-      }
-    
-      try {
-    
-        const response =
-          await fetch(
-            "/api/delete-master-category",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type":
-                  "application/json",
-              },
-              body: JSON.stringify({
-                id: category.id,
-              }),
-            }
-          );
-    
-        const data =
-          await response.json();
-    
-        if (data.success) {
-    
-          fetchCategories();
-    
-        } else {
-    
-          alert(
-            data.message
-          );
-        }
-    
-      } catch (error) {
-    
-        console.error(error);
-      }
-    };
+  setSelectedCategory(category);
 
+  setEditCategoryName(
+    category.masterCategoryName
+  );
+
+  setShowEditModal(true);
+};
+
+const saveCategory = async () => {
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/update-master-category",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify({
+            id: selectedCategory.id,
+            masterCategoryName:
+              editCategoryName,
+          }),
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (data.success) {
+
+      setShowEditModal(false);
+
+      setEditCategoryName("");
+
+      setSelectedCategory(null);
+
+      fetchCategories();
+
+    } else {
+
+      alert(data.message);
+    }
+
+  } catch (error) {
+
+    console.error(error);
+  }
+};
+  
+  //===================================== DELETE MASTER CATEGORY =============================
+
+  const handleDelete = (
+  category: any
+) => {
+
+  setSelectedCategory(category);
+
+  setShowDeleteModal(true);
+};
+
+const confirmDelete = async () => {
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/delete-master-category",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify({
+            id: selectedCategory.id,
+          }),
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (data.success) {
+
+      setShowDeleteModal(false);
+
+      setSelectedCategory(null);
+
+      fetchCategories();
+
+    } else {
+
+      alert(data.message);
+    }
+
+  } catch (error) {
+
+    console.error(error);
+  }
+};
+  
+  
   return (
     <>
       <div
@@ -424,7 +448,114 @@ const handleView = (category: any) => {
             )}
           </div>
         </div>
+        
+        {
+            showEditModal && (
+             <div style={modalOverlay}>
+                <div style={modalBox}>
+                  <h2>
+                    Edit Master Category
+                  </h2>
+          
+                  <input
+                    value={editCategoryName}
+                    onChange={(e) =>
+                      setEditCategoryName(
+                        e.target.value
+                      )
+                    }
+                    style={inputStyle}
+                  />
+          
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "flex-end",
+                      gap: "10px",
+                      marginTop: "20px",
+                    }}
+                  >
+                    <button
+                      onClick={() =>
+                        setShowEditModal(false)
+                      }
+                    >
+                      Cancel
+                    </button>
+          
+                    <button
+                      onClick={saveCategory}
+                      style={saveBtn}
+                    >
+                      Save
+                    </button>
+          
+                  </div>
+          
+                </div>
+              </div>
+            )
+          }
       </div>
+
+      {showDeleteModal && (
+            <div style={modalOverlay}>
+              <div style={modalBox}>
+        
+                <h2>
+                  Delete Master Category
+                </h2>
+        
+                <p
+                  style={{
+                    marginTop: "15px",
+                    marginBottom: "25px",
+                    fontSize: "16px",
+                  }}
+                >
+                  Are you sure you want to delete
+                  <strong>
+                    {" "}
+                    {selectedCategory?.masterCategoryName}
+                  </strong>
+                  ?
+                </p>
+        
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    gap: "10px",
+                  }}
+                >
+                  <button
+                    onClick={() =>
+                      setShowDeleteModal(false)
+                    }
+                  >
+                    Cancel
+                  </button>
+        
+                  <button
+                    onClick={confirmDelete}
+                    style={{
+                      background: "#dc2626",
+                      color: "#fff",
+                      border: "none",
+                      padding: "10px 20px",
+                      borderRadius: "6px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Delete
+                  </button>
+        
+                </div>
+        
+              </div>
+            </div>
+          )
+        }
     </>
   );
 }
