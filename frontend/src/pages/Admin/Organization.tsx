@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
-import Swal from "sweetalert2";
 
 type PageProps = {
   user?: any;
@@ -26,8 +25,6 @@ export default function Organization({ user }: PageProps) {
   const [showViewModal, setShowViewModal] = useState(false);
 
   const [successMessage, setSuccessMessage] = useState("");
-
-  const [errorMessage, setErrorMessage] = useState("");
 
   const [selectedOrganization, setSelectedOrganization] = useState<any>(null);
   const [showParticipantModal, setShowParticipantModal] = useState(false);
@@ -55,73 +52,37 @@ export default function Organization({ user }: PageProps) {
 
   // ========================== DELETE ORGANIZATION ======================================
 
-  const handleDelete = async (org: any) => {
+  const handleDelete = async (
+      org: any
+    ) => {
+      const confirmDelete = window.confirm(`Delete ${org.organizationName}?`);
     
-      const confirmDelete = await Swal.fire({
-        title: "Delete Organization?",
-        text: `Are you sure you want to delete "${org.organizationName}"?`,
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonColor: "#dc2626",
-        cancelButtonColor: "#6b7280",
-        confirmButtonText: "Yes, Delete",
-      });
-    
-      if (!confirmDelete.isConfirmed) {
-        return;
-      }
-    
-      try {
-    
-        const response = await fetch(
-          "/api/delete-organization",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              organizationId: org.id,
-            }),
-          }
-        );
-    
+      if (!confirmDelete) 
+        { return; }
+        try {
+          const response = await fetch("/api/delete-organization",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+              body: JSON.stringify({
+                organizationId:
+                  org.id,
+              }),
+            }
+          );
         const data = await response.json();
-    
         if (data.success) {
-    
-          await Swal.fire({
-            icon: "success",
-            title: "Deleted",
-            text: "Organization deleted successfully",
-            timer: 2000,
-            showConfirmButton: false,
-          });
-    
+          alert("Organization deleted successfully");
           fetchOrganizations();
-    
         } else {
-    
-          Swal.fire({
-            icon: "warning",
-            title: "Cannot Delete Organization",
-            text:
-              data.message ||
-              "Participants are assigned to this organization.",
-            confirmButtonColor: "#3b5bcc",
-          });
+          alert(data.message || data.error);
         }
-    
       } catch (error) {
-    
-        console.error(error);
-    
-        Swal.fire({
-          icon: "error",
-          title: "Delete Failed",
-          text: "Something went wrong while deleting the organization.",
-          confirmButtonColor: "#dc2626",
-        });
+          console.error(error);
+          alert("Failed to delete organization");
       }
     };
   
