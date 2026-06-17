@@ -1,20 +1,15 @@
 import { useNavigate } from "react-router-dom";
+import logo from "../images/KNAV logo.png";
 
 export default function Header({ user }: any) {
-
   const navigate = useNavigate();
 
   const handleLogout = () => {
-
-    const confirmLogout = window.confirm(
-      "Do you really want to logout?"
-    );
+    const confirmLogout = window.confirm("Do you really want to logout?");
 
     if (confirmLogout) {
-
       localStorage.clear();
       sessionStorage.clear();
-
       navigate("/");
     }
   };
@@ -27,105 +22,89 @@ export default function Header({ user }: any) {
       .toUpperCase() || "U";
 
   return (
-
     <div
       style={{
         position: "fixed",
         top: 0,
-        left: "260px", // same as sidebar width
+        left: 0, // ✅ full width header
         right: 0,
-        height: "70px",
-
-        background: "#741D34",
-
+        height: "60px",
+        background: "#741D34", // ✅ KNAV header color
         display: "flex",
-        justifyContent: "flex-end",
         alignItems: "center",
-
         padding: "0 30px",
-
         boxSizing: "border-box",
-
         zIndex: 1000,
-
-        boxShadow:
-          "0 4px 12px rgba(0,0,0,0.12)",
+        borderBottom: "1px solid #E0E0E0",
       }}
     >
+
+      
+          <img
+              src={logo}
+              alt="KNAV Logo"
+              style={{
+                height: "35px",
+                objectFit: "contain",
+              }}
+            />
 
       <div
         style={{
           display: "flex",
           alignItems: "center",
-          gap: "18px",
+          gap: "25px",
+          color: "#2C2C2C", // ✅ dark text
+          marginLeft: "auto",
         }}
       >
-
-        {/* User Circle */}
-
         <div
           style={{
-            width: "42px",
-            height: "42px",
-
-            borderRadius: "50%",
-
-            background: "#FCECEF",
-
-            color: "#741D34",
-
             display: "flex",
-            justifyContent: "center",
             alignItems: "center",
-
-            fontWeight: 700,
-            fontSize: "15px",
-
-            border:
-              "1px solid rgba(255,255,255,0.25)",
+            gap: "10px",
           }}
         >
-          {initials}
+          <div
+            style={{
+              width: "42px",
+              height: "42px",
+              borderRadius: "50%",
+              background: "#741D34", // ✅ KNAV maroon
+              color: "white",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              fontWeight: "600",
+            }}
+          >
+            {initials}
+          </div>
         </div>
-
-        {/* Divider */}
 
         <div
           style={{
             width: "1px",
-            height: "32px",
-
-            background:
-              "rgba(255,255,255,0.30)",
+            height: "35px",
+            background: "#D0D0D0",
           }}
         />
-
-        {/* Logout */}
 
         <div
           onClick={handleLogout}
           style={{
             display: "flex",
             alignItems: "center",
-
-            gap: "8px",
-
+            gap: "10px",
             cursor: "pointer",
-
-            color: "#FFFFFF",
-
-            fontWeight: 600,
-
-            fontSize: "15px",
-
-            userSelect: "none",
+            fontWeight: "600",
+            fontSize: "16px",
+            color: "#741D34", // ✅ KNAV maroon logout
           }}
         >
           ⮕ Logout
         </div>
-
       </div>
-
     </div>
   );
 }
