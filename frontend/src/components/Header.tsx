@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import logo from "../images/KNAV logo.png";
+import logo from "../images/knav_logo.png"; // ✅ rename file to avoid space issue
 
 export default function Header({ user }: any) {
   const navigate = useNavigate();
@@ -26,36 +26,40 @@ export default function Header({ user }: any) {
       style={{
         position: "fixed",
         top: 0,
-        left: 0, // ✅ full width header
+        left: 0,
         right: 0,
         height: "60px",
-        background: "#F5F5F5", // ✅ KNAV header color
+        background: "#F5F5F5",
         display: "flex",
         alignItems: "center",
+        justifyContent: "space-between", // ✅ better spacing
         padding: "0 30px",
         boxSizing: "border-box",
         zIndex: 1000,
-        borderBottom: "1px solid #E0E0E0",
+
+        // ✅ shadow added (matches KNAV UI)
+        boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
       }}
     >
+      {/* ✅ LEFT SIDE (LOGO) */}
+      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        <img
+          src={logo}
+          alt="KNAV Logo"
+          style={{
+            height: "35px",
+            objectFit: "contain",
+          }}
+        />
+      </div>
 
-      
-          <img
-              src={logo}
-              alt="KNAV Logo"
-              style={{
-                height: "35px",
-                objectFit: "contain",
-              }}
-            />
-
+      {/* ✅ RIGHT SIDE (USER + LOGOUT) */}
       <div
         style={{
           display: "flex",
           alignItems: "center",
           gap: "25px",
-          color: "#2C2C2C", // ✅ dark text
-          marginLeft: "auto",
+          color: "#2C2C2C",
         }}
       >
         <div
@@ -70,7 +74,7 @@ export default function Header({ user }: any) {
               width: "42px",
               height: "42px",
               borderRadius: "50%",
-              background: "#741D34", // ✅ KNAV maroon
+              background: "#741D34",
               color: "white",
               display: "flex",
               justifyContent: "center",
@@ -99,7 +103,7 @@ export default function Header({ user }: any) {
             cursor: "pointer",
             fontWeight: "600",
             fontSize: "16px",
-            color: "#741D34", // ✅ KNAV maroon logout
+            color: "#741D34",
           }}
         >
           ⮕ Logout
