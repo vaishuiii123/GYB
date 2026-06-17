@@ -1,100 +1,98 @@
-
 import { useNavigate } from "react-router-dom";
 
 export default function Header({ user }: any) {
- 
   const navigate = useNavigate();
-  
+
   const handleLogout = () => {
-      const confirmLogout = window.confirm(
-      "Do you really want to logout?"
-    );
+    const confirmLogout = window.confirm("Do you really want to logout?");
 
-  if (confirmLogout) {
-    localStorage.clear();
-    sessionStorage.clear();
-
-    navigate("/");
-  }
-};
+    if (confirmLogout) {
+      localStorage.clear();
+      sessionStorage.clear();
+      navigate("/");
+    }
+  };
 
   const initials =
-  user?.name
-    ?.split(" ")
-    .map((word: string) => word[0])
-    .join("")
-    .toUpperCase() || "U";
-  
+    user?.name
+      ?.split(" ")
+      .map((word: string) => word[0])
+      .join("")
+      .toUpperCase() || "U";
+
   return (
-   <div
-  style={{
-    position: "fixed",
-    top: 0,
-    left: "220px",
-    right: 0,
-    height: "60px",
-    background: "#264ECF",
-    display: "flex",
-    alignItems: "center",
-    padding: "0 30px",
-    boxSizing: "border-box",
-    zIndex: 1000,
-  }}
->
-  <div
-    style={{
-      display: "flex",
-      alignItems: "center",
-      gap: "25px",
-      color: "white",
-      marginLeft: "auto", // ✅ THIS LINE FIXES EVERYTHING
-    }}
-  >
     <div
       style={{
+        position: "fixed",
+        top: 0,
+        left: 0, // ✅ full width header
+        right: 0,
+        height: "60px",
+        background: "#F5F5F5", // ✅ KNAV header color
         display: "flex",
         alignItems: "center",
-        gap: "10px",
+        padding: "0 30px",
+        boxSizing: "border-box",
+        zIndex: 1000,
+        borderBottom: "1px solid #E0E0E0",
       }}
     >
       <div
         style={{
-          width: "42px",
-          height: "42px",
-          borderRadius: "50%",
-          background: "rgba(255,255,255,0.2)",
           display: "flex",
-          justifyContent: "center",
           alignItems: "center",
-          fontWeight: "600",
+          gap: "25px",
+          color: "#2C2C2C", // ✅ dark text
+          marginLeft: "auto",
         }}
       >
-        {initials}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+          }}
+        >
+          <div
+            style={{
+              width: "42px",
+              height: "42px",
+              borderRadius: "50%",
+              background: "#741D34", // ✅ KNAV maroon
+              color: "white",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              fontWeight: "600",
+            }}
+          >
+            {initials}
+          </div>
+        </div>
+
+        <div
+          style={{
+            width: "1px",
+            height: "35px",
+            background: "#D0D0D0",
+          }}
+        />
+
+        <div
+          onClick={handleLogout}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            cursor: "pointer",
+            fontWeight: "600",
+            fontSize: "16px",
+            color: "#741D34", // ✅ KNAV maroon logout
+          }}
+        >
+          ⮕ Logout
+        </div>
       </div>
     </div>
-
-    <div
-      style={{
-        width: "1px",
-        height: "35px",
-        background: "rgba(255,255,255,0.3)",
-      }}
-    />
-
-    <div
-      onClick={handleLogout}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "10px",
-        cursor: "pointer",
-        fontWeight: "600",
-        fontSize: "18px",
-      }}
-    >
-      ↪ Logout
-    </div>
-  </div>
-</div>
   );
 }
