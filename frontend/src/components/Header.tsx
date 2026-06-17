@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import logo from "../images/KNAV logo.png";
+import logo from "../images/KNAV_logo.png";
 
 export default function Header({ user }: any) {
   const navigate = useNavigate();
