@@ -10,18 +10,14 @@ export default function Workshop({
   user,
 }: PageProps) {
 
-  const [templates, setTemplates] =
-    useState<any[]>([]);
-
-  const [organizations, setOrganizations] =
-    useState<any[]>([]);
-
-  const [participants, setParticipants] =
-    useState<any[]>([]);
-
-  const [loading, setLoading] =
-    useState(false);
-
+  const [templates, setTemplates] = useState<any[]>([]);
+  
+  const [organizations, setOrganizations] = useState<any[]>([]);
+  
+  const [participants, setParticipants] = useState<any[]>([]);
+  
+  const [loading, setLoading] = useState(false);
+  
   const [formData, setFormData] =
     useState({
       workshopName: "",
@@ -30,110 +26,92 @@ export default function Workshop({
       templateId: "",
       organizationId: "",
     });
-
+  
   useEffect(() => {
-    loadDropdowns();
+    loadTemplates();
+    loadOrganizations();
   }, []);
-
+  
   useEffect(() => {
-
     if (
       formData.organizationId
     ) {
-
       loadParticipants(
         formData.organizationId
       );
-    }
-    else {
-
+    } else {
       setParticipants([]);
     }
-
-  }, [formData.organizationId]);
-
-  const loadDropdowns = async () => {
-
-  try {
-
-    const [templateResponse, organizationResponse] =
-      await Promise.all([
-        fetch("/api/get-template"),
-        fetch(
-          `/api/get-organization?createdBy=${user?.email}`
-        ),
-      ]);
-
-    const templateData =
-      await templateResponse.json();
-
-    const organizationData =
-      await organizationResponse.json();
-
-    if (templateData.success) {
-
-      setTemplates(
-        templateData.templates || []
-      );
-    }
-
-    if (organizationData.success) {
-
-      setOrganizations(
-        organizationData.organizations || []
-      );
-    }
-
-    console.log(
-  "Templates:",
-  templateData
-);
-
-console.log(
-  "Organizations:",
-  organizationData
-);
-
-  } catch (error) {
-
-    console.error(
-      "Error loading dropdowns:",
-      error
-    );
-  }
-};
-
+  }, [
+    formData.organizationId
+  ]);
+  
+  const loadTemplates =
+    async () => {
+      try {
+        const response =
+          await fetch(
+            "/api/get-templates"
+          );
+        const data = await response.json();
+  
+        if (data.success) {
+          setTemplates(
+            data.templates || []
+          );
+        }
+      } catch (error) {
+        console.error("Error loading templates",error);
+      }
+  };
+  
+  const loadOrganizations =
+    async () => {
+      try {
+        const response = await fetch(`/api/get-organization?createdBy=${user?.email}` );
+  
+        const data = await response.json();
+        if (data.success) { 
+          setOrganizations(
+            data.organizations || []
+          );
+        } 
+      } catch (error) {
+        console.error("Error loading organizations",error);
+      }
+  };
+  
   const loadParticipants =
     async (
       organizationId: string
     ) => {
-
+  
       try {
-
+  
         const response =
           await fetch(
             `/api/get-participants-by-organization?organizationId=${organizationId}`
           );
-
+  
         const data =
           await response.json();
-
+  
         if (data.success) {
-
+  
           setParticipants(
             data.participants || []
           );
         }
-
+  
       } catch (error) {
-
+  
         console.error(error);
       }
-    };
-
+  };
+  
   const handleCreateWorkshop =
     async () => {
-
+  
       if (
         !formData.workshopName ||
         !formData.startDate ||
@@ -141,32 +119,32 @@ console.log(
         !formData.templateId ||
         !formData.organizationId
       ) {
-
+  
         alert(
           "Please fill all required fields"
         );
-
+  
         return;
       }
-
+  
       try {
-
+  
         setLoading(true);
-
+  
         const selectedTemplate =
           templates.find(
             (t) =>
               t.id ===
               formData.templateId
           );
-
+  
         const selectedOrganization =
           organizations.find(
             (o) =>
               o.id ===
               formData.organizationId
           );
-
+  
         const response =
           await fetch(
             "/api/create-workshop",
@@ -179,43 +157,43 @@ console.log(
               body: JSON.stringify({
                 workshopName:
                   formData.workshopName,
-
+  
                 startDate:
                   formData.startDate,
-
+  
                 endDate:
                   formData.endDate,
-
+  
                 templateId:
                   selectedTemplate?.id,
-
+  
                 templateName:
                   selectedTemplate?.templateName,
-
+  
                 organizationId:
                   selectedOrganization?.id,
-
+  
                 organizationName:
                   selectedOrganization?.organizationName,
-
+  
                 participantCount:
                   participants.length,
-
+  
                 createdBy:
-                  user?.name || "",
+                  user?.email || "",
               }),
             }
           );
-
+  
         const data =
           await response.json();
-
+  
         if (data.success) {
-
+  
           alert(
             "Workshop created successfully"
           );
-
+  
           setFormData({
             workshopName: "",
             startDate: "",
@@ -223,32 +201,32 @@ console.log(
             templateId: "",
             organizationId: "",
           });
-
+  
           setParticipants([]);
-        }
-        else {
-
+  
+        } else {
+  
           alert(
             data.error ||
             "Failed to create workshop"
           );
         }
-
+  
       } catch (error) {
-
+  
         console.error(error);
-
+  
         alert(
           "Failed to create workshop"
         );
-
+  
       } finally {
-
+  
         setLoading(false);
       }
-    };
-
-  return (
+  };
+    
+    return (
     <div
       style={{
         display: "flex",
