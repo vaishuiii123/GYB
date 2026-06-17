@@ -18,8 +18,8 @@ export default function Sidebar() {
         background: "#741D34", // ✅ KNAV primary
         position: "fixed",
         left: 0,
-        top: 0,
-        height: "100vh",
+        top: "60px",
+        height: "calc(100vh - 60px)",
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
@@ -29,53 +29,7 @@ export default function Sidebar() {
     >
       <div>
         {/* Logo/Header */}
-        <div
-          style={{
-            padding: "25px 20px",
-            borderBottom: "1px solid rgba(255,255,255,0.1)",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <div
-              style={{
-                width: "48px",
-                height: "48px",
-                background: "#8A2D45", // ✅ lighter maroon
-                borderRadius: "12px",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                color: "white",
-                fontSize: "24px",
-              }}
-            >
-              🏢
-            </div>
-
-            <div>
-              <div
-                style={{
-                  color: "white",
-                  fontSize: "18px",
-                  fontWeight: "600",
-                }}
-              >
-                KNAV Portal
-              </div>
-
-              <div
-                style={{
-                  color: "rgba(255,255,255,0.7)",
-                  fontSize: "12px",
-                }}
-              >
-                Workshop Management System
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Menu */}
+            {/* Menu */}
         <div
           style={{
             padding: "15px",
