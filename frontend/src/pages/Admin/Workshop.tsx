@@ -78,7 +78,7 @@ export default function Workshop({
   const loadOrganizations =
     async () => {
       try {
-        const response = await fetch(`/api/get-organization?createdBy=${user?.email}` );
+        const response = await fetch(`/api/get-organizations?createdBy=${user?.email}` );
   
         const data = await response.json();
 
