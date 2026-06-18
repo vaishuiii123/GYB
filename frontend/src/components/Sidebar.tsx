@@ -57,7 +57,7 @@ export default function Sidebar() {
               color: "black",
 
               background: isActive
-                ? "#9B304A"
+                ? "white" //"#9B304A"
                 : "transparent",
 
               padding: "14px 18px",
