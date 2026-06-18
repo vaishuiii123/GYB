@@ -13,11 +13,10 @@ export default function Sidebar() {
   ];
 
   return (
-
     <div
       style={{
         width: "220px",
-        background: "white",
+        background: "#FFFFFF",
 
         position: "fixed",
         top: "60px",
@@ -27,8 +26,7 @@ export default function Sidebar() {
 
         overflowY: "auto",
 
-        borderRight:
-          "1px solid rgba(255,255,255,0.08)",
+        borderRight: "1px solid #E5E7EB",
 
         zIndex: 999,
 
@@ -36,7 +34,6 @@ export default function Sidebar() {
           '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
       }}
     >
-
       <div
         style={{
           padding: "16px",
@@ -45,19 +42,19 @@ export default function Sidebar() {
           gap: "12px",
         }}
       >
-
         {menuItems.map((item) => (
-
           <NavLink
             key={item.path}
             to={item.path}
             style={({ isActive }) => ({
               textDecoration: "none",
 
-              color: "black",
+              color: isActive
+                ? "#FFFFFF"
+                : "#374151",
 
               background: isActive
-                ? "white" //"#9B304A"
+                ? "#9B304A"
                 : "transparent",
 
               padding: "14px 18px",
@@ -75,11 +72,9 @@ export default function Sidebar() {
                 ? 600
                 : 500,
 
-              transition:
-                "all 0.2s ease",
+              transition: "all 0.2s ease",
             })}
           >
-
             <span
               style={{
                 width: "22px",
@@ -90,16 +85,10 @@ export default function Sidebar() {
               {item.icon}
             </span>
 
-            <span>
-              {item.name}
-            </span>
-
+            <span>{item.name}</span>
           </NavLink>
-
         ))}
-
       </div>
-
     </div>
   );
 }
