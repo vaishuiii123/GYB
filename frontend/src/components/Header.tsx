@@ -24,19 +24,20 @@ export default function Header({ user }: any) {
   return (
     <div
       style={{
-        position: "fixed",
-        top: 0,
-        left: 0, // ✅ full width header
-        right: 0,
-        height: "60px",
-        background: "#741D34", // ✅ KNAV header color
-        display: "flex",
-        alignItems: "center",
-        padding: "0 30px",
-        boxSizing: "border-box",
-        zIndex: 1000,
-        borderBottom: "1px solid #E0E0E0",
-      }}
+  position: "fixed",
+  top: 0,
+  left: "250px",         // match sidebar width
+  right: 0,
+  height: "60px",
+  background: "#741D34",
+  display: "flex",
+  alignItems: "center",
+  padding: "0 30px",
+  boxSizing: "border-box",
+  zIndex: 1000,
+  borderBottom: "1px solid #E0E0E0",
+}}
+
     >
 
       
