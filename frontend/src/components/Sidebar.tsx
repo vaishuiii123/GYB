@@ -17,7 +17,7 @@ export default function Sidebar() {
     <div
       style={{
         width: "220px",
-        background: "#741D34",
+        background: "white",
 
         position: "fixed",
         top: "60px",
@@ -54,7 +54,7 @@ export default function Sidebar() {
             style={({ isActive }) => ({
               textDecoration: "none",
 
-              color: "#FFFFFF",
+              color: "black",
 
               background: isActive
                 ? "#9B304A"
