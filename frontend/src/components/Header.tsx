@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import logo from "../images/KNAV logo.png";
+import logo from "../images/knav_white.png";
 
 export default function Header({ user }: any) {
   const navigate = useNavigate();
@@ -44,7 +44,7 @@ export default function Header({ user }: any) {
               src={logo}
               alt="KNAV Logo"
               style={{
-                height: "35px",
+                height: "40px",
                 objectFit: "contain",
               }}
             />
