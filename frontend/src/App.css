@@ -22,29 +22,31 @@ body {
    SCROLLBAR
 ========================= */
 
+/* Chrome / Edge / Safari */
+
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f3f4f6;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c5c5c5;
-  border-radius: 10px;
+  background: #c8c8c8;
+  border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+  background: #b0b0b0;
 }
 
 /* Firefox */
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #c5c5c5 #f3f4f6;
+  scrollbar-color: #c8c8c8 transparent;
 }
 
 /* =========================
@@ -131,4 +133,33 @@ img {
   margin-top: 60px;
   padding: 25px;
   box-sizing: border-box;
+}
+
+/* =========================
+   SMOOTH SCROLL
+========================= */
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* =========================
+   OPTIONAL SIDEBAR SCROLLBAR
+========================= */
+
+.sidebar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 999px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: #b8bcc4;
 }
