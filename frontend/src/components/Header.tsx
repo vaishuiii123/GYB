@@ -26,8 +26,8 @@ export default function Header({ user }: any) {
       style={{
   position: "fixed",
   top: 0,
-  left: "250px",         // match sidebar width
-  right: 0,
+  left: 0,         // match sidebar width
+  right: "10px",
   height: "60px",
   background: "#741D34",
   display: "flex",
