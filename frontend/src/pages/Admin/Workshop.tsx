@@ -13,6 +13,7 @@ export default function Workshop({ user }: PageProps) {
   const [participants, setParticipants] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [showCreatePopup, setShowCreatePopup] = useState(false);
+  const [workshops, setWorkshops] = useState<any[]>([]);
 
   const [formData, setFormData] = useState({
     workshopName: "",
@@ -28,6 +29,7 @@ export default function Workshop({ user }: PageProps) {
     if (user?.email) {
       loadTemplates();
       loadOrganizations();
+      loadWorkshops();
     }
   }, [user]);
 
@@ -38,6 +40,8 @@ export default function Workshop({ user }: PageProps) {
       setParticipants([]);
     }
   }, [formData.organizationId]);
+
+
 
   const loadTemplates = async () => {
     try {
@@ -89,72 +93,93 @@ export default function Workshop({ user }: PageProps) {
     }
   };
 
+
   const handleCreateWorkshop = async () => {
-    if (
-      !formData.workshopName ||
-      !formData.startDate ||
-      !formData.endDate ||
-      !formData.templateId ||
-      !formData.organizationId
-    ) {
-      alert("Please fill all required fields");
-      return;
-    }
+  if (
+    !formData.workshopName ||
+    !formData.startDate ||
+    !formData.endDate ||
+    !formData.templateId ||
+    !formData.organizationId
+  ) {
+    alert("Please fill all required fields");
+    return;
+  }
 
-    try {
-      setLoading(true);
+  try {
+    setLoading(true);
 
-      const selectedTemplate = templates.find(
-        (t) => t.id === formData.templateId
-      );
+    const selectedTemplate = templates.find(
+      (t) => t.id === formData.templateId
+    );
 
-      const selectedOrganization = organizations.find(
-        (o) => o.id === formData.organizationId
-      );
+    const selectedOrganization = organizations.find(
+      (o) => o.id === formData.organizationId
+    );
 
-      const response = await fetch("/api/create-workshop", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          workshopName: formData.workshopName,
-          startDate: formData.startDate,
-          endDate: formData.endDate,
-          templateId: selectedTemplate?.id,
-          templateName: selectedTemplate?.templateName,
-          organizationId: selectedOrganization?.id,
-          organizationName: selectedOrganization?.organizationName,
-          participantCount: participants.length,
-          createdBy: user?.email || "",
-        }),
+    const response = await fetch("/api/create-workshop", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        workshopName: formData.workshopName,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        templateId: selectedTemplate?.id,
+        templateName: selectedTemplate?.templateName,
+        organizationId: selectedOrganization?.id,
+        organizationName: selectedOrganization?.organizationName,
+        participantCount: participants.length,
+        createdBy: user?.email || "",
+      }),
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      alert("Workshop created successfully");
+
+      setFormData({
+        workshopName: "",
+        startDate: "",
+        endDate: "",
+        templateId: "",
+        organizationId: "",
       });
 
-      const data = await response.json();
+      setParticipants([]);
 
-      if (data.success) {
-        alert("Workshop created successfully");
+      // Refresh the workshop list
+      await loadWorkshops();
 
-        setFormData({
-          workshopName: "",
-          startDate: "",
-          endDate: "",
-          templateId: "",
-          organizationId: "",
-        });
-
-        setParticipants([]);
-        setShowCreatePopup(false);
-      } else {
-        alert(data.error || "Failed to create workshop");
-      }
-    } catch (error) {
-      console.error(error);
-      alert("Failed to create workshop");
-    } finally {
-      setLoading(false);
+      // Close the popup
+      setShowCreatePopup(false);
+    } else {
+      alert(data.error || "Failed to create workshop");
     }
-  };
+  } catch (error) {
+    console.error("Error creating workshop:", error);
+    alert("Failed to create workshop");
+  } finally {
+    setLoading(false);
+  }
+};
+  const loadWorkshops = async () => {
+  try {
+    const response = await fetch(
+      `/api/get-workshops?createdBy=${user?.email}`
+    );
+
+    const data = await response.json();
+
+    if (data.success) {
+      setWorkshops(data.workshops || []);
+    }
+  } catch (error) {
+    console.error("Error loading workshops", error);
+  }
+};
 
   return (
     <div className={styles.page}>
@@ -178,9 +203,7 @@ export default function Workshop({ user }: PageProps) {
           {showCreatePopup && (
             <div className={styles.modalOverlay}>
               <div className={styles.modal}>
-
                 <div className={styles.formGridThree}>
-
                   <div className={styles.formGroup}>
                     <label className={styles.label}>
                       Workshop Name *
@@ -318,7 +341,9 @@ export default function Workshop({ user }: PageProps) {
                         templateId: "",
                         organizationId: "",
                       });
-
+                    
+                      setParticipants([]);
+                    
                       setShowCreatePopup(false);
                     }}
                   >
@@ -370,8 +395,52 @@ export default function Workshop({ user }: PageProps) {
               </table>
             </div>
           )}
+          <div className={styles.tableCard}>
+  <h3 className={styles.tableTitle}>Scheduled Workshops</h3>
+
+  <table className={styles.table}>
+    <thead>
+      <tr>
+        <th className={styles.th}>Sr No</th>
+        <th className={styles.th}>Workshop Name</th>
+        <th className={styles.th}>Template</th>
+        <th className={styles.th}>Organization</th>
+        <th className={styles.th}>Start Date</th>
+        <th className={styles.th}>End Date</th>
+        <th className={styles.th}>Participants</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {workshops.length > 0 ? (
+        workshops.map((workshop: any, index: number) => (
+          <tr key={workshop.id}>
+            <td className={styles.td}>{index + 1}</td>
+            <td className={styles.td}>{workshop.workshopName}</td>
+            <td className={styles.td}>{workshop.templateName}</td>
+            <td className={styles.td}>{workshop.organizationName}</td>
+            <td className={styles.td}>
+              {new Date(workshop.startDate).toLocaleString()}
+            </td>
+            <td className={styles.td}>
+              {new Date(workshop.endDate).toLocaleString()}
+            </td>
+            <td className={styles.td}>{workshop.participantCount}</td>
+          </tr>
+        ))
+      ) : (
+        <tr>
+          <td className={styles.td} colSpan={7}>
+            No workshops scheduled.
+          </td>
+        </tr>
+      )}
+    </tbody>
+  </table>
+</div>
         </div>
       </div>
+      
     </div>
   );
 }
