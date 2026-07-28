@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
-import styles from "../../styles/Organization.css";
+import "../../styles/Organization.css";
 
 type PageProps = {
   user?: any;
