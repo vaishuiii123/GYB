@@ -1,0 +1,87 @@
+.card = {
+  background: "white",
+  padding: "24px",
+  borderRadius: "18px",
+  boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
+};
+
+.pageHeader = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: "20px",
+};
+
+.pageTitle = {
+  fontSize: "32px",
+  fontWeight: "700",
+  color: "#111827",
+  margin: 0,
+};
+
+.saveBtn = {
+  background: "#3b5bcc",
+  color: "white",
+  border: "none",
+  borderRadius: "8px",
+  padding: "10px 16px",
+  cursor: "pointer",
+};
+
+.tableHeader = {
+  padding: "12px",
+  textAlign: "left" as const,
+  borderBottom: "1px solid #ddd",
+};
+
+.tableCell = {
+  padding: "12px",
+  borderBottom: "1px solid #eee",
+};
+
+.modalOverlay = {
+  position: "fixed" as const,
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  background: "rgba(0,0,0,0.5)",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  zIndex: 9999,
+};
+
+.modalBox = {
+  background: "white",
+  padding: "25px",
+  width: "500px",
+  borderRadius: "12px",
+  display: "flex",
+  flexDirection: "column" as const,
+  gap: "12px",
+};
+
+.inputStyle = {
+  padding: "10px",
+  border: "1px solid #ddd",
+  borderRadius: "6px",
+};
+
+.editBtn = {
+  background: "#3b82f6",
+  color: "white",
+  border: "none",
+  borderRadius: "6px",
+  padding: "6px 12px",
+  cursor: "pointer",
+};
+
+.deleteBtn = {
+  background: "#ef4444",
+  color: "white",
+  border: "none",
+  borderRadius: "6px",
+  padding: "6px 12px",
+  cursor: "pointer",
+};
