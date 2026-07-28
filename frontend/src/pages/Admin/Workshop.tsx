@@ -48,6 +48,7 @@ export default function Workshop({ user }: PageProps) {
 
       if (data.success) {
         setTemplates(data.templates || []);
+       
       }
     } catch (error) {
       console.error("Error loading templates", error);
@@ -143,6 +144,7 @@ export default function Workshop({ user }: PageProps) {
         });
 
         setParticipants([]);
+        setShowCreatePopup(false);
       } else {
         alert(data.error || "Failed to create workshop");
       }
