@@ -1,87 +1,102 @@
-.card = {
-  background: "white",
-  padding: "24px",
-  borderRadius: "18px",
-  boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
-};
+.organizationLayout{
+    display:flex;
+    min-height:100vh;
+    background:#f3f4f6;
+}
 
-.pageHeader = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginBottom: "20px",
-};
+.organizationMain{
+    flex:1;
+    margin-left:220px;
+}
 
-.pageTitle = {
-  fontSize: "32px",
-  fontWeight: "700",
-  color: "#111827",
-  margin: 0,
-};
+.organizationContent{
+    padding:25px;
+    margin-top:70px;
+}
 
-.saveBtn = {
-  background: "#3b5bcc",
-  color: "white",
-  border: "none",
-  borderRadius: "8px",
-  padding: "10px 16px",
-  cursor: "pointer",
-};
+.headerActions{
+    display:flex;
+    gap:10px;
+}
 
-.tableHeader = {
-  padding: "12px",
-  textAlign: "left" as const,
-  borderBottom: "1px solid #ddd",
-};
+.customTable{
+    width:100%;
+    border-collapse:collapse;
+}
 
-.tableCell = {
-  padding: "12px",
-  borderBottom: "1px solid #eee",
-};
+.customTable th{
+    text-align:left;
+    padding:14px;
+    border-bottom:1px solid #e5e7eb;
+    background:#f9fafb;
+    font-weight:600;
+}
 
-.modalOverlay = {
-  position: "fixed" as const,
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  background: "rgba(0,0,0,0.5)",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  zIndex: 9999,
-};
+.customTable td{
+    padding:14px;
+    border-bottom:1px solid #ececec;
+}
 
-.modalBox = {
-  background: "white",
-  padding: "25px",
-  width: "500px",
-  borderRadius: "12px",
-  display: "flex",
-  flexDirection: "column" as const,
-  gap: "12px",
-};
+.actionButtons{
+    display:flex;
+    gap:8px;
+}
 
-.inputStyle = {
-  padding: "10px",
-  border: "1px solid #ddd",
-  borderRadius: "6px",
-};
+.viewBtn{
+    background:#0ea5e9;
+    color:#fff;
+    border:none;
+    border-radius:6px;
+    padding:6px 12px;
+    cursor:pointer;
+}
 
-.editBtn = {
-  background: "#3b82f6",
-  color: "white",
-  border: "none",
-  borderRadius: "6px",
-  padding: "6px 12px",
-  cursor: "pointer",
-};
+.viewBtn:hover{
+    background:#0284c7;
+}
 
-.deleteBtn = {
-  background: "#ef4444",
-  color: "white",
-  border: "none",
-  borderRadius: "6px",
-  padding: "6px 12px",
-  cursor: "pointer",
-};
+.formGroup{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+}
+
+.formGroup label{
+    font-weight:600;
+    color:#374151;
+}
+
+.modalHeader{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:10px;
+}
+
+.modalFooter{
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+    margin-top:15px;
+}
+
+.cancelBtn{
+    padding:10px 16px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    background:#e5e7eb;
+}
+
+.closeIcon{
+    background:none;
+    border:none;
+    font-size:24px;
+    cursor:pointer;
+}
+
+.emptyText{
+    text-align:center;
+    padding:40px;
+    color:#6b7280;
+}
