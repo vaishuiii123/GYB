@@ -37,31 +37,17 @@ export default function CategoryManagement({ user }: PageProps) {
           {/* Table Card */}
 
           <div className="category-card">
-
             <table className="category-table">
-
               <thead>
-
                 <tr>
-
                   <th>Top Category Name</th>
-
-                  <th width="250">
-                    Actions
-                  </th>
-
+                  <th>Actions</th>
                 </tr>
-
               </thead>
-
               <tbody>
-
                 <tr>
-
                   <td>Business Assessment</td>
-
                   <td>
-
                     <button className="view-btn">
                       View
                     </button>
@@ -75,15 +61,10 @@ export default function CategoryManagement({ user }: PageProps) {
                     </button>
 
                   </td>
-
                 </tr>
-
                 <tr>
-
                   <td>Markets & Customers</td>
-
                   <td>
-
                     <button className="view-btn">
                       View
                     </button>
