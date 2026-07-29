@@ -20,6 +20,7 @@ import TemplateDetails from "./pages/Admin/TemplateDetails";
 import Workshop from "./pages/Admin/Workshop";
 import UserLogin from "./pages/User/UserLogin";
 import UserDashboard from "./pages/User/UserDashboard";
+import CategoryManagement from "./pages/Admin/CategoryManagement";
 
 function App() {
 
@@ -65,8 +66,8 @@ function App() {
 
        <Route
           path="/category"
-          element={<Category user={currentUser} />}
-        />
+          element={<CategoryManagement user={currentUser} />}
+      />
 
        <Route
         path="/category/:masterCategoryId"
