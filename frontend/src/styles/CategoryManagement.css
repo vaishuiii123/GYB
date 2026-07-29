@@ -66,8 +66,6 @@
 .category-table td{
     padding:16px;
     border-bottom:1px solid #ececec;
-<<<<<<< HEAD
-=======
 }
 
 .view-btn{
@@ -102,7 +100,6 @@
 .category-table th:last-child,
 .category-table td:last-child {
     width: 250px;
->>>>>>> origin/main
 }
 
 .view-btn{
