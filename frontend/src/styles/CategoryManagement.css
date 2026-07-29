@@ -66,6 +66,43 @@
 .category-table td{
     padding:16px;
     border-bottom:1px solid #ececec;
+<<<<<<< HEAD
+=======
+}
+
+.view-btn{
+    background:#16a34a;
+    color:#fff;
+    border:none;
+    padding:7px 14px;
+    border-radius:6px;
+    margin-right:8px;
+    cursor:pointer;
+}
+
+.edit-btn{
+    background:#2563eb;
+    color:white;
+    border:none;
+    padding:7px 14px;
+    border-radius:6px;
+    margin-right:8px;
+    cursor:pointer;
+}
+
+.delete-btn{
+    background:#dc2626;
+    color:white;
+    border:none;
+    padding:7px 14px;
+    border-radius:6px;
+    cursor:pointer;
+}
+
+.category-table th:last-child,
+.category-table td:last-child {
+    width: 250px;
+>>>>>>> origin/main
 }
 
 .view-btn{
