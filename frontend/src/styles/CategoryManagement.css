@@ -96,3 +96,8 @@
     border-radius:6px;
     cursor:pointer;
 }
+
+.category-table th:last-child,
+.category-table td:last-child {
+    width: 250px;
+}
