@@ -1,75 +1,98 @@
-/* Page Container */
-.category-page {
-  display: flex;
-  min-height: 100vh;
-  background: #f3f4f6;
+.category-page{
+    display:flex;
+    min-height:100vh;
+    background:#f3f4f6;
 }
 
-.category-content {
-  flex: 1;
-  margin-left: 220px;
+.category-content{
+    flex:1;
+    margin-left:220px;
 }
 
-.category-body {
-  padding: 25px;
-  margin-top: 70px;
+.category-body{
+    padding:25px;
+    margin-top:70px;
 }
 
-/* Header */
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 25px;
+.breadcrumb{
+    color:#6b7280;
+    font-size:14px;
+    margin-bottom:12px;
 }
 
-.page-title {
-  margin: 0;
-  font-size: 32px;
-  font-weight: 700;
-  color: #111827;
+.page-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:20px;
 }
 
-/* Create Button */
-.create-btn {
-  background: #9b304a;
-  color: white;
-  border: none;
-  padding: 10px 18px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 15px;
-  font-weight: 600;
-  transition: 0.2s;
+.page-title{
+    margin:0;
+    font-size:34px;
+    font-weight:700;
+    color:#111827;
 }
 
-.create-btn:hover {
-  background: #82283f;
+.create-btn{
+    background:#9B304A;
+    color:#fff;
+    border:none;
+    padding:12px 18px;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:600;
 }
 
-/* Tabs */
-.tabs {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 25px;
+.category-card{
+    background:#fff;
+    border-radius:18px;
+    padding:24px;
+    box-shadow:0 4px 20px rgba(0,0,0,.06);
 }
 
-.tab-btn {
-  padding: 10px 18px;
-  border: none;
-  border-radius: 8px;
-  background: #e5e7eb;
-  color: #374151;
-  cursor: pointer;
-  font-weight: 600;
-  transition: 0.2s;
+.category-table{
+    width:100%;
+    border-collapse:collapse;
 }
 
-.tab-btn:hover {
-  background: #d1d5db;
+.category-table th{
+    text-align:left;
+    background:#f9fafb;
+    padding:16px;
+    font-size:15px;
 }
 
-.tab-btn.active {
-  background: #9b304a;
-  color: white;
+.category-table td{
+    padding:16px;
+    border-bottom:1px solid #ececec;
+}
+
+.view-btn{
+    background:#16a34a;
+    color:#fff;
+    border:none;
+    padding:7px 14px;
+    border-radius:6px;
+    margin-right:8px;
+    cursor:pointer;
+}
+
+.edit-btn{
+    background:#2563eb;
+    color:white;
+    border:none;
+    padding:7px 14px;
+    border-radius:6px;
+    margin-right:8px;
+    cursor:pointer;
+}
+
+.delete-btn{
+    background:#dc2626;
+    color:white;
+    border:none;
+    padding:7px 14px;
+    border-radius:6px;
+    cursor:pointer;
 }
