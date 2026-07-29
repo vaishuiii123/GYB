@@ -21,6 +21,7 @@ import Workshop from "./pages/Admin/Workshop";
 import UserLogin from "./pages/User/UserLogin";
 import UserDashboard from "./pages/User/UserDashboard";
 import CategoryManagement from "./pages/Admin/CategoryManagement";
+import MiddleCategory from "./pages/Admin/MiddleCategory";
 
 function App() {
 
@@ -67,6 +68,11 @@ function App() {
        <Route
           path="/category"
           element={<CategoryManagement user={currentUser} />}
+      />
+      
+      <Route
+        path="/middle-category/:topCategoryId"
+        element={<MiddleCategory user={currentUser}/>}
       />
 
        <Route

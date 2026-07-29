@@ -24,7 +24,7 @@ export default function AdminLogin({ onLogin }: LoginProps) {
 
       const data = await response.json();
 
-      //console.log("API Response:", data);
+      console.log("API Response:", data);
 
       if (data.found) {
         //setIsAuthorized(true);
