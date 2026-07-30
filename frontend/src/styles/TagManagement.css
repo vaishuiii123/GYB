@@ -1,0 +1,459 @@
+/* Main Layout */
+
+.tag-page {
+    display: flex;
+    min-height: 100vh;
+    background: #f8f9fb;
+    font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+}
+
+
+.tag-content {
+    flex: 1;
+    margin-left: 220px;
+}
+
+
+.tag-body {
+    padding: 30px 45px;
+}
+
+
+
+/* Breadcrumb */
+
+.breadcrumb {
+    color: #64748b;
+    font-size: 14px;
+    margin-bottom: 15px;
+}
+
+
+
+/* Header */
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    margin-top: 40px;
+}
+
+
+.page-title {
+    font-size: 40px;
+    font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+    color: #16213e;
+}
+
+
+
+/* Create Button */
+
+.create-btn {
+    background:#9b304a;
+    color:white;
+    border:none;
+    padding:14px 25px;
+    border-radius:10px;
+    font-size:15px;
+    font-weight:600;
+    cursor:pointer;
+}
+
+
+.create-btn:hover {
+
+    background:#81263c;
+
+}
+
+
+
+/* Table Card */
+
+.tag-card {
+
+    background:white;
+
+    border-radius:18px;
+
+    padding:25px;
+
+    box-shadow:0 8px 25px rgba(0,0,0,0.08);
+
+}
+
+
+
+.tag-table {
+
+    width:100%;
+
+    border-collapse:collapse;
+
+}
+
+
+
+.tag-table th {
+
+    text-align:left;
+
+    padding:18px;
+
+    background:#fafafa;
+
+    font-size:20px;
+
+    color:#111827;
+
+}
+
+
+
+.tag-table td {
+
+    padding:18px;
+
+    border-bottom:1px solid #e5e7eb;
+
+}
+
+
+
+/* Tag Name */
+
+.tag-name {
+
+    display:flex;
+
+    align-items:center;
+
+    gap:15px;
+
+}
+
+
+.tag-dot {
+
+    width:18px;
+
+    height:18px;
+
+    border-radius:50%;
+
+}
+
+
+.tag-name span:last-child {
+
+    font-size:18px;
+
+    font-weight:600;
+
+}
+
+
+
+/* Buttons */
+
+
+.tag-edit-btn {
+
+
+    display:inline-flex;
+
+    align-items:center;
+
+    gap:7px;
+
+
+    background:white;
+
+    color:#2563eb;
+
+
+    border:1px solid #2563eb;
+
+    border-radius:8px;
+
+
+    padding:8px 18px;
+
+
+    font-weight:600;
+
+
+    cursor:pointer;
+
+
+    margin-right:12px;
+
+}
+
+
+
+.tag-edit-btn:hover {
+
+    background:#eff6ff;
+
+}
+
+
+
+
+.tag-delete-btn {
+
+
+    display:inline-flex;
+
+    align-items:center;
+
+    gap:7px;
+
+
+    background:white;
+
+
+    color:#ef4444;
+
+
+    border:1px solid #ef4444;
+
+
+    border-radius:8px;
+
+
+    padding:8px 18px;
+
+
+    font-weight:600;
+
+
+    cursor:pointer;
+
+}
+
+
+
+.tag-delete-btn:hover {
+
+    background:#fef2f2;
+
+}
+
+
+
+/* Bottom Info Card */
+
+
+.tag-info-card {
+
+
+    margin-top:40px;
+
+
+    border:1px dashed #d98aa0;
+
+
+    border-radius:18px;
+
+
+    padding:35px;
+
+
+    display:flex;
+
+
+    align-items:center;
+
+
+    gap:40px;
+
+
+    background:#fffafa;
+
+
+}
+
+
+
+.tag-image {
+
+
+    width:170px;
+
+    height:120px;
+
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+
+    font-size:70px;
+
+}
+
+
+
+.tag-info-card h2 {
+
+
+    color:#8b2943;
+
+
+    font-size:26px;
+
+
+    margin-bottom:12px;
+
+
+}
+
+
+
+.tag-info-card p {
+
+
+    color:#64748b;
+
+
+    font-size:17px;
+
+
+}
+
+
+
+/* Modal */
+
+
+.modal-overlay {
+
+
+    position:fixed;
+
+    top:0;
+
+    left:0;
+
+    width:100%;
+
+    height:100%;
+
+
+    background:rgba(0,0,0,0.4);
+
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+
+}
+
+
+
+.modal {
+
+
+    background:white;
+
+    width:420px;
+
+    padding:30px;
+
+
+    border-radius:15px;
+
+
+}
+
+
+
+.form-group {
+
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:8px;
+
+    margin-bottom:20px;
+
+}
+
+
+
+.form-group input {
+
+
+    padding:12px;
+
+
+    border:1px solid #d1d5db;
+
+
+    border-radius:8px;
+
+
+    font-size:15px;
+
+}
+
+
+
+.modal-buttons {
+
+
+    display:flex;
+
+    justify-content:flex-end;
+
+    gap:15px;
+
+}
+
+
+
+.cancel-btn {
+
+
+    padding:10px 20px;
+
+    border:none;
+
+    background:#e5e7eb;
+
+    border-radius:8px;
+
+    cursor:pointer;
+
+}
+
+
+
+.save-btn {
+
+
+    padding:10px 20px;
+
+    border:none;
+
+    background:#9b304a;
+
+    color:white;
+
+    border-radius:8px;
+
+    cursor:pointer;
+
+}

@@ -1,12 +1,14 @@
 {
   "bindings": [
     {
-      "authLevel": "anonymous",
+      "authLevel": "function",
       "type": "httpTrigger",
       "direction": "in",
       "name": "req",
-      "methods": ["post"],
-      "route": "save-subcategory-questions"
+      "methods": [
+        "get"
+      ],
+      "route": "get-tags"
     },
     {
       "type": "http",

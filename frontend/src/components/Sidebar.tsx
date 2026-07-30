@@ -7,6 +7,7 @@ export default function Sidebar() {
     { name: "Organization", path: "/organization", icon: "🏢" },
     { name: "Participants", path: "/participants", icon: "👥" },
     { name: "Category Management", path: "/category", icon: "📂" },
+    { name: "Tag Management", path: "/tag-management", icon: "🏷️" },
     { name: "Questions", path: "/questions", icon: "❓" },
     { name: "Template", path: "/template", icon: "📄" },
     { name: "Workshop", path: "/workshop", icon: "🎓" },

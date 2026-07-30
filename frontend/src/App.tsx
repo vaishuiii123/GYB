@@ -20,6 +20,7 @@ import CategoryManagement from "./pages/Admin/CategoryManagement";
 import MiddleCategory from "./pages/Admin/MiddleCategory";
 import ParentCategory from "./pages/Admin/ParentCategory";
 import Category from "./pages/Admin/Category";
+import TagManagement from "./pages/Admin/TagManagement";
 
 function App() {
 
@@ -81,6 +82,11 @@ function App() {
       <Route
           path="/category/:parentCategoryId"
           element={<Category user={currentUser}/>}
+      />
+
+      <Route 
+          path="/tag-management" 
+          element={<TagManagement user={currentUser}/>} 
       />
 
        <Route
