@@ -9,18 +9,21 @@ import Dashboard from "./pages/Admin/Dashboard";
 import AdminLogin from "./pages/auth/AdminLogin";
 import Organization from "./pages/Admin/Organization";
 import Participants from "./pages/Admin/Participants";
-import Questions from "./pages/Admin/Questions";
 import Template from "./pages/Admin/Template";
 import CreateTemplate from "./pages/Admin/CreateTemplate";
 import TemplateDetails from "./pages/Admin/TemplateDetails";
 import Workshop from "./pages/Admin/Workshop";
 import UserLogin from "./pages/User/UserLogin";
 import UserDashboard from "./pages/User/UserDashboard";
+import VisionMission from "./pages/User/VisionMission";
 import CategoryManagement from "./pages/Admin/CategoryManagement";
 import MiddleCategory from "./pages/Admin/MiddleCategory";
 import ParentCategory from "./pages/Admin/ParentCategory";
 import Category from "./pages/Admin/Category";
+import CategoryQuestions from "./pages/Admin/CategoryQuestions";
 import TagManagement from "./pages/Admin/TagManagement";
+import QuestionManagement from "./pages/Admin/QuestionManagement";
+import VisionMissionManagement from "./pages/Admin/VisionMissionManagement";
 
 function App() {
 
@@ -47,6 +50,11 @@ function App() {
         <Route
           path="/userdashboard"
           element={<UserDashboard />}
+        />
+
+        <Route
+          path="/vision-mission"
+          element={<VisionMission />}
         />
        
        <Route
@@ -84,14 +92,24 @@ function App() {
           element={<Category user={currentUser}/>}
       />
 
+      <Route
+          path="/category-questions/:categoryId"
+          element={<CategoryQuestions user={currentUser}/>}
+      />
+
       <Route 
           path="/tag-management" 
           element={<TagManagement user={currentUser}/>} 
       />
 
-       <Route
-        path="/questions"
-        element={<Questions user={currentUser} />}
+      <Route
+        path="/question-management"
+        element={<QuestionManagement user={currentUser} /> }
+    />
+
+      <Route
+        path="/vision-mission-management"
+        element={<VisionMissionManagement user={currentUser} />}
       />
 
        <Route

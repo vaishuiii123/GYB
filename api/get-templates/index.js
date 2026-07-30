@@ -35,6 +35,18 @@ module.exports = async function (context, req) {
           categoryName:
             entity.CategoryName || "",
 
+          categoryNames: entity.CategoryName
+            ? entity.CategoryName.split(",").filter(Boolean)
+            : [],
+
+          categoryPaths: entity.CategoryPath
+            ? entity.CategoryPath.split("|").filter(Boolean)
+            : [],
+
+          categoryCount: entity.CategoryId
+            ? entity.CategoryId.split(",").filter(Boolean).length
+            : 0,
+
           questionIds:
             entity.QuestionIds || "",
 

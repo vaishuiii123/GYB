@@ -230,11 +230,18 @@ export default function Organization({ user }: PageProps) {
       const data = await response.json();
 
       if (data.success) {
-        showToast("Participants assigned successfully");
+        const addedCount = data.addedCount ?? selectedParticipantIds.length;
+        showToast(
+          addedCount > 0
+            ? `${addedCount} participant(s) assigned successfully`
+            : "Selected participants are already assigned"
+        );
         await loadAssignedParticipants(selectedOrganization.id);
         setSelectedParticipantIds([]);
         setShowAddParticipants(false);
         setSearchText("");
+      } else {
+        alert(data.message || data.error || "Failed to assign participants");
       }
     } catch (error) {
       console.error(error);
@@ -285,14 +292,20 @@ export default function Organization({ user }: PageProps) {
     );
   }, [organizations, tableSearch]);
 
-  const filteredParticipants = useMemo(() => {
+  const assignedParticipantIds = useMemo(
+    () => new Set(assignedParticipants.map((p) => p.id)),
+    [assignedParticipants]
+  );
+
+  const availableParticipants = useMemo(() => {
     const query = searchText.toLowerCase();
     return allParticipants.filter(
       (p) =>
-        `${p.firstName} ${p.lastName}`.toLowerCase().includes(query) ||
-        p.email?.toLowerCase().includes(query)
+        !assignedParticipantIds.has(p.id) &&
+        (`${p.firstName} ${p.lastName}`.toLowerCase().includes(query) ||
+          p.email?.toLowerCase().includes(query))
     );
-  }, [allParticipants, searchText]);
+  }, [allParticipants, assignedParticipantIds, searchText]);
 
   return (
     <>
@@ -550,8 +563,8 @@ export default function Organization({ user }: PageProps) {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredParticipants.length > 0 ? (
-                        filteredParticipants.map((participant) => {
+                      {availableParticipants.length > 0 ? (
+                        availableParticipants.map((participant) => {
                           const isSelected = selectedParticipantIds.includes(
                             participant.id
                           );

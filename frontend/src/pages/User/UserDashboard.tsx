@@ -1,6 +1,16 @@
 import UserHeader from "./UserHeader";
+import { useNavigate } from "react-router-dom";
 
 export default function UserDashboard() {
+  const navigate = useNavigate();
+
+  const menuItems = [
+    { label: "Vision And Mission Statement", path: "/vision-mission" },
+    { label: "Questionnaire", path: null },
+    { label: "List of Actionables", path: null },
+    { label: "Workshop Feedback", path: null },
+  ];
+
   return (
     <div
       style={{
@@ -29,21 +39,17 @@ export default function UserDashboard() {
             boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
           }}
         >
-          {[
-            "Vision And Mission Statement",
-            "Questionnaire",
-            "List of Actionables",
-            "Workshop Feedback",
-          ].map((item, index) => (
+          {menuItems.map((item, index) => (
             <div key={index}>
               <div
+                onClick={() => item.path && navigate(item.path)}
                 style={{
                   display: "flex",
                   alignItems: "center",
                   gap: "15px",
                   color: "#555",
                   marginBottom: "20px",
-                  cursor: "pointer",
+                  cursor: item.path ? "pointer" : "default",
                 }}
               >
                 <span
@@ -61,7 +67,7 @@ export default function UserDashboard() {
                     fontWeight: "600",
                   }}
                 >
-                  {item}
+                  {item.label}
                 </span>
               </div>
 

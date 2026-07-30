@@ -58,6 +58,9 @@ module.exports = async function (context, req) {
                     questionId:
                     entity.QuestionId,
 
+                    tagId:
+                    entity.TagId || "",
+
                     createdBy:
                     entity.CreatedBy,
 

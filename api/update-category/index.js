@@ -20,6 +20,7 @@ module.exports = async function(context, req){
 
         const {
             categoryName,
+            tagId,
             modifiedBy
         } = req.body;
 
@@ -49,6 +50,10 @@ module.exports = async function(context, req){
 
 
         entity.CategoryName = categoryName;
+
+        if (tagId !== undefined) {
+            entity.TagId = tagId;
+        }
 
         entity.ModifiedBy =
             modifiedBy || "Admin";

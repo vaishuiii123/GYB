@@ -12,6 +12,7 @@ module.exports = async function (context, req) {
         const {
             parentCategoryId,
             categoryName,
+            tagId,
             createdBy
         } = req.body;
 
@@ -68,6 +69,7 @@ module.exports = async function (context, req) {
             rowKey:categoryId,
             CategoryName:categoryName,
             ParentCategoryId:parentCategoryId,
+            TagId:tagId || "",
             CreatedBy:createdBy || "Admin",
             CreatedDate:new Date().toISOString(),
             ModifiedBy:createdBy || "Admin",

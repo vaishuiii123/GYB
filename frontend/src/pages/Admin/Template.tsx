@@ -1,536 +1,198 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import { useNavigate } from "react-router-dom";
+import { Pencil, Trash2, Search } from "lucide-react";
+import "../../styles/Template.css";
 
 type PageProps = {
   user?: any;
 };
 
 export default function Template({ user }: PageProps) {
-
   const navigate = useNavigate();
-  
   const [templates, setTemplates] = useState<any[]>([]);
-
-  const [showModal, setShowModal] = useState(false);
-
-  const [templateName, setTemplateName] = useState("");
-
-  const [questions, setQuestions] = useState<string[]>([""]);
+  const [filter, setFilter] = useState("");
+  const [pageSize] = useState(10);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     loadTemplates();
   }, []);
 
-    const loadTemplates = async () => {
-      try {
-    
-        const response = await fetch(
-          "/api/get-templates"
-        );
-    
-        const data =
-          await response.json();
-    
-        if (data.success) {
-    
-          const formatted =
-            data.templates.map(
-              (item: any) => ({
-                id: item.id,
-                name: item.templateName,
-                questionCount:
-                  item.questionCount
-              })
-            );
-    
-          setTemplates(formatted);
-        }
-    
-      } catch (error) {
-    
-        console.error(
-          "Error loading templates",
-          error
+  const loadTemplates = async () => {
+    try {
+      const response = await fetch("/api/get-templates");
+      const data = await response.json();
+
+      if (data.success) {
+        setTemplates(
+          data.templates.map((item: any) => ({
+            id: item.id,
+            name: item.templateName,
+            questionCount: item.questionCount,
+          }))
         );
       }
-    };
+    } catch (error) {
+      console.error("Error loading templates", error);
+    }
+  };
 
-  //=========================================== DELETE TEMPLATE ==============================================================
+  const filteredTemplates = useMemo(() => {
+    if (!filter.trim()) return templates;
+    return templates.filter((t) =>
+      t.name.toLowerCase().includes(filter.toLowerCase())
+    );
+  }, [templates, filter]);
 
-  const deleteTemplate = async (
-      templateId: string
-    ) => {
-    
-      const confirmed =
-        window.confirm(
-          "Are you sure you want to delete this template?"
-        );
-    
-      if (!confirmed) return;
-    
-      try {
-    
-        const response =
-          await fetch(
-            `/api/delete-template?id=${templateId}`,
-            {
-              method: "DELETE",
-            }
-          );
-    
-        const data =
-          await response.json();
-    
-        if (data.success) {
-    
-          setTemplates(
-            templates.filter(
-              (item) =>
-                item.id !== templateId
-            )
-          );
-    
-          alert(
-            "Template deleted successfully"
-          );
-    
-        } else {
-    
-          alert(
-            data.error ||
-            "Failed to delete template"
-          );
-        }
-    
-      } catch (error) {
-    
-        console.error(error);
-    
-        alert(
-          "Error deleting template"
-        );
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredTemplates.length / pageSize)
+  );
+  const paginatedTemplates = filteredTemplates.slice(
+    (page - 1) * pageSize,
+    page * pageSize
+  );
+
+  const deleteTemplate = async (templateId: string) => {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this template?"
+    );
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch(
+        `/api/delete-template?id=${templateId}`,
+        { method: "DELETE" }
+      );
+      const data = await response.json();
+
+      if (data.success) {
+        setTemplates(templates.filter((item) => item.id !== templateId));
+        alert("Template deleted successfully");
+      } else {
+        alert(data.error || "Failed to delete template");
       }
-    };
-      
-  const addQuestionField = () => {
-    setQuestions([...questions, ""]);
-  };
-
-  const handleQuestionChange = (
-    index: number,
-    value: string
-  ) => {
-    const updated = [...questions];
-
-    updated[index] = value;
-
-    setQuestions(updated);
-  };
-
-  const createTemplate = () => {
-    if (!templateName) return;
-
-    const newTemplate = {
-      id: Date.now(),
-      name: templateName,
-      questions: questions.filter(
-        (q) => q.trim() !== ""
-      ),
-    };
-
-    setTemplates([...templates, newTemplate]);
-
-    setTemplateName("");
-    setQuestions([""]);
-
-    setShowModal(false);
+    } catch (error) {
+      console.error(error);
+      alert("Error deleting template");
+    }
   };
 
   return (
-  <div
-    style={{
-      display: "flex",
-      background: "#f3f4f6",
-      minHeight: "100vh",
-    }}
-  >
-    <Sidebar />
+    <div className="template-page">
+      <Sidebar />
 
-    <div
-      style={{
-        flex: 1,
-        marginLeft: "220px",
-      }}
-    >
-      <Header user={user} />
+      <div className="template-content">
+        <Header user={user} />
 
-      <div
-        style={{
-          padding: "25px",
-          marginTop: "70px",
-        }}
-      >
-        <div style={pageHeader}>
-          <h1 style={pageTitle}>
-            Template
-          </h1>
+        <div className="template-body">
+          <div className="breadcrumb">Template</div>
+
+          <h1 className="page-title">Template</h1>
 
           <button
-            style={saveBtn}
+            className="create-btn"
             onClick={() => navigate("/create-template")}
           >
-            Create Template
+            + Create Template
           </button>
-        </div>
 
-        <div style={card}>
-          <table
-            style={{
-              width: "100%",
-              borderCollapse:
-                "collapse",
-            }}
-          >
-            <thead>
-              <tr>
-                <th style={thStyle}>
-                  Sr No.
-                </th>
-
-                <th style={thStyle}>
-                  Template Name
-                </th>
-
-                <th style={thStyle}>
-                  Question Count
-                </th>
-
-                <th style={thStyle}>
-                  Action
-                </th>
-              </tr>
-            </thead>
-
-           <tbody>
-              {templates.length === 0 ? (
-            
-                <tr>
-                  <td
-                    colSpan={4}
-                    style={{
-                      textAlign: "center",
-                      padding: "30px"
-                    }}
-                  >
-                    No templates found
-                  </td>
-                </tr>
-            
-              ) : (
-            
-                templates.map(
-                  (
-                    template,
-                    index
-                  ) => (
-                    <tr key={template.id}>
-            
-                      <td style={tdStyle}>
-                        {index + 1}
-                      </td>
-            
-                      <td style={tdStyle}>
-                        {template.name}
-                      </td>
-            
-                      <td style={tdStyle}>
-                        {template.questionCount}
-                      </td>
-            
-                     <td style={tdStyle}>
-                        <button
-                          style={viewBtn}
-                          onClick={() =>
-                            navigate(
-                              `/template-details/${template.id}`
-                            )
-                          }
-                        >
-                          View
-                        </button>
-                      
-                        <button
-                          style={deleteBtn}
-                          onClick={() =>
-                            deleteTemplate(template.id)
-                          }
-                        >
-                          Delete
-                        </button>
-                      </td>
-            
-                    </tr>
-                  )
-                )
-            
-              )}
-            
-            </tbody>
-          </table>
-        </div>
-
-        {showModal && (
-          <div
-            style={{
-              position:
-                "fixed",
-              inset: 0,
-              background:
-                "rgba(0,0,0,0.5)",
-              display: "flex",
-              justifyContent:
-                "center",
-              alignItems:
-                "center",
-              zIndex: 999,
-            }}
-          >
-            <div
-              style={{
-                width: "700px",
-                background:
-                  "white",
-                borderRadius:
-                  "16px",
-                padding:
-                  "30px",
-                maxHeight:
-                  "90vh",
-                overflowY:
-                  "auto",
-              }}
-            >
-              <h2
-                style={{
-                  marginBottom:
-                    "25px",
-                  fontSize:
-                    "32px",
-                }}
-              >
-                Create Template
-              </h2>
-
+          <div className="template-card">
+            <div className="filter-box">
+              <Search size={18} className="filter-icon" />
               <input
-                type="text"
-                placeholder="Template Name"
-                value={
-                  templateName
-                }
-                onChange={(e) =>
-                  setTemplateName(
-                    e.target.value
-                  )
-                }
-                style={inputStyle}
+                placeholder="Filter templates..."
+                value={filter}
+                onChange={(e) => {
+                  setFilter(e.target.value);
+                  setPage(1);
+                }}
               />
+            </div>
 
-              <h3
-                style={{
-                  marginBottom:
-                    "15px",
-                }}
-              >
-                Questions
-              </h3>
+            <table className="template-table">
+              <thead>
+                <tr>
+                  <th>Sr. No.</th>
+                  <th>Template Name</th>
+                  <th>Question Count</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedTemplates.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="empty-row">
+                      No templates found
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedTemplates.map((template, index) => (
+                    <tr key={template.id}>
+                      <td>{(page - 1) * pageSize + index + 1}</td>
+                      <td>{template.name}</td>
+                      <td>{template.questionCount}</td>
+                      <td>
+                        <div className="action-icons">
+                          <button
+                            className="icon-btn edit"
+                            title="View"
+                            onClick={() =>
+                              navigate(`/template-details/${template.id}`)
+                            }
+                          >
+                            <Pencil size={16} />
+                          </button>
+                          <button
+                            className="icon-btn delete"
+                            title="Delete"
+                            onClick={() => deleteTemplate(template.id)}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
 
-              {questions.map(
-                (
-                  question,
-                  index
-                ) => (
-                  <input
-                    key={index}
-                    type="text"
-                    placeholder={`Question ${
-                      index + 1
-                    }`}
-                    value={
-                      question
-                    }
-                    onChange={(e) =>
-                      handleQuestionChange(
-                        index,
-                        e.target.value
-                      )
-                    }
-                    style={
-                      inputStyle
-                    }
-                  />
-                )
-              )}
-
-              <button
-                onClick={
-                  addQuestionField
-                }
-                style={{
-                  background:
-                    "#16a34a",
-                  color:
-                    "white",
-                  border:
-                    "none",
-                  padding:
-                    "12px 20px",
-                  borderRadius:
-                    "8px",
-                  cursor:
-                    "pointer",
-                  marginBottom:
-                    "30px",
-                }}
-              >
-                + Add Question
-              </button>
-
-              <div
-                style={{
-                  display:
-                    "flex",
-                  justifyContent:
-                    "flex-end",
-                  gap: "15px",
-                }}
-              >
+            <div className="pagination">
+              <span>
+                Items per page: {pageSize}
+              </span>
+              <span>
+                {filteredTemplates.length === 0
+                  ? "0 of 0"
+                  : `${(page - 1) * pageSize + 1} - ${Math.min(
+                      page * pageSize,
+                      filteredTemplates.length
+                    )} of ${filteredTemplates.length}`}
+              </span>
+              <span>
                 <button
-                  onClick={() =>
-                    setShowModal(
-                      false
-                    )
-                  }
-                  style={{
-                    background:
-                      "#6b7280",
-                    color:
-                      "white",
-                    border:
-                      "none",
-                    padding:
-                      "12px 22px",
-                    borderRadius:
-                      "8px",
-                    cursor:
-                      "pointer",
-                  }}
+                  className="icon-btn"
+                  disabled={page <= 1}
+                  onClick={() => setPage(page - 1)}
                 >
-                  Cancel
+                  ‹
                 </button>
-
                 <button
-                  onClick={
-                    createTemplate
-                  }
-                  style={{
-                    background:
-                      "#7a0019",
-                    color:
-                      "white",
-                    border:
-                      "none",
-                    padding:
-                      "12px 22px",
-                    borderRadius:
-                      "8px",
-                    cursor:
-                      "pointer",
-                  }}
+                  className="icon-btn"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage(page + 1)}
+                  style={{ marginLeft: "8px" }}
                 >
-                  Save
+                  ›
                 </button>
-              </div>
+              </span>
             </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
 }
-
-const pageHeader: any = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginBottom: "20px",
-};
-
-const pageTitle: any = {
-  fontSize: "32px",
-  fontWeight: "700",
-  color: "#111827",
-  margin: 0,
-};
-
-const saveBtn: any = {
-  background: "#3b5bcc",
-  color: "white",
-  padding: "10px 16px",
-  border: "none",
-  borderRadius: "8px",
-  cursor: "pointer",
-};
-
-
-
-const viewBtn: any = {
-  background: "#2563eb",
-  color: "white",
-  border: "none",
-  padding: "8px 12px",
-  borderRadius: "6px",
-  cursor: "pointer",
-  marginRight: "8px",
-};
-
-const deleteBtn: any = {
-  background: "#dc2626",
-  color: "white",
-  border: "none",
-  padding: "8px 12px",
-  borderRadius: "6px",
-  cursor: "pointer",
-};
-
-const card: any = {
-  background: "white",
-  padding: "24px",
-  borderRadius: "18px",
-  boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
-};
-
-const thStyle = {
-  textAlign: "left" as const,
-  padding: "16px",
-  borderBottom: "1px solid #ddd",
-  fontSize: "15px",
-};
-
-const tdStyle = {
-  padding: "16px",
-  borderBottom: "1px solid #eee",
-  fontSize: "16px",
-};
-
-const inputStyle = {
-  width: "100%",
-  padding: "14px",
-  marginBottom: "16px",
-  borderRadius: "8px",
-  border: "1px solid #ccc",
-  fontSize: "15px",
-  boxSizing: "border-box" as const,
-};

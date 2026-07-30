@@ -1,443 +1,317 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import { useNavigate } from "react-router-dom";
+import "../../styles/Template.css";
 
 type PageProps = {
   user?: any;
 };
 
-export default function CreateTemplate({
-  user,
-}: PageProps) {
+type CategoryItem = {
+  id: string;
+  categoryName: string;
+  fullPath: string;
+  questions: any[];
+};
 
+function SelectAllCheckbox({
+  questionIds,
+  selectedQuestions,
+  onToggleAll,
+}: {
+  questionIds: string[];
+  selectedQuestions: string[];
+  onToggleAll: () => void;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+
+  const selectedCount = questionIds.filter((id) =>
+    selectedQuestions.includes(id)
+  ).length;
+  const allSelected =
+    questionIds.length > 0 && selectedCount === questionIds.length;
+  const someSelected =
+    selectedCount > 0 && selectedCount < questionIds.length;
+
+  useEffect(() => {
+    if (ref.current) {
+      ref.current.indeterminate = someSelected;
+    }
+  }, [someSelected]);
+
+  return (
+    <input
+      ref={ref}
+      type="checkbox"
+      checked={allSelected}
+      disabled={questionIds.length === 0}
+      onChange={onToggleAll}
+      title="Select all questions in this category"
+    />
+  );
+}
+
+export default function CreateTemplate({ user }: PageProps) {
   const navigate = useNavigate();
 
   const [templateName, setTemplateName] = useState("");
-  const [category, setCategory] = useState("");
-  const [categories, setCategories] = useState<any[]>([]);
-  const [selectedQuestions,setSelectedQuestions] = useState<string[]>([]);
-
-  const [questions, setQuestions] = useState<any[]>([]);
-
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
+  const [activeCategoryId, setActiveCategoryId] = useState("");
+  const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
-  const toggleQuestion = (
-    id: string
-  ) => {
+  useEffect(() => {
+    loadCategories();
+  }, []);
 
-    if (
+  const loadCategories = async () => {
+    try {
+      const response = await fetch("/api/get-all-categories");
+      const data = await response.json();
+      if (data.success) {
+        setCategories(data.categories);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const activeCategory = useMemo(() => {
+    return categories.find((c) => c.id === activeCategoryId) || null;
+  }, [categories, activeCategoryId]);
+
+  const selectedCategoryData = useMemo(() => {
+    return categories.filter((category) =>
+      category.questions.some((q) => selectedQuestions.includes(q.id))
+    );
+  }, [categories, selectedQuestions]);
+
+  const selectedQuestionsList = useMemo(() => {
+    const list: { id: string; question: string; categoryName: string }[] = [];
+
+    categories.forEach((category) => {
+      category.questions.forEach((q) => {
+        if (selectedQuestions.includes(q.id)) {
+          list.push({
+            id: q.id,
+            question: q.question,
+            categoryName: category.categoryName,
+          });
+        }
+      });
+    });
+
+    return list;
+  }, [categories, selectedQuestions]);
+
+  const toggleCategoryAll = () => {
+    if (!activeCategory) return;
+
+    const questionIds = activeCategory.questions.map((q) => q.id);
+    const allSelected = questionIds.every((id) =>
       selectedQuestions.includes(id)
-    ) {
+    );
 
-      setSelectedQuestions(
-        selectedQuestions.filter(
-          (q) => q !== id
-        )
+    if (allSelected) {
+      setSelectedQuestions((prev) =>
+        prev.filter((id) => !questionIds.includes(id))
       );
-
     } else {
-
-      setSelectedQuestions([
-        ...selectedQuestions,
-        id,
+      setSelectedQuestions((prev) => [
+        ...new Set([...prev, ...questionIds]),
       ]);
     }
   };
 
-useEffect(() => {
-  loadCategories();
-}, []);  
+  const toggleQuestion = (questionId: string) => {
+    setSelectedQuestions((prev) =>
+      prev.includes(questionId)
+        ? prev.filter((id) => id !== questionId)
+        : [...prev, questionId]
+    );
+  };
 
-  const loadCategories = async () => {
-  try {
-    const response = await fetch(
-        "/api/get-all-categories"
-      );
-
-    const data = await response.json();
-
-    if (data.success) {
-        setCategories(
-          data.categories
-        );
-      
-       console.log(
-  "Categories with Questions:",
-  data.categories
-);
-      }
-  } catch (error) {
-    console.error(error);
-  }
-};
-  
-
-  //================================= SAVE TEMPLATE =============================================
+  const removeSelectedQuestion = (questionId: string) => {
+    setSelectedQuestions((prev) => prev.filter((id) => id !== questionId));
+  };
 
   const saveTemplate = async () => {
-      if (!templateName.trim()) {
-        alert("Template Name is required");
-        return;
+    if (!templateName.trim()) {
+      alert("Template Name is required");
+      return;
+    }
+
+    if (selectedQuestions.length === 0) {
+      alert("Select at least one question");
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      const response = await fetch("/api/create-template", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          templateName,
+          categoryIds: selectedCategoryData.map((c) => c.id),
+          categoryNames: selectedCategoryData.map((c) => c.categoryName),
+          categoryPaths: selectedCategoryData.map((c) => c.fullPath),
+          questionIds: selectedQuestions,
+          createdBy: user?.email || user?.name || "Admin",
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert("Template Created Successfully");
+        navigate("/template");
+      } else {
+        alert(data.message || data.error || "Failed to create template");
       }
-    
-      if (!category) {
-        alert("Select Category");
-        return;
-      }
-    
-      if (selectedQuestions.length === 0) {
-        alert("Select at least one question");
-        return;
-      }
-    
-      try {
-    
-        setSaving(true);
-    
-        const response = await fetch(
-          "/api/create-template",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-            body: JSON.stringify({
-              templateName,
-              categoryId: category,
-              questionIds:
-                selectedQuestions,
-              createdBy:
-                user?.email,
-            }),
-          }
-        );
-    
-        const data =
-          await response.json();
-    
-        if (data.success) {
-    
-          alert(
-            "Template Created Successfully"
-          );
-    
-          navigate("/template");
-    
-        } else {
-    
-          alert(
-            data.message ||
-            "Failed to create template"
-          );
-        }
-    
-      } catch (error) {
-    
-        console.error(error);
-    
-        alert(
-          "Error creating template"
-        );
-    
-      } finally {
-    
-        setSaving(false);
-      }
-    };
+    } catch (error) {
+      console.error(error);
+      alert("Error creating template");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const activeQuestionIds =
+    activeCategory?.questions.map((q) => q.id) || [];
 
   return (
-    <div
-      style={{
-        display: "flex",
-        background: "#f3f4f6",
-        minHeight: "100vh",
-      }}
-    >
+    <div className="template-page">
       <Sidebar />
 
-      <div
-        style={{
-          flex: 1,
-          marginLeft: "220px",
-        }}
-      >
+      <div className="template-content">
         <Header user={user} />
 
-        <div
-          style={{
-            padding: "25px",
-            marginTop: "70px",
-          }}
-        >
-
-          {/* Breadcrumb */}
-
-          <div
-            style={{
-              color: "#6b7280",
-              fontSize: "14px",
-              marginBottom: "15px",
-            }}
-          >
-            <span
-              style={{
-                cursor: "pointer",
-                color: "#2563eb",
-              }}
-              onClick={() =>
-                navigate("/template")
-              }
-            >
+        <div className="template-body">
+          <div className="breadcrumb">
+            <span className="link" onClick={() => navigate("/template")}>
               Template
             </span>
-
             {" > "}
-
-            <span>
-              Create Template
-            </span>
+            <span>Create Template</span>
           </div>
 
-          {/* Page Title */}
+          <h1 className="page-title">Create Template</h1>
 
-          <h1
-            style={{
-              fontSize: "32px",
-              fontWeight: "700",
-              marginBottom: "20px",
-              color: "#111827",
-            }}
-          >
-            Create Template
-          </h1>
+          <div className="template-card">
+            <div className="form-row">
+              <div className="form-group">
+                <label>Template Name *</label>
+                <input
+                  placeholder="Enter template name"
+                  value={templateName}
+                  onChange={(e) => setTemplateName(e.target.value)}
+                />
+              </div>
 
-          <div style={card}>
-
-            <div
-              style={{
-                display: "flex",
-                gap: "20px",
-                marginBottom: "25px",
-              }}
-            >
-              <input
-                placeholder="Enter Template Name"
-                value={templateName}
-                onChange={(e) =>
-                  setTemplateName(
-                    e.target.value
-                  )
-                }
-                style={{
-                  flex: 1,
-                  padding: "12px",
-                  border:
-                    "1px solid #d1d5db",
-                  borderRadius: "8px",
-                  fontSize: "15px"
-                }}
-              />
-
-             <select
-                value={category}
-                onChange={(e) => {
-                  const selectedCategoryId =
-                    e.target.value;
-                  setCategory(
-                    selectedCategoryId
-                  );
-                
-                  setSelectedQuestions([]);
-                
-                  const selectedCategory =
-                    categories.find(
-                      (c) =>
-                        c.id ===
-                        selectedCategoryId
-                    );
-                
-                  setQuestions(
-                    selectedCategory?.questions || []
-                  );
-                }}
-                style={{
-                  flex: 1,
-                  padding: "12px",
-                  border:
-                    "1px solid #d1d5db",
-                  borderRadius: "8px",
-                }}
-              >
-                <option value="">
-                  Select Question Category
-                </option>
-                  
-                  {categories.map(
-                    (category) => (
-                      <option
-                        key={category.id}
-                        value={category.id}
-                      >
-                        {category.categoryName}
-                      </option>
-                    )
-                  )}
-              </select>
+              <div className="form-group">
+                <label>Select Question Category</label>
+                <select
+                  value={activeCategoryId}
+                  onChange={(e) => setActiveCategoryId(e.target.value)}
+                >
+                  <option value="">Select question category</option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.categoryName} ({category.questions.length})
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-          <div
-            style={{
-              border:
-                "1px solid #e5e7eb",
-              borderRadius: "10px",
-              overflow: "hidden",
-            }}
-          >
-            <table
-              style={{
-                width: "100%",
-                borderCollapse:
-                  "collapse",
-              }}
-            >
+
+            {selectedQuestionsList.length > 0 && (
+              <div className="selected-summary">
+                <div className="selected-summary-title">
+                  Selected for template ({selectedQuestionsList.length}{" "}
+                  from {selectedCategoryData.length} categories)
+                </div>
+                <div className="selected-summary-list">
+                  {selectedQuestionsList.map((item) => (
+                    <span key={item.id} className="selected-chip">
+                      {item.categoryName}: {item.question}
+                      <button
+                        type="button"
+                        onClick={() => removeSelectedQuestion(item.id)}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <table className="template-table">
               <thead>
                 <tr>
-                  <th style={thStyle}>
-                    Sr No.
-                  </th>
-
-                  <th style={thStyle}>
-                    Question
-                  </th>
-
-                  <th style={thStyle}>
-                    Question Category
-                  </th>
-
-                  <th style={thStyle}>
-                    Select
+                  <th>Sr. No.</th>
+                  <th>Question</th>
+                  <th>Question Category</th>
+                  <th>
+                    Include{" "}
+                    {activeCategory && activeCategory.questions.length > 0 && (
+                      <SelectAllCheckbox
+                        questionIds={activeQuestionIds}
+                        selectedQuestions={selectedQuestions}
+                        onToggleAll={toggleCategoryAll}
+                      />
+                    )}
                   </th>
                 </tr>
               </thead>
-
-             <tbody>
-                {questions.length > 0 ? (
-              
-                  questions.map(
-                    (
-                      question,
-                      index
-                    ) => (
-                      <tr key={question.id}>
-                        <td style={tdStyle}>
-                          {index + 1}
-                        </td>
-              
-                        <td style={tdStyle}>
-                          {question.question}
-                        </td>
-              
-                       <td style={tdStyle}>
-                          {
-                            categories.find(
-                              (c) =>
-                                c.id === category
-                            )?.categoryName
-                          }
-                        </td>
-              
-                        <td style={tdStyle}>
-                          <input
-                            type="checkbox"
-                            checked={selectedQuestions.includes(
-                              question.id
-                            )}
-                            onChange={() =>
-                              toggleQuestion(
-                                question.id
-                              )
-                            }
-                          />
-                        </td>
-                      </tr>
-                    )
-                  )
-              
-                ) : (
-              
+              <tbody>
+                {!activeCategory ? (
                   <tr>
-                    <td
-                      colSpan={4}
-                      style={{
-                        textAlign: "center",
-                        padding: "20px",
-                        color: "#6b7280",
-                      }}
-                    >
-                      Select a category to load questions
+                    <td colSpan={4} className="empty-row">
+                      Select a category from the dropdown to view its questions
                     </td>
                   </tr>
-              
+                ) : activeCategory.questions.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="empty-row">
+                      No questions in this category. Assign questions in
+                      Category Management first.
+                    </td>
+                  </tr>
+                ) : (
+                  activeCategory.questions.map((question, index) => (
+                    <tr key={question.id}>
+                      <td>{index + 1}</td>
+                      <td>{question.question}</td>
+                      <td>{activeCategory.categoryName}</td>
+                      <td>
+                        <input
+                          type="checkbox"
+                          checked={selectedQuestions.includes(question.id)}
+                          onChange={() => toggleQuestion(question.id)}
+                        />
+                      </td>
+                    </tr>
+                  ))
                 )}
               </tbody>
             </table>
-          </div>  
 
-            <div
-              style={{
-                marginTop: "20px",
-                textAlign: "right",
-              }}
-            >
-             <button
-                style={{
-                  ...saveBtn,
-                  opacity: saving ? 0.7 : 1,
-                }}
+            <div className="card-footer">
+              <button
+                className="save-btn"
                 onClick={saveTemplate}
                 disabled={saving}
               >
-                {saving
-                  ? "Saving..."
-                  : "Save Template"}
+                {saving ? "Saving..." : "Save Template"}
               </button>
             </div>
-
           </div>
         </div>
       </div>
     </div>
   );
 }
-
-// =================== STYLES ===================
-
-const card = {
-  background: "white",
-  padding: "24px",
-  borderRadius: "18px",
-  boxShadow:
-    "0 4px 20px rgba(0,0,0,0.06)",
-};
-
-const saveBtn = {
-  background: "#3b5bcc",
-  color: "white",
-  padding: "10px 16px",
-  border: "none",
-  borderRadius: "8px",
-  cursor: "pointer",
-};
-
-const thStyle = {
-  textAlign: "left" as const,
-  padding: "14px",
-  borderBottom: "1px solid #e5e7eb",
-  fontWeight: "600",
-};
-
-const tdStyle = {
-  padding: "14px",
-  borderBottom: "1px solid #f3f4f6",
-};

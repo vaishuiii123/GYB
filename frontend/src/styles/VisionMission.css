@@ -1,0 +1,93 @@
+.vision-page {
+    display: flex;
+    min-height: 100vh;
+    background: #f8f9fb;
+    font-family: Cambria, Cochin, Georgia, Times, "Times New Roman", serif;
+}
+
+.vision-content {
+    flex: 1;
+    margin-left: 220px;
+}
+
+.vision-body {
+    padding: 30px 45px;
+}
+
+.breadcrumb {
+    color: #64748b;
+    font-size: 14px;
+    margin-bottom: 15px;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    margin-top: 40px;
+}
+
+.page-title {
+    font-size: 40px;
+    font-family: Cambria, Cochin, Georgia, Times, "Times New Roman", serif;
+    color: #16213e;
+}
+
+.vision-card {
+    background: white;
+    border-radius: 18px;
+    padding: 35px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 25px;
+}
+
+.form-group label {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.form-group textarea {
+    width: 100%;
+    padding: 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 15px;
+    outline: none;
+    color: #374151;
+    resize: vertical;
+    box-sizing: border-box;
+    font-family: "Segoe UI", sans-serif;
+}
+
+.form-group textarea:focus {
+    border-color: #9b304a;
+    box-shadow: 0 0 0 3px rgba(155, 48, 74, 0.15);
+}
+
+.vision-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.save-btn {
+    padding: 12px 28px;
+    border-radius: 8px;
+    background: #9b304a;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 15px;
+}
+
+.save-btn:hover {
+    background: #81263c;
+}

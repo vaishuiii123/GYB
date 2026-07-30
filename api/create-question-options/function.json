@@ -8,7 +8,7 @@
       "methods": [
         "post"
       ],
-      "route": "create-question"
+      "route": "create-question-options"
     },
     {
       "type": "http",

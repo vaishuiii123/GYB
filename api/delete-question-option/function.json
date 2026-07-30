@@ -5,8 +5,8 @@
       "type":"httpTrigger",
       "direction":"in",
       "name":"req",
-      "methods":["get"],
-      "route":"get-question-options"
+      "methods":["delete"],
+      "route":"delete-question-option"
     },
     {
       "type":"http",

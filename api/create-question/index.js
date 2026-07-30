@@ -1,94 +1,203 @@
 const { TableClient } = require("@azure/data-tables");
 
+
 module.exports = async function (context, req) {
 
-  try {
+    try {
 
-    const {
-      question,
-      answerType,
-      color,
-      required,
-      weightage,
-      options,
-      categoryId,
-      createdBy,
-    } = req.body;
 
-    if (!question || !question.trim()) {
+        const connectionString =
+            process.env.AZURE_STORAGE_CONNECTION_STRING;
 
-      context.res = {
-        status: 400,
-        body: {
-          success: false,
-          message: "Question is required",
-        },
-      };
 
-      return;
+
+        const tableClient =
+            TableClient.fromConnectionString(
+                connectionString,
+                "Questions"
+            );
+
+
+
+        const {
+
+            questionText,
+            questionType,
+            tagId,
+            createdBy
+
+        } = req.body;
+
+
+
+
+        if(
+            !questionText ||
+            !questionType
+        ){
+
+            context.res = {
+
+                status:400,
+
+                body:{
+                    success:false,
+                    message:"Question text and question type are required."
+                }
+
+            };
+
+            return;
+
+        }
+
+
+
+
+
+        // Generate Question ID Q001, Q002...
+
+        let maxNumber = 0;
+
+
+
+        const existingQuestions =
+            tableClient.listEntities({
+
+                queryOptions:{
+                    filter:"PartitionKey eq 'Question'"
+                }
+
+            });
+
+
+
+        for await(const entity of existingQuestions){
+
+
+            const number =
+                parseInt(
+                    entity.rowKey.replace("Q","")
+                );
+
+
+            if(
+                !isNaN(number) &&
+                number > maxNumber
+            ){
+
+                maxNumber = number;
+
+            }
+
+        }
+
+
+
+
+        const questionId =
+            `Q${String(maxNumber + 1).padStart(3,"0")}`;
+
+
+
+
+
+        const entity = {
+
+
+            partitionKey:"Question",
+
+            rowKey:questionId,
+
+
+            QuestionText:questionText,
+
+
+            QuestionType:questionType,
+
+
+            TagId:tagId || "",
+
+
+            CreatedBy:createdBy || "Admin",
+
+
+            CreatedDate:new Date().toISOString(),
+
+
+            ModifiedBy:createdBy || "Admin",
+
+
+            ModifiedDate:new Date().toISOString()
+
+
+        };
+
+
+
+
+
+        await tableClient.createEntity(entity);
+
+
+
+
+        context.res = {
+
+
+            status:201,
+
+
+            body:{
+
+
+                success:true,
+
+
+                message:"Question created successfully.",
+
+
+                data:entity
+
+
+            }
+
+
+        };
+
+
+
     }
 
-    const client =
-      TableClient.fromConnectionString(
-        process.env.AZURE_STORAGE_CONNECTION_STRING,
-        "QuestionnaireQuestions"
-      );
 
-    const questionId =
-      Date.now().toString();
+    catch(error){
 
-    await client.createEntity({
 
-      partitionKey:
-        "Question",
+        context.log(error);
 
-      rowKey:
-        questionId,
 
-      Question:
-        question,
 
-      AnswerType:
-        answerType,
+        context.res={
 
-      Required:
-        required,
 
-      Weightage:
-        weightage,
+            status:500,
 
-      Color:
-        color,
 
-      Options:
-        options || "",
+            body:{
 
-      CategoryId:
-        categoryId || "",
 
-      Created_By:
-        createdBy || "",
-    });
+                success:false,
 
-    context.res = {
-      status: 200,
-      body: {
-        success: true,
-        questionId,
-      },
-    };
 
-  } catch (error) {
+                message:error.message
 
-    context.log(error);
 
-    context.res = {
-      status: 500,
-      body: {
-        success: false,
-        error:
-          error.message,
-      },
-    };
-  }
+            }
+
+
+        };
+
+
+    }
+
 };

@@ -8,14 +8,31 @@ module.exports = async function (context, req) {
     const {
       templateName,
       categoryId,
+      categoryIds,
       categoryName,
+      categoryNames,
+      categoryPaths,
       questionIds,
       createdBy,
     } = req.body;
 
+    const resolvedCategoryIds = categoryIds?.length
+      ? categoryIds
+      : categoryId
+      ? [categoryId]
+      : [];
+
+    const resolvedCategoryNames = categoryNames?.length
+      ? categoryNames
+      : categoryName
+      ? [categoryName]
+      : [];
+
+    const resolvedCategoryPaths = categoryPaths?.length ? categoryPaths : [];
+
     if (
       !templateName ||
-      !categoryId ||
+      resolvedCategoryIds.length === 0 ||
       !questionIds ||
       questionIds.length === 0
     ) {
@@ -23,71 +40,42 @@ module.exports = async function (context, req) {
         status: 400,
         body: {
           success: false,
-          message: "Required fields missing",
+          message: "Template name, categories, and questions are required.",
         },
       };
       return;
     }
 
-    // Create table if it doesn't exist
-    const serviceClient =
-      TableServiceClient.fromConnectionString(
-        process.env.AZURE_STORAGE_CONNECTION_STRING
-      );
+    const serviceClient = TableServiceClient.fromConnectionString(
+      process.env.AZURE_STORAGE_CONNECTION_STRING
+    );
 
     try {
-      await serviceClient.createTable(
-        "Template"
-      );
-
-      context.log(
-        "Template table created"
-      );
-
-    } catch (err) {
-
-      // Ignore if already exists
-      context.log(
-        "Template table already exists"
-      );
+      await serviceClient.createTable("Template");
+    } catch {
+      // table already exists
     }
 
-    const client =
-      TableClient.fromConnectionString(
-        process.env.AZURE_STORAGE_CONNECTION_STRING,
-        "Template"
-      );
+    const client = TableClient.fromConnectionString(
+      process.env.AZURE_STORAGE_CONNECTION_STRING,
+      "Template"
+    );
 
-    const templateId =
-      Date.now().toString();
+    const templateId = Date.now().toString();
 
     const entity = {
       partitionKey: "Template",
-
       rowKey: templateId,
-
-      TemplateName:
-        templateName,
-
-      CategoryId:
-        categoryId,
-
-      CategoryName:
-        categoryName || "",
-
-      QuestionIds:
-        questionIds.join(","),
-
-      CreatedBy:
-        createdBy || "",
-
-      CreatedDate:
-        new Date().toISOString(),
+      TemplateName: templateName,
+      CategoryId: resolvedCategoryIds.join(","),
+      CategoryName: resolvedCategoryNames.join(","),
+      CategoryPath: resolvedCategoryPaths.join("|"),
+      QuestionIds: questionIds.join(","),
+      CreatedBy: createdBy || "",
+      CreatedDate: new Date().toISOString(),
     };
 
-    await client.createEntity(
-      entity
-    );
+    await client.createEntity(entity);
 
     context.res = {
       status: 200,
@@ -96,20 +84,14 @@ module.exports = async function (context, req) {
         templateId,
       },
     };
-
   } catch (error) {
-
-    context.log(
-      "Create Template Error:",
-      error
-    );
+    context.log("Create Template Error:", error);
 
     context.res = {
       status: 500,
       body: {
         success: false,
-        error:
-          error.message,
+        error: error.message,
       },
     };
   }

@@ -286,16 +286,8 @@ export default function TagManagement({ user }: PageProps) {
             console.error(error);
 
             alert("Delete failed");
-
         }
-
-
     };
-
-
-
-
-
     return (
 
         <div className="tag-page">

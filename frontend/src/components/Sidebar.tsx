@@ -8,7 +8,7 @@ export default function Sidebar() {
     { name: "Participants", path: "/participants", icon: "👥" },
     { name: "Category Management", path: "/category", icon: "📂" },
     { name: "Tag Management", path: "/tag-management", icon: "🏷️" },
-    { name: "Questions", path: "/questions", icon: "❓" },
+    { name: "Question Management", path: "/question-management", icon: "❓" },
     { name: "Template", path: "/template", icon: "📄" },
     { name: "Workshop", path: "/workshop", icon: "🎓" },
   ];

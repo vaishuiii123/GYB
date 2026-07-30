@@ -1,142 +1,164 @@
 const { TableClient } = require("@azure/data-tables");
 
+function parseQuestionIds(questionIdField) {
+    if (!questionIdField) return [];
+    return String(questionIdField)
+        .split(",")
+        .map((id) => id.trim())
+        .filter(Boolean);
+}
+
 module.exports = async function (context, req) {
-  try {
-
-    const categoryClient =
-      TableClient.fromConnectionString(
-        process.env.AZURE_STORAGE_CONNECTION_STRING,
-        "QuestionnaireCategory"
-      );
-
-    const subCategoryClient =
-      TableClient.fromConnectionString(
-        process.env.AZURE_STORAGE_CONNECTION_STRING,
-        "Questionnairesubcategory"
-      );
-
-    const mappingClient =
-      TableClient.fromConnectionString(
-        process.env.AZURE_STORAGE_CONNECTION_STRING,
-        "QuestionnaireSubCategoryQuestions"
-      );
-
-    const questionClient =
-      TableClient.fromConnectionString(
-        process.env.AZURE_STORAGE_CONNECTION_STRING,
-        "QuestionnaireQuestions"
-      );
-
-    const categories = [];
-
-    const subCategories = [];
-    const mappings = [];
-    const questions = [];
-
-    // Load Sub Categories
-    for await (const item of subCategoryClient.listEntities()) {
-      subCategories.push(item);
-    }
-
-    // Load Question Mappings
-    for await (const item of mappingClient.listEntities()) {
-      mappings.push(item);
-    }
-
-    // Load Questions
-    for await (const item of questionClient.listEntities()) {
-      questions.push(item);
-    }
-
-    // Load Categories
-    for await (const category of categoryClient.listEntities()) {
-
-      if (category.partitionKey !== "Category") {
-        continue;
-      }
-
-      // Find subcategories under category
-      const categorySubCategories =
-        subCategories.filter(
-          (s) =>
-            String(s.CategoryId) ===
-            String(category.rowKey)
+    try {
+        const categoryClient = TableClient.fromConnectionString(
+            process.env.AZURE_STORAGE_CONNECTION_STRING,
+            "QuestionnaireCategory"
         );
 
-      const subCategoryIds =
-        categorySubCategories.map(
-          (s) => String(s.rowKey)
+        const parentClient = TableClient.fromConnectionString(
+            process.env.AZURE_STORAGE_CONNECTION_STRING,
+            "QuestionnaireParentCategory"
         );
 
-      // Find mappings
-      const categoryMappings =
-        mappings.filter(
-          (m) =>
-            subCategoryIds.includes(
-              String(m.SubCategoryId)
-            )
+        const middleClient = TableClient.fromConnectionString(
+            process.env.AZURE_STORAGE_CONNECTION_STRING,
+            "QuestionnaireMiddleCategory"
         );
 
-      const questionIds =
-        categoryMappings.map(
-          (m) => String(m.QuestionId)
+        const topClient = TableClient.fromConnectionString(
+            process.env.AZURE_STORAGE_CONNECTION_STRING,
+            "QuestionnaireTopCategory"
         );
 
-      // Find actual questions
-      const categoryQuestions =
-        questions
-          .filter((q) =>
-            questionIds.includes(
-              String(q.rowKey)
-            )
-          )
-          .map((q) => ({
-            id: q.rowKey,
-            question:
-              q.Question || "",
-            answerType:
-              q.AnswerType || "",
-            options:
-              q.Options || "",
-            required:
-              q.Required || false,
-            weightage:
-              q.Weightage || 0,
-            color:
-              q.Color || "#2563eb",
-          }));
+        const questionClient = TableClient.fromConnectionString(
+            process.env.AZURE_STORAGE_CONNECTION_STRING,
+            "Questions"
+        );
 
-      categories.push({
-        id: category.rowKey,
-        categoryName:
-          category.CategoryName || "",
-        masterCategoryId:
-          category.MasterCategoryId || "",
-        createdBy:
-          category.Created_By || "",
-        questions:
-          categoryQuestions,
-      });
+        const optionClient = TableClient.fromConnectionString(
+            process.env.AZURE_STORAGE_CONNECTION_STRING,
+            "QuestionOptions"
+        );
+
+        const tops = [];
+        const middles = [];
+        const parents = [];
+
+        for await (const item of topClient.listEntities({
+            queryOptions: { filter: "PartitionKey eq 'TopCategory'" }
+        })) {
+            tops.push(item);
+        }
+
+        for await (const item of middleClient.listEntities({
+            queryOptions: { filter: "PartitionKey eq 'MiddleCategory'" }
+        })) {
+            middles.push(item);
+        }
+
+        for await (const item of parentClient.listEntities({
+            queryOptions: { filter: "PartitionKey eq 'ParentCategory'" }
+        })) {
+            parents.push(item);
+        }
+
+        const allQuestions = [];
+        for await (const item of questionClient.listEntities({
+            queryOptions: { filter: "PartitionKey eq 'Question'" }
+        })) {
+            allQuestions.push(item);
+        }
+
+        const allOptions = [];
+        for await (const item of optionClient.listEntities({
+            queryOptions: { filter: "PartitionKey eq 'QuestionOption'" }
+        })) {
+            allOptions.push(item);
+        }
+
+        const categories = [];
+
+        for await (const category of categoryClient.listEntities({
+            queryOptions: { filter: "PartitionKey eq 'Category'" }
+        })) {
+            const parent = parents.find(
+                (p) => p.rowKey === category.ParentCategoryId
+            );
+            const middle = parent
+                ? middles.find((m) => m.rowKey === parent.MiddleCategoryId)
+                : null;
+            const top = middle
+                ? tops.find((t) => t.rowKey === middle.TopCategoryId)
+                : null;
+
+            const topCategoryName = top?.TopCategoryName || "";
+            const middleCategoryName = middle?.MiddleCategoryName || "";
+            const parentCategoryName = parent?.ParentCategoryName || "";
+            const categoryName = category.CategoryName || "";
+
+            const fullPath = [topCategoryName, middleCategoryName, parentCategoryName, categoryName]
+                .filter(Boolean)
+                .join(" > ");
+
+            const questionIds = parseQuestionIds(category.QuestionId);
+
+            const categoryQuestions = questionIds
+                .map((questionId) => {
+                    const question = allQuestions.find(
+                        (q) => q.rowKey === questionId
+                    );
+
+                    if (!question) return null;
+
+                    const options = allOptions
+                        .filter((opt) => opt.QuestionId === questionId)
+                        .map((opt) => opt.OptionText)
+                        .join(", ");
+
+                    return {
+                        id: question.rowKey,
+                        question: question.QuestionText || "",
+                        answerType: question.QuestionType || "",
+                        options,
+                        required: false,
+                        tagId: question.TagId || ""
+                    };
+                })
+                .filter(Boolean);
+
+            categories.push({
+                id: category.rowKey,
+                categoryName,
+                parentCategoryId: category.ParentCategoryId || "",
+                parentCategoryName,
+                middleCategoryId: middle?.rowKey || "",
+                middleCategoryName,
+                topCategoryId: top?.rowKey || "",
+                topCategoryName,
+                fullPath,
+                tagId: category.TagId || "",
+                questions: categoryQuestions
+            });
+        }
+
+        categories.sort((a, b) => a.fullPath.localeCompare(b.fullPath));
+
+        context.res = {
+            status: 200,
+            body: {
+                success: true,
+                categories
+            }
+        };
+    } catch (error) {
+        context.log(error);
+
+        context.res = {
+            status: 500,
+            body: {
+                success: false,
+                error: error.message
+            }
+        };
     }
-
-    context.res = {
-      status: 200,
-      body: {
-        success: true,
-        categories,
-      },
-    };
-
-  } catch (error) {
-
-    context.log(error);
-
-    context.res = {
-      status: 500,
-      body: {
-        success: false,
-        error: error.message,
-      },
-    };
-  }
 };

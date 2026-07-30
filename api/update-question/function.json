@@ -1,14 +1,14 @@
 {
   "bindings": [
     {
-      "authLevel": "anonymous",
+      "authLevel": "function",
       "type": "httpTrigger",
       "direction": "in",
       "name": "req",
       "methods": [
-        "post"
+        "put"
       ],
-      "route": "create-question"
+      "route": "update-question"
     },
     {
       "type": "http",

@@ -5,10 +5,8 @@
       "type": "httpTrigger",
       "direction": "in",
       "name": "req",
-      "methods": [
-        "post"
-      ],
-      "route": "create-question"
+      "methods": ["post"],
+      "route": "assign-category-question"
     },
     {
       "type": "http",

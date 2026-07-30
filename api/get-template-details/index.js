@@ -1,120 +1,211 @@
 const { TableClient } = require("@azure/data-tables");
 
+function parseQuestionIds(questionIdField) {
+    if (!questionIdField) return [];
+    return String(questionIdField)
+        .split(",")
+        .map((id) => id.trim())
+        .filter(Boolean);
+}
+
 module.exports = async function (context, req) {
+    try {
+        const templateId = req.query.templateId;
 
-  try {
-
-    const templateId =
-      req.query.templateId;
-
-    if (!templateId) {
-
-      context.res = {
-        status: 400,
-        body: {
-          success: false,
-          message: "templateId required"
+        if (!templateId) {
+            context.res = {
+                status: 400,
+                body: {
+                    success: false,
+                    message: "templateId required"
+                }
+            };
+            return;
         }
-      };
 
-      return;
-    }
+        const templateClient = TableClient.fromConnectionString(
+            process.env.AZURE_STORAGE_CONNECTION_STRING,
+            "Template"
+        );
 
-    const templateClient =
-      TableClient.fromConnectionString(
-        process.env.AZURE_STORAGE_CONNECTION_STRING,
-        "Template"
-      );
+        const categoryClient = TableClient.fromConnectionString(
+            process.env.AZURE_STORAGE_CONNECTION_STRING,
+            "QuestionnaireCategory"
+        );
 
-    const questionClient =
-      TableClient.fromConnectionString(
-        process.env.AZURE_STORAGE_CONNECTION_STRING,
-        "QuestionnaireQuestions"
-      );
+        const parentClient = TableClient.fromConnectionString(
+            process.env.AZURE_STORAGE_CONNECTION_STRING,
+            "QuestionnaireParentCategory"
+        );
 
-    let template = null;
+        const middleClient = TableClient.fromConnectionString(
+            process.env.AZURE_STORAGE_CONNECTION_STRING,
+            "QuestionnaireMiddleCategory"
+        );
 
-    for await (
-      const entity of templateClient.listEntities()
-    ) {
+        const topClient = TableClient.fromConnectionString(
+            process.env.AZURE_STORAGE_CONNECTION_STRING,
+            "QuestionnaireTopCategory"
+        );
 
-      if (
-        entity.rowKey === templateId
-      ) {
+        const questionClient = TableClient.fromConnectionString(
+            process.env.AZURE_STORAGE_CONNECTION_STRING,
+            "Questions"
+        );
 
-        template = entity;
-        break;
-      }
-    }
+        const optionClient = TableClient.fromConnectionString(
+            process.env.AZURE_STORAGE_CONNECTION_STRING,
+            "QuestionOptions"
+        );
 
-    if (!template) {
+        let template = null;
 
-      context.res = {
-        status: 404,
-        body: {
-          success: false,
-          message: "Template not found"
+        for await (const entity of templateClient.listEntities()) {
+            if (entity.rowKey === templateId) {
+                template = entity;
+                break;
+            }
         }
-      };
 
-      return;
-    }
+        if (!template) {
+            context.res = {
+                status: 404,
+                body: {
+                    success: false,
+                    message: "Template not found"
+                }
+            };
+            return;
+        }
 
-    const questionIds =
-      template.QuestionIds
-        .split(",");
+        const tops = [];
+        const middles = [];
+        const parents = [];
+        const categories = [];
 
-    const questions = [];
+        for await (const item of topClient.listEntities({
+            queryOptions: { filter: "PartitionKey eq 'TopCategory'" }
+        })) {
+            tops.push(item);
+        }
 
-    for await (
-      const question of questionClient.listEntities()
-    ) {
+        for await (const item of middleClient.listEntities({
+            queryOptions: { filter: "PartitionKey eq 'MiddleCategory'" }
+        })) {
+            middles.push(item);
+        }
 
-      if (
-        questionIds.includes(
-          question.rowKey
-        )
-      ) {
+        for await (const item of parentClient.listEntities({
+            queryOptions: { filter: "PartitionKey eq 'ParentCategory'" }
+        })) {
+            parents.push(item);
+        }
 
-        questions.push({
-          id: question.rowKey,
-          question:
-            question.Question,
-          answerType:
-            question.AnswerType,
-          required:
-            question.Required,
-          options:
-            question.Options
+        for await (const category of categoryClient.listEntities({
+            queryOptions: { filter: "PartitionKey eq 'Category'" }
+        })) {
+            const parent = parents.find(
+                (p) => p.rowKey === category.ParentCategoryId
+            );
+            const middle = parent
+                ? middles.find((m) => m.rowKey === parent.MiddleCategoryId)
+                : null;
+            const top = middle
+                ? tops.find((t) => t.rowKey === middle.TopCategoryId)
+                : null;
+
+            const fullPath = [
+                top?.TopCategoryName,
+                middle?.MiddleCategoryName,
+                parent?.ParentCategoryName,
+                category.CategoryName
+            ]
+                .filter(Boolean)
+                .join(" > ");
+
+            categories.push({
+                id: category.rowKey,
+                categoryName: category.CategoryName || "",
+                fullPath,
+                questionIds: parseQuestionIds(category.QuestionId)
+            });
+        }
+
+        const questionToCategory = {};
+        categories.forEach((category) => {
+            category.questionIds.forEach((questionId) => {
+                questionToCategory[questionId] = category;
+            });
         });
-      }
-    }
 
-    context.res = {
-      status: 200,
-      body: {
-        success: true,
-        template: {
-          id:
-            template.rowKey,
-          templateName:
-            template.TemplateName,
-          categoryName:
-            template.CategoryName,
-          questions
+        const savedPaths = template.CategoryPath
+            ? template.CategoryPath.split("|").filter(Boolean)
+            : [];
+
+        const questionIds = template.QuestionIds
+            ? template.QuestionIds.split(",").filter(Boolean)
+            : [];
+
+        const allOptions = [];
+        for await (const opt of optionClient.listEntities({
+            queryOptions: { filter: "PartitionKey eq 'QuestionOption'" }
+        })) {
+            allOptions.push(opt);
         }
-      }
-    };
 
-  } catch (error) {
+        const questions = [];
 
-    context.res = {
-      status: 500,
-      body: {
-        success: false,
-        error:
-          error.message
-      }
-    };
-  }
+        for (const questionId of questionIds) {
+            try {
+                const question = await questionClient.getEntity(
+                    "Question",
+                    questionId
+                );
+
+                const categoryInfo = questionToCategory[questionId];
+
+                const options = allOptions
+                    .filter((opt) => opt.QuestionId === questionId)
+                    .map((opt) => opt.OptionText)
+                    .join(", ");
+
+                questions.push({
+                    id: question.rowKey,
+                    question: question.QuestionText,
+                    answerType: question.QuestionType,
+                    required: false,
+                    options,
+                    categoryName: categoryInfo?.categoryName || "",
+                    categoryPath: categoryInfo?.fullPath || ""
+                });
+            } catch {
+                // question deleted, skip
+            }
+        }
+
+        context.res = {
+            status: 200,
+            body: {
+                success: true,
+                template: {
+                    id: template.rowKey,
+                    templateName: template.TemplateName,
+                    categoryName: template.CategoryName,
+                    categoryNames: template.CategoryName
+                        ? template.CategoryName.split(",").filter(Boolean)
+                        : [],
+                    categoryPaths: savedPaths,
+                    questions
+                }
+            }
+        };
+    } catch (error) {
+        context.res = {
+            status: 500,
+            body: {
+                success: false,
+                error: error.message
+            }
+        };
+    }
 };

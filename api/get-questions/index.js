@@ -1,77 +1,106 @@
 const { TableClient } = require("@azure/data-tables");
 
+
 module.exports = async function (context, req) {
 
-  try {
+    try {
 
-    const categoryId =
-      req.query.categoryId;
 
-    const client =
-      TableClient.fromConnectionString(
-        process.env.AZURE_STORAGE_CONNECTION_STRING,
-        "QuestionnaireQuestions"
-      );
+        const connectionString =
+            process.env.AZURE_STORAGE_CONNECTION_STRING;
 
-    const questions = [];
 
-    for await (
-      const entity of client.listEntities()
-    ) {
 
-      if (
-        categoryId &&
-        entity.CategoryId !== categoryId
-      ) {
-        continue;
-      }
+        const tableClient =
+            TableClient.fromConnectionString(
+                connectionString,
+                "Questions"
+            );
 
-      questions.push({
-        id:
-          entity.rowKey,
 
-        question:
-          entity.Question || "",
 
-        answerType:
-          entity.AnswerType || "",
+        const questions = [];
 
-        options:
-          entity.Options || "",
 
-        required:
-          entity.Required || false,
 
-        weightage:
-          entity.Weightage || 0,
+        const entities =
+            tableClient.listEntities({
 
-        color:
-          entity.Color || "#2563eb",
+                queryOptions: {
+                    filter: "PartitionKey eq 'Question'"
+                }
 
-        categoryId:
-          entity.CategoryId || "",
-      });
+            });
+
+
+
+        for await (const entity of entities) {
+
+
+            questions.push({
+
+                id: entity.rowKey,
+
+                questionText: entity.QuestionText,
+
+                questionType: entity.QuestionType,
+
+                tagId: entity.TagId,
+
+                createdBy: entity.CreatedBy,
+
+                createdDate: entity.CreatedDate,
+
+                modifiedBy: entity.ModifiedBy,
+
+                modifiedDate: entity.ModifiedDate
+
+            });
+
+
+        }
+
+
+
+
+        context.res = {
+
+            status:200,
+
+            body:{
+
+                success:true,
+
+                data:questions
+
+            }
+
+        };
+
+
     }
 
-    context.res = {
-      status: 200,
-      body: {
-        success: true,
-        questions,
-      },
-    };
+    catch(error){
 
-  } catch (error) {
 
-    context.log(error);
+        context.log(error);
 
-    context.res = {
-      status: 500,
-      body: {
-        success: false,
-        error:
-          error.message,
-      },
-    };
-  }
+
+        context.res={
+
+            status:500,
+
+            body:{
+
+                success:false,
+
+                message:error.message
+
+            }
+
+        };
+
+
+    }
+
 };

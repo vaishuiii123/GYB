@@ -9,61 +9,62 @@ module.exports = async function (context, req) {
       createdBy,
     } = req.body;
 
+    if (
+      !organizationId ||
+      !participantIds ||
+      !Array.isArray(participantIds) ||
+      participantIds.length === 0
+    ) {
+      context.res = {
+        status: 400,
+        body: {
+          success: false,
+          message:
+            "organizationId and participantIds are required",
+        },
+      };
+      return;
+    }
+
     const client =
       TableClient.fromConnectionString(
         process.env.AZURE_STORAGE_CONNECTION_STRING,
         "OrganizationParticipants"
       );
 
-    // Remove existing mappings
-    const entitiesToDelete = [];
+    const existingIds = new Set();
 
-    for await (
-      const entity of client.listEntities()
-    ) {
-      if (
-        entity.OrganizationId ===
-        organizationId
-      ) {
-        entitiesToDelete.push(entity);
+    for await (const entity of client.listEntities()) {
+      if (entity.OrganizationId === organizationId) {
+        existingIds.add(entity.ParticipantId);
       }
     }
 
-    for (const entity of entitiesToDelete) {
-      await client.deleteEntity(
-        entity.partitionKey,
-        entity.rowKey
-      );
-    }
+    let addedCount = 0;
 
-    // Save selected participants
     for (const participantId of participantIds) {
+      if (existingIds.has(participantId)) {
+        continue;
+      }
 
       await client.createEntity({
-        partitionKey:
-          organizationId,
-
-        rowKey:
-          participantId,
-
-        OrganizationId:
-          organizationId,
-
-        ParticipantId:
-          participantId,
-
-        CreatedBy:
-          createdBy,
-
-        CreatedDate:
-          new Date().toISOString(),
+        partitionKey: organizationId,
+        rowKey: participantId,
+        OrganizationId: organizationId,
+        ParticipantId: participantId,
+        CreatedBy: createdBy || "",
+        CreatedDate: new Date().toISOString(),
       });
+
+      existingIds.add(participantId);
+      addedCount++;
     }
 
     context.res = {
       status: 200,
       body: {
         success: true,
+        addedCount,
       },
     };
 

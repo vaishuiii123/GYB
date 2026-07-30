@@ -5,10 +5,8 @@
       "type": "httpTrigger",
       "direction": "in",
       "name": "req",
-      "methods": [
-        "post"
-      ],
-      "route": "create-question"
+      "methods": ["delete"],
+      "route": "remove-category-question"
     },
     {
       "type": "http",
