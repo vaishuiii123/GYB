@@ -18,21 +18,17 @@ module.exports = async function(context, req){
         const id = req.query.id;
 
 
-        const {
-            categoryName,
-            modifiedBy
-        } = req.body;
-
-
-
-        if(!id || !categoryName){
+        if(!id){
 
             context.res = {
+
                 status:400,
+
                 body:{
                     success:false,
-                    message:"Category ID and Category Name are required."
+                    message:"Category ID is required."
                 }
+
             };
 
             return;
@@ -40,27 +36,9 @@ module.exports = async function(context, req){
 
 
 
-        const entity =
-            await tableClient.getEntity(
-                "Category",
-                id
-            );
-
-
-
-        entity.CategoryName = categoryName;
-
-        entity.ModifiedBy =
-            modifiedBy || "Admin";
-
-        entity.ModifiedDate =
-            new Date().toISOString();
-
-
-
-        await tableClient.updateEntity(
-            entity,
-            "Merge"
+        await tableClient.deleteEntity(
+            "Category",
+            id
         );
 
 
@@ -71,8 +49,7 @@ module.exports = async function(context, req){
 
             body:{
                 success:true,
-                message:"Category updated successfully.",
-                data:entity
+                message:"Category deleted successfully."
             }
 
         };
@@ -83,12 +60,16 @@ module.exports = async function(context, req){
 
         context.log(error);
 
-        context.res={
+
+        context.res = {
+
             status:500,
+
             body:{
                 success:false,
                 message:error.message
             }
+
         };
 
     }

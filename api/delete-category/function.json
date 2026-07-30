@@ -6,9 +6,9 @@
       "direction": "in",
       "name": "req",
       "methods": [
-        "put"
+        "delete"
       ],
-      "route": "update-category"
+      "route": "delete-category"
     },
     {
       "type": "http",

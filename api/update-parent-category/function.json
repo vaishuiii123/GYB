@@ -5,7 +5,10 @@
       "type": "httpTrigger",
       "direction": "in",
       "name": "req",
-      "methods": ["get"]
+      "methods": [
+        "put"
+      ],
+      "route": "update-parent-category"
     },
     {
       "type": "http",

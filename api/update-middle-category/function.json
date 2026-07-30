@@ -4,9 +4,11 @@
       "authLevel": "anonymous",
       "type": "httpTrigger",
       "direction": "in",
+      "methods": [
+        "put"
+      ],
       "name": "req",
-      "methods": ["post"],
-      "route": "delete-master-category"
+      "route": "update-middle-category"
     },
     {
       "type": "http",

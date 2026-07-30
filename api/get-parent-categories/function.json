@@ -6,9 +6,9 @@
       "direction": "in",
       "name": "req",
       "methods": [
-        "put"
+        "get"
       ],
-      "route": "update-category"
+      "route": "get-parent-categories"
     },
     {
       "type": "http",

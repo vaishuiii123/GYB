@@ -9,10 +9,6 @@ import Dashboard from "./pages/Admin/Dashboard";
 import AdminLogin from "./pages/auth/AdminLogin";
 import Organization from "./pages/Admin/Organization";
 import Participants from "./pages/Admin/Participants";
-import Category from "./pages/Admin/Category";
-import CategoryDetails from "./pages/Admin/CategoryDetails";
-import SubCategoryDetails from "./pages/Admin/SubCategoryDetails";
-import QuestionAssignment from "./pages/Admin/QuestionAssignment";
 import Questions from "./pages/Admin/Questions";
 import Template from "./pages/Admin/Template";
 import CreateTemplate from "./pages/Admin/CreateTemplate";
@@ -22,6 +18,8 @@ import UserLogin from "./pages/User/UserLogin";
 import UserDashboard from "./pages/User/UserDashboard";
 import CategoryManagement from "./pages/Admin/CategoryManagement";
 import MiddleCategory from "./pages/Admin/MiddleCategory";
+import ParentCategory from "./pages/Admin/ParentCategory";
+import Category from "./pages/Admin/Category";
 
 function App() {
 
@@ -75,20 +73,15 @@ function App() {
         element={<MiddleCategory user={currentUser}/>}
       />
 
-       <Route
-        path="/category/:masterCategoryId"
-        element={<CategoryDetails user={currentUser} />}
+      <Route
+        path="/parent-category/:middleCategoryId"
+        element={<ParentCategory user={currentUser}/>}
       />
 
-       <Route
-        path="/subcategory/:categoryId"
-        element={<SubCategoryDetails user={currentUser}/>}
+      <Route
+          path="/category/:parentCategoryId"
+          element={<Category user={currentUser}/>}
       />
-
-       <Route
-          path="/questions-assignment/:subCategoryId"
-          element={<QuestionAssignment user={currentUser}/>}
-        />
 
        <Route
         path="/questions"

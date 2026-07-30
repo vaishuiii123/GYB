@@ -49,7 +49,6 @@ module.exports = async function (context, req) {
                 entity.MiddleCategoryName.toLowerCase() ===
                 middleCategoryName.toLowerCase()
             ) {
-
                 context.res = {
                     status: 400,
                     body: {
@@ -57,90 +56,64 @@ module.exports = async function (context, req) {
                         message: "Middle Category already exists."
                     }
                 };
-
                 return;
             }
         }
 
-
-
         // Generate MID001, MID002, MID003...
 
-        let count = 1;
+       let maxId = 0;
 
-        const middleEntities = tableClient.listEntities({
-            queryOptions: {
-                filter: "PartitionKey eq 'MiddleCategory'"
-            }
-        });
+const middleEntities = tableClient.listEntities({
+    queryOptions: {
+        filter: "PartitionKey eq 'MiddleCategory'"
+    }
+});
 
+for await (const entity of middleEntities) {
 
-        for await (const entity of middleEntities) {
-            count++;
-        }
+    const currentId = parseInt(
+        entity.rowKey.replace("MID", "")
+    );
 
+    if (currentId > maxId) {
+        maxId = currentId;
+    }
+}
 
-        const middleCategoryId =
-            `MID${String(count).padStart(3, "0")}`;
-
-
-
+const middleCategoryId =
+    `MID${String(maxId + 1).padStart(3, "0")}`;
+    
         const entity = {
-
             partitionKey: "MiddleCategory",
-
             rowKey: middleCategoryId,
-
             MiddleCategoryName: middleCategoryName,
-
             TopCategoryId: topCategoryId,
-
             CreatedBy: createdBy || "Admin",
-
             CreatedDate: new Date().toISOString(),
-
             ModifiedBy: createdBy || "Admin",
-
             ModifiedDate: new Date().toISOString()
-
         };
-
-
 
         await tableClient.createEntity(entity);
 
-
-
         context.res = {
-
             status: 201,
-
             body: {
                 success: true,
                 message: "Middle Category created successfully.",
                 data: entity
             }
-
         };
-
-
     }
     catch(error) {
-
         context.log(error);
-
-
         context.res = {
-
             status: 500,
-
             body: {
                 success: false,
                 message: error.message
             }
-
         };
-
     }
-
 };

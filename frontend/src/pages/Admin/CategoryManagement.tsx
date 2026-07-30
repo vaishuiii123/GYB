@@ -16,6 +16,8 @@ export default function CategoryManagement({ user }: PageProps) {
 
   const [editMode, setEditMode] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
+
+  
   
 
   const navigate = useNavigate();

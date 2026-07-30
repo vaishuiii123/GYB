@@ -1,665 +1,649 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
+import "../../styles/CategoryManagement.css";
+import { useState, useEffect } from "react";
+import { useLocation, useParams, useNavigate } from "react-router-dom";
 
 type PageProps = {
-  user?: any;
+    user?: any;
 };
 
 export default function Category({ user }: PageProps) {
 
-  const navigate = useNavigate();
-  
-  const [showEditModal, setShowEditModal] =
-    useState(false);
-  
-  const [showDeleteModal, setShowDeleteModal] =
-    useState(false);
-  
-  const [selectedCategory, setSelectedCategory] =
-    useState<any>(null);
-  
-  const [editCategoryName, setEditCategoryName] =
-    useState("");
-  
-  const [selectedMasterCategory, setSelectedMasterCategory] =
-    useState<any>(null);
-  
-  const [categoriesList, setCategoriesList] =
-    useState<any[]>([]);
-  
-  const [showCategoryModal, setShowCategoryModal] =
-    useState(false);
-  
-  const [categoryName, setCategoryName] =
-    useState("");
-  
-  const [categoryError, setCategoryError] =
-    useState("");
-  
-  const [categories, setCategories] =
-    useState<any[]>([]);
-  
-  const [showModal, setShowModal] =
-    useState(false);
-  
-  const [masterCategoryName, setMasterCategoryName] =
-    useState("");
+    const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchCategories();
-  }, []);
+   const location = useLocation();
 
-  const fetchCategories = async () => {
-    try {
-      const response = await fetch(
-        "/api/get-master-categories"
-      );
+const { parentCategoryId } = useParams();
 
-      const data = await response.json();
+const middleCategoryId =
+    location.state?.middleCategoryId || "";
 
-      if (data.success) {
-        setCategories(data.categories);
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  };
+const parentCategoryIdFromState =
+    location.state?.parentCategoryId || parentCategoryId;
 
-   const handleCreateCategory = async () => {
-  
-    if (!masterCategoryName.trim()) {
-      setCategoryError("Master Category Name is required");
-      return;
-    }
-  
-    setCategoryError("");
-  
-    try {
-      const response = await fetch(
-        "/api/create-master-category",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            masterCategoryName,
-            createdBy: user?.username || "",
-          }),
+
+    const topCategoryName = location.state?.topCategoryName || "Top Category";
+
+    const middleCategoryName = location.state?.middleCategoryName || "Middle Category";
+
+    const parentCategoryName = location.state?.parentCategoryName || "Parent Category";
+
+
+    const [categories, setCategories] = useState<any[]>([]);
+
+    const [showModal, setShowModal] = useState(false);
+
+    const [categoryName, setCategoryName] = useState("");
+
+    const [editMode, setEditMode] = useState(false);
+
+    const [selectedCategoryId, setSelectedCategoryId] = useState("");
+
+
+
+    const fetchCategories = async () => {
+
+        try {
+
+            if(!parentCategoryId){
+
+                alert("Parent Category not found");
+
+                return;
+
+            }
+            const response = await fetch(
+                `/api/get-category?parentCategoryId=${parentCategoryId}`
+            );
+
+
+            const result = await response.json();
+
+
+            if(result.success){
+
+                setCategories(result.data);
+
+            }
+
         }
-      );
-  
-      const data = await response.json();
-  
-      if (data.success) {
-        setShowModal(false);
-        setMasterCategoryName("");
-        setCategoryError("");
-  
+        catch(error){
+
+            console.error(
+                "Error fetching categories:",
+                error
+            );
+
+        }
+
+    };
+
+
+
+    useEffect(()=>{
+
         fetchCategories();
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  };
 
-const handleView = (category: any) => {
- navigate(
-   `/category/${category.id}`,
-   {
-      state: {
-        masterCategoryName:
-          category.masterCategoryName,
-      },
-    }
-  );
-};
+    },[parentCategoryId]);
 
-//========================== EDIT MASTER CATEGORY ==================================
- const handleEdit = (
-  category: any
-) => {
 
-  setSelectedCategory(category);
 
-  setEditCategoryName(
-    category.masterCategoryName
-  );
 
-  setShowEditModal(true);
-};
+    const handleSaveCategory = async()=>{
 
-const saveCategory = async () => {
 
-  try {
+        if(!categoryName.trim()){
 
-    const response =
-      await fetch(
-        "/api/update-master-category",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-          body: JSON.stringify({
-            id: selectedCategory.id,
-            masterCategoryName:
-              editCategoryName,
-          }),
+            alert("Please enter Category Name");
+
+            return;
+
         }
-      );
 
-    const data =
-      await response.json();
 
-    if (data.success) {
+        try{
 
-      setShowEditModal(false);
 
-      setEditCategoryName("");
+            const response = await fetch(
+                "/api/create-category",
+                {
+                    method:"POST",
 
-      setSelectedCategory(null);
+                    headers:{
+                        "Content-Type":"application/json",
+                    },
 
-      fetchCategories();
+                    body:JSON.stringify({
 
-    } else {
+                        parentCategoryId,
 
-      alert(data.message);
-    }
+                        categoryName,
 
-  } catch (error) {
+                        createdBy:user?.name || "Admin"
 
-    console.error(error);
-  }
-};
-  
-  //===================================== DELETE MASTER CATEGORY =============================
+                    })
 
-  const handleDelete = (
-  category: any
-) => {
+                }
+            );
 
-  setSelectedCategory(category);
 
-  setShowDeleteModal(true);
-};
+            const result = await response.json();
 
-const confirmDelete = async () => {
 
-  try {
 
-    const response =
-      await fetch(
-        "/api/delete-master-category",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-          body: JSON.stringify({
-            id: selectedCategory.id,
-          }),
+            if(result.success){
+
+                alert(result.message);
+
+                setShowModal(false);
+
+                setCategoryName("");
+
+                fetchCategories();
+
+            }
+            else{
+
+                alert(result.message);
+
+            }
+
+
         }
-      );
+        catch(error){
 
-    const data =
-      await response.json();
+            console.error(error);
 
-    if (data.success) {
+            alert("Something went wrong.");
 
-      setShowDeleteModal(false);
+        }
 
-      setSelectedCategory(null);
+    };
 
-      fetchCategories();
 
-    } else {
 
-      alert(data.message);
-    }
 
-  } catch (error) {
+    const handleEditCategory = (category:any)=>{
 
-    console.error(error);
-  }
-};
-  
-  
-  return (
-    <>
-      <div
-        style={{
-          display: "flex",
-          minHeight: "100vh",
-          background: "#f3f4f6",
-        }}
-      >
-        <Sidebar />
 
-        <div
-          style={{
-            flex: 1,
-            marginLeft: "220px",
-          }}
-        >
-          <Header user={user} />
+        setEditMode(true);
 
-          <div
-            style={{
-              padding: "25px",
-              marginTop: "70px",
-            }}
-          >
-            {/* HEADER */}
-          <div style={pageHeader}>
-            <div>
-              {selectedMasterCategory && (
-                <button
-                  onClick={() => {
-                    setSelectedMasterCategory(null);
-                    setCategoriesList([]);
-                  }}
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    cursor: "pointer",
-                    fontSize: "14px",
-                    marginBottom: "10px",
-                    color: "#3b5bcc",
-                  }}
-                >
-                  ← Back to Master Categories
-                </button>
-              )}
-          
-              <h1 style={pageTitle}>
-                {selectedMasterCategory
-                  ? selectedMasterCategory.masterCategoryName
-                  : "Category Management"}
-              </h1>
-            </div>
-          
-            <div style={{ display: "flex", gap: "10px" }}>
-              {selectedMasterCategory ? (
-                <button
-                  style={saveBtn}
-                  onClick={() =>
-                    setShowCategoryModal(true)
-                  }
-                >
-                  Create Category
-                </button>
-              ) : (
-                <button
-                  style={saveBtn}
-                  onClick={() =>
-                    setShowModal(true)
-                  }
-                >
-                  Create Master Category
-                </button>
-              )}
-            </div>
-          
-          </div>
-                       {/* TABLE */}
+        setSelectedCategoryId(category.id);
 
-            <div style={card}>
-              <table
-                style={{
-                  width: "100%",
-                  borderCollapse: "collapse",
-                }}
-              >
-                <thead>
-                  <tr>
-                   <th style={tableHeader}>
-                      {selectedMasterCategory
-                        ? "Category Name"
-                        : "Master Category Name"}
-                    </th>
+        setCategoryName(category.categoryName);
 
-                    <th style={tableHeader}>
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
+        setShowModal(true);
 
-                <tbody>
-                  {(selectedMasterCategory
-                    ? categoriesList
-                    : categories
-                  ).map((cat) => (
-                    <tr key={cat.id}>
-                      <td style={tableCell}>
-                          {selectedMasterCategory
-                            ? cat.categoryName
-                            : cat.masterCategoryName}
-                        </td>
+    };
 
-                      <td style={tableCell}>
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: "8px",
-                          }}
+
+
+
+    const handleUpdateCategory = async()=>{
+
+
+        if(!categoryName.trim()){
+
+            alert("Please enter Category Name");
+
+            return;
+
+        }
+
+
+        try{
+
+
+            const response = await fetch(
+                `/api/update-category?id=${selectedCategoryId}`,
+                {
+                    method:"PUT",
+
+                    headers:{
+                        "Content-Type":"application/json",
+                    },
+
+                    body:JSON.stringify({
+
+                        categoryName,
+
+                        modifiedBy:user?.name || "Admin"
+
+                    })
+
+                }
+            );
+
+
+            const result = await response.json();
+
+
+
+            if(result.success){
+
+                alert(result.message);
+
+                setShowModal(false);
+
+                setCategoryName("");
+
+                setEditMode(false);
+
+                setSelectedCategoryId("");
+
+                fetchCategories();
+
+            }
+            else{
+
+                alert(result.message);
+
+            }
+
+
+        }
+        catch(error){
+
+            console.error(error);
+
+            alert("Update failed.");
+
+        }
+
+    };
+
+
+
+
+    const handleDeleteCategory = async(id:string)=>{
+
+
+        const confirmDelete = window.confirm(
+            "Are you sure you want to delete this Category?"
+        );
+
+
+        if(!confirmDelete){
+
+            return;
+
+        }
+
+
+        try{
+
+
+            const response = await fetch(
+                `/api/delete-category?id=${id}`,
+                {
+                    method:"DELETE"
+                }
+            );
+
+
+            const result = await response.json();
+
+
+
+            if(result.success){
+
+                alert(result.message);
+
+                fetchCategories();
+
+            }
+            else{
+
+                alert(result.message);
+
+            }
+
+
+        }
+        catch(error){
+
+            console.error(error);
+
+            alert("Delete failed.");
+
+        }
+
+    };
+
+
+
+    return (
+
+        <div className="category-page">
+
+
+            <Sidebar />
+
+
+            <div className="category-content">
+
+
+                <Header user={user}/>
+
+
+
+                <div className="category-body">
+
+
+               <div className="breadcrumb">
+                 <span
+                 onClick={()=>navigate("/category")}
+                 style={{cursor:"pointer"}}
+                 >
+                  {topCategoryName}
+                </span>
+                {" > "}
+                        <span
+                            onClick={() =>
+                                navigate(`/parent-category/${middleCategoryId}`, {
+                                    state:{
+                                        topCategoryName,
+                                        middleCategoryId,
+                                        middleCategoryName
+                                    }
+                                })
+                            }
+                            style={{cursor:"pointer"}}
                         >
-                          <button
-                            style={viewBtn}
+                            {middleCategoryName}
+                        </span>
+                        {" > "}
+                        <span
                             onClick={() =>
-                              handleView(cat)
+                                navigate(`/category/${parentCategoryIdFromState}`, {
+                                    state:{
+                                        topCategoryName,
+                                        middleCategoryId,
+                                        middleCategoryName,
+                                        parentCategoryName
+                                    }
+                                })
                             }
-                          >
-                            👁 View
-                          </button>
+                            style={{cursor:"pointer"}}
+                        >
+                            {parentCategoryName}
+                        </span>
+                        {" > "}
+                        Category
+                    </div>
+                    <div className="page-header">
 
-                          <button
-                            style={editBtn}
-                            onClick={() =>
-                              handleEdit(cat)
-                            }
-                          >
-                            ✏ Edit
-                          </button>
 
-                          <button
-                            style={deleteBtn}
-                            onClick={() =>
-                              handleDelete(cat)
+                        <h1 className="page-title">
+                            Categories
+                        </h1>
+
+
+
+                        <button
+
+                            className="create-btn"
+
+                            onClick={()=>{
+
+                                setEditMode(false);
+
+                                setCategoryName("");
+
+                                setShowModal(true);
+
+                            }}
+
+                        >
+
+                            + Create Category
+
+                        </button>
+
+
+                    </div>
+
+
+
+
+                    <div className="category-card">
+
+
+                        <table className="category-table">
+
+
+                            <thead>
+
+                                <tr>
+
+                                    <th>
+                                        Category Name
+                                    </th>
+
+                                    <th>
+                                        Actions
+                                    </th>
+
+                                </tr>
+
+                            </thead>
+
+
+
+                            <tbody>
+
+
+                            {
+                                categories.length === 0 ? (
+
+                                    <tr>
+
+                                        <td>
+                                            No Categories Available
+                                        </td>
+
+                                        <td></td>
+
+                                    </tr>
+
+
+                                ) : (
+
+
+                                    categories.map((category)=>(
+
+
+                                        <tr key={category.id}>
+
+
+                                            <td>
+
+                                                {category.categoryName}
+
+                                            </td>
+
+
+
+                                            <td>
+
+
+                                                <button
+
+                                                    className="edit-btn"
+
+                                                    onClick={()=>
+                                                        handleEditCategory(category)
+                                                    }
+
+                                                >
+
+                                                    Edit
+
+                                                </button>
+
+
+
+                                                <button
+
+                                                    className="delete-btn"
+
+                                                    onClick={()=>
+                                                        handleDeleteCategory(category.id)
+                                                    }
+
+                                                >
+
+                                                    Delete
+
+                                                </button>
+
+
+                                            </td>
+
+
+                                        </tr>
+
+
+                                    ))
+
+                                )
+
                             }
-                          >
-                            🗑 Delete
-                          </button>
+
+
+                            </tbody>
+
+
+                        </table>
+
+
+                    </div>
+
+
+                </div>
+
+
+            </div>
+
+
+
+
+
+            {
+                showModal && (
+
+                    <div className="modal-overlay">
+
+
+                        <div className="modal">
+
+
+                            <h2>
+
+                                {
+                                    editMode
+                                    ? "Edit Category"
+                                    : "Create Category"
+                                }
+
+                            </h2>
+
+
+
+                            <div className="form-group">
+
+
+                                <label>
+                                    Category Name
+                                </label>
+
+
+
+                                <input
+
+                                    type="text"
+
+                                    value={categoryName}
+
+                                    onChange={(e)=>
+                                        setCategoryName(e.target.value)
+                                    }
+
+                                    placeholder="Enter Category Name"
+
+                                />
+
+
+                            </div>
+
+
+
+
+                            <div className="modal-buttons">
+
+
+                                <button
+
+                                    className="cancel-btn"
+
+                                    onClick={()=>{
+
+                                        setShowModal(false);
+
+                                        setCategoryName("");
+
+                                        setEditMode(false);
+
+                                        setSelectedCategoryId("");
+
+                                    }}
+
+                                >
+
+                                    Cancel
+
+                                </button>
+
+
+
+
+                                <button
+
+                                    className="save-btn"
+
+                                    onClick={
+
+                                        editMode
+
+                                        ? handleUpdateCategory
+
+                                        : handleSaveCategory
+
+                                    }
+
+                                >
+
+                                    Save
+
+                                </button>
+
+
+                            </div>
+
+
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
 
-            {/* CREATE MODAL */}
 
-            {showModal && (
-              <div style={modalOverlay}>
-                <div style={modalBox}>
-                  <h2>
-                    Create Master Category
-                  </h2>
+                    </div>
 
-                 <input
-                    style={{
-                      ...inputStyle,
-                      border: categoryError
-                        ? "1px solid #dc2626"
-                        : "1px solid #d1d5db",
-                    }}
-                    placeholder="Master Category Name"
-                    value={masterCategoryName}
-                    onChange={(e) => {
-                      setMasterCategoryName(e.target.value);
-                      setCategoryError("");
-                    }}
-                  />
+                )
 
-                  {categoryError && (
-                      <div
-                        style={{
-                          color: "#dc2626",
-                          fontSize: "14px",
-                          marginTop: "-5px",
-                          marginBottom: "8px",
-                        }}
-                      >
-                        {categoryError}
-                      </div>
-                    )}
+            }
 
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "end",
-                      gap: "10px",
-                    }}
-                  >
-                    <button
-                      onClick={() =>
-                        setShowModal(false)
-                      }
-                    >
-                      Cancel
-                    </button>
 
-                    <button
-                      style={saveBtn}
-                      onClick={
-                        handleCreateCategory
-                      }
-                    >
-                      Save
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
         </div>
-        
-        {
-            showEditModal && (
-             <div style={modalOverlay}>
-                <div style={modalBox}>
-                  <h2>
-                    Edit Master Category
-                  </h2>
-          
-                  <input
-                    value={editCategoryName}
-                    onChange={(e) =>
-                      setEditCategoryName(
-                        e.target.value
-                      )
-                    }
-                    style={inputStyle}
-                  />
-          
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "flex-end",
-                      gap: "10px",
-                      marginTop: "20px",
-                    }}
-                  >
-                    <button
-                      onClick={() =>
-                        setShowEditModal(false)
-                      }
-                    >
-                      Cancel
-                    </button>
-          
-                    <button
-                      onClick={saveCategory}
-                      style={saveBtn}
-                    >
-                      Save
-                    </button>
-          
-                  </div>
-          
-                </div>
-              </div>
-            )
-          }
-      </div>
 
-      {showDeleteModal && (
-            <div style={modalOverlay}>
-              <div style={modalBox}>
-        
-                <h2>
-                  Delete Master Category
-                </h2>
-        
-                <p
-                  style={{
-                    marginTop: "15px",
-                    marginBottom: "25px",
-                    fontSize: "16px",
-                  }}
-                >
-                  Are you sure you want to delete
-                  <strong>
-                    {" "}
-                    {selectedCategory?.masterCategoryName}
-                  </strong>
-                  ?
-                </p>
-        
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "flex-end",
-                    gap: "10px",
-                  }}
-                >
-                  <button
-                    onClick={() =>
-                      setShowDeleteModal(false)
-                    }
-                  >
-                    Cancel
-                  </button>
-        
-                  <button
-                    onClick={confirmDelete}
-                    style={{
-                      background: "#dc2626",
-                      color: "#fff",
-                      border: "none",
-                      padding: "10px 20px",
-                      borderRadius: "6px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Delete
-                  </button>
-        
-                </div>
-        
-              </div>
-            </div>
-          )
-        }
-    </>
-  );
+    );
+
 }
-
-/* ================= STYLES ================= */
-
-const card: any = {
-  background: "white",
-  padding: "24px",
-  borderRadius: "18px",
-  boxShadow:
-    "0 4px 20px rgba(0,0,0,0.06)",
-};
-
-const pageHeader: any = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginBottom: "20px",
-};
-
-const pageTitle: any = {
-  fontSize: "32px",
-  fontWeight: "700",
-  color: "#111827",
-  margin: 0,
-};
-
-const saveBtn: any = {
-  background: "#3b5bcc",
-  color: "white",
-  padding: "10px 16px",
-  border: "none",
-  borderRadius: "8px",
-  cursor: "pointer",
-};
-
-const tableHeader: any = {
-  padding: "16px",
-  textAlign: "left",
-  background: "#f9fafb",
-  borderBottom:
-    "1px solid #e5e7eb",
-};
-
-const tableCell: any = {
-  padding: "12px",
-  borderBottom:
-    "1px solid #f1f1f1",
-};
-
-const viewBtn: any = {
-  background: "#16a34a",
-  color: "white",
-  border: "none",
-  padding: "6px 12px",
-  borderRadius: "6px",
-  cursor: "pointer",
-};
-
-const editBtn: any = {
-  background: "#2563eb",
-  color: "white",
-  border: "none",
-  padding: "6px 12px",
-  borderRadius: "6px",
-  cursor: "pointer",
-};
-
-const deleteBtn: any = {
-  background: "#dc2626",
-  color: "white",
-  border: "none",
-  padding: "6px 12px",
-  borderRadius: "6px",
-  cursor: "pointer",
-};
-
-const modalOverlay: any = {
-  position: "fixed",
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  background:
-    "rgba(0,0,0,0.5)",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-};
-
-const modalBox: any = {
-  background: "white",
-  padding: "25px",
-  borderRadius: "12px",
-  width: "450px",
-  display: "flex",
-  flexDirection: "column",
-  gap: "12px",
-};
-
-const inputStyle: any = {
-  padding: "10px",
-  border:
-    "1px solid #d1d5db",
-  borderRadius: "6px",
-};

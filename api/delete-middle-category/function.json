@@ -5,8 +5,10 @@
       "type": "httpTrigger",
       "direction": "in",
       "name": "req",
-      "methods": ["post"],
-      "route": "update-master-category"
+      "methods": [
+        "delete"
+      ],
+      "route": "delete-middle-category"
     },
     {
       "type": "http",
