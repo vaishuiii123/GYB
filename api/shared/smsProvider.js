@@ -1,3 +1,60 @@
+const https = require("https");
+const { URL } = require("url");
+
+function normalizeBulkSmsLinkUrl(apiUrl) {
+  if (!apiUrl.includes("bulksmslink.in")) {
+    return apiUrl;
+  }
+
+  // Azure Functions block outbound HTTP (port 80). BulkSMSLink has a bad cert
+  // on HTTPS, so we allow insecure TLS instead of downgrading to HTTP.
+  if (apiUrl.startsWith("http://")) {
+    return apiUrl.replace(/^http:\/\//, "https://");
+  }
+
+  return apiUrl;
+}
+
+function postBulkSmsLink(apiUrl, bodyString) {
+  return new Promise((resolve, reject) => {
+    const url = new URL(apiUrl);
+    const request = https.request(
+      {
+        hostname: url.hostname,
+        port: url.port || 443,
+        path: `${url.pathname}${url.search}`,
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "Content-Length": Buffer.byteLength(bodyString),
+        },
+        rejectUnauthorized: false,
+        timeout: 30000,
+      },
+      (response) => {
+        let raw = "";
+        response.on("data", (chunk) => {
+          raw += chunk;
+        });
+        response.on("end", () => {
+          resolve({
+            ok: response.statusCode >= 200 && response.statusCode < 300,
+            status: response.statusCode,
+            text: async () => raw,
+          });
+        });
+      }
+    );
+
+    request.on("error", reject);
+    request.on("timeout", () => {
+      request.destroy(new Error("BulkSMSLink request timed out"));
+    });
+    request.write(bodyString);
+    request.end();
+  });
+}
+
 function normalizePhone(phone) {
   const digits = String(phone || "").replace(/\D/g, "");
   if (!digits) {
@@ -89,11 +146,7 @@ async function sendViaBulkSmsLink(phone, message, templateId) {
     );
   }
 
-  // BulkSMSLink's login endpoint currently serves an invalid SSL certificate.
-  // Node fetch rejects HTTPS; HTTP works for the same API path.
-  if (apiUrl.includes("bulksmslink.in") && apiUrl.startsWith("https://")) {
-    apiUrl = apiUrl.replace(/^https:\/\//, "http://");
-  }
+  apiUrl = normalizeBulkSmsLinkUrl(apiUrl);
 
   if (!username || !apiKey) {
     throw new Error(
@@ -140,13 +193,19 @@ async function sendViaBulkSmsLink(phone, message, templateId) {
 
   let response;
   try {
-    response = await fetch(apiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: body.toString(),
-    });
+    const bodyString = body.toString();
+
+    if (apiUrl.startsWith("https://") && apiUrl.includes("bulksmslink.in")) {
+      response = await postBulkSmsLink(apiUrl, bodyString);
+    } else {
+      response = await fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: bodyString,
+      });
+    }
   } catch (error) {
     const cause = error.cause?.message || error.cause?.code || "";
     throw new Error(

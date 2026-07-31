@@ -10,19 +10,24 @@ const {
   buildWorkshopSmsMessage,
 } = require("../shared/workshopSmsMessage");
 
+function jsonResponse(status, body) {
+  return {
+    status,
+    headers: { "Content-Type": "application/json" },
+    body,
+  };
+}
+
 module.exports = async function (context, req) {
   try {
     const { phoneNo, phone } = req.body || {};
     const phoneResult = parsePhoneInput(phoneNo || phone);
 
     if (!phoneResult.valid) {
-      context.res = {
-        status: 400,
-        body: {
-          success: false,
-          message: phoneResult.message,
-        },
-      };
+      context.res = jsonResponse(400, {
+        success: false,
+        message: phoneResult.message,
+      });
       return;
     }
 
@@ -31,24 +36,18 @@ module.exports = async function (context, req) {
     );
 
     if (!loginContext) {
-      context.res = {
-        status: 404,
-        body: {
-          success: false,
-          message: "Phone number not found.",
-        },
-      };
+      context.res = jsonResponse(404, {
+        success: false,
+        message: "Phone number not found.",
+      });
       return;
     }
 
     if (loginContext.missingOrganization) {
-      context.res = {
-        status: 401,
-        body: {
-          success: false,
-          message: "You are not assigned to an organization.",
-        },
-      };
+      context.res = jsonResponse(401, {
+        success: false,
+        message: "You are not assigned to an organization.",
+      });
       return;
     }
 
@@ -64,23 +63,17 @@ module.exports = async function (context, req) {
 
     await sendSms(phoneResult.normalizedPhone, message);
 
-    context.res = {
-      status: 200,
-      body: {
-        success: true,
-        message: "OTP sent to your mobile number.",
-        expiresInMinutes: validityMinutes,
-      },
-    };
+    context.res = jsonResponse(200, {
+      success: true,
+      message: "OTP sent to your mobile number.",
+      expiresInMinutes: validityMinutes,
+    });
   } catch (error) {
     context.log("Error in send-login-otp:", error);
 
-    context.res = {
-      status: 500,
-      body: {
-        success: false,
-        message: error.message || "Failed to send OTP.",
-      },
-    };
+    context.res = jsonResponse(500, {
+      success: false,
+      message: error.message || "Failed to send OTP.",
+    });
   }
 };
