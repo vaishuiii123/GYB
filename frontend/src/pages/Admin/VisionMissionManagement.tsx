@@ -8,20 +8,20 @@ type PageProps = {
 };
 
 export default function VisionMissionManagement({ user }: PageProps) {
-    const [visionText, setVisionText] = useState("");
-    const [missionText, setMissionText] = useState("");
+    const [keywords, setKeywords] = useState<string[]>([]);
+    const [newKeyword, setNewKeyword] = useState("");
     const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
 
     const fetchVisionMission = async () => {
         try {
             const response = await fetch("/api/get-vision-mission");
             const result = await response.json();
             if (result.success) {
-                setVisionText(result.data.visionText || "");
-                setMissionText(result.data.missionText || "");
+                setKeywords(result.data.keywords || []);
             }
         } catch (error) {
-            console.error("Error fetching vision/mission:", error);
+            console.error("Error fetching vision/mission keywords:", error);
         } finally {
             setLoading(false);
         }
@@ -31,19 +31,43 @@ export default function VisionMissionManagement({ user }: PageProps) {
         fetchVisionMission();
     }, []);
 
+    const handleAddKeyword = () => {
+        const trimmed = newKeyword.trim();
+        if (!trimmed) {
+            return;
+        }
+
+        if (
+            keywords.some(
+                (keyword) => keyword.toLowerCase() === trimmed.toLowerCase()
+            )
+        ) {
+            alert("This keyword already exists.");
+            return;
+        }
+
+        setKeywords((prev) => [...prev, trimmed]);
+        setNewKeyword("");
+    };
+
+    const handleRemoveKeyword = (keyword: string) => {
+        setKeywords((prev) => prev.filter((item) => item !== keyword));
+    };
+
     const handleSave = async () => {
-        if (!visionText.trim() && !missionText.trim()) {
-            alert("Please enter Vision or Mission text.");
+        if (keywords.length === 0) {
+            alert("Please add at least one keyword.");
             return;
         }
 
         try {
+            setSaving(true);
+
             const response = await fetch("/api/update-vision-mission", {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    visionText,
-                    missionText,
+                    keywords,
                     modifiedBy: user?.name || "Admin",
                 }),
             });
@@ -52,11 +76,13 @@ export default function VisionMissionManagement({ user }: PageProps) {
             if (result.success) {
                 alert(result.message);
             } else {
-                alert(result.message);
+                alert(result.message || "Failed to save keywords.");
             }
         } catch (error) {
             console.error(error);
             alert("Something went wrong");
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -72,7 +98,7 @@ export default function VisionMissionManagement({ user }: PageProps) {
 
                     <div className="page-header">
                         <h1 className="page-title">
-                            Vision & Mission Statement
+                            Vision & Mission Keywords
                         </h1>
                     </div>
 
@@ -80,36 +106,67 @@ export default function VisionMissionManagement({ user }: PageProps) {
                         <p>Loading...</p>
                     ) : (
                         <div className="vision-card">
-                            <div className="form-group">
-                                <label>Vision Statement</label>
-                                <textarea
-                                    value={visionText}
+                            <p className="vision-help-text">
+                                Manage the suggested keywords that participants
+                                can drag and drop into their Vision and Mission
+                                statements during the pre-organization workshop.
+                            </p>
+
+                            <div className="keyword-input-row">
+                                <input
+                                    type="text"
+                                    value={newKeyword}
                                     onChange={(e) =>
-                                        setVisionText(e.target.value)
+                                        setNewKeyword(e.target.value)
                                     }
-                                    placeholder="Enter the organization's vision statement"
-                                    rows={6}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                            handleAddKeyword();
+                                        }
+                                    }}
+                                    placeholder="Add a new keyword"
                                 />
+                                <button
+                                    type="button"
+                                    className="add-keyword-btn"
+                                    onClick={handleAddKeyword}
+                                >
+                                    Add Keyword
+                                </button>
                             </div>
 
-                            <div className="form-group">
-                                <label>Mission Statement</label>
-                                <textarea
-                                    value={missionText}
-                                    onChange={(e) =>
-                                        setMissionText(e.target.value)
-                                    }
-                                    placeholder="Enter the organization's mission statement"
-                                    rows={6}
-                                />
+                            <div className="keyword-count">
+                                {keywords.length} keyword
+                                {keywords.length === 1 ? "" : "s"} configured
+                            </div>
+
+                            <div className="keyword-grid">
+                                {keywords.map((keyword) => (
+                                    <div
+                                        key={keyword}
+                                        className="keyword-chip admin-chip"
+                                    >
+                                        <span>{keyword}</span>
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                handleRemoveKeyword(keyword)
+                                            }
+                                            aria-label={`Remove ${keyword}`}
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                ))}
                             </div>
 
                             <div className="vision-actions">
                                 <button
                                     className="save-btn"
                                     onClick={handleSave}
+                                    disabled={saving}
                                 >
-                                    Save
+                                    {saving ? "Saving..." : "Save Keywords"}
                                 </button>
                             </div>
                         </div>

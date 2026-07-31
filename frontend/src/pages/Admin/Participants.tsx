@@ -23,11 +23,30 @@ export default function Participants({ user }: PageProps) {
     email: "",
     phoneNo: "",
     password: "",
+    organisation: "",
   });
+
+  const [organizations, setOrganizations] = useState<any[]>([]);
 
   useEffect(() => {
     fetchParticipants();
+    fetchOrganizations();
   }, []);
+
+  const fetchOrganizations = async () => {
+    try {
+      const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+      const response = await fetch(
+        `/api/get-organizations?createdBy=${encodeURIComponent(currentUser.email || "")}`
+      );
+      const data = await response.json();
+      if (data.success) {
+        setOrganizations(data.organizations || []);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   const fetchParticipants = async () => {
     try {
@@ -63,6 +82,7 @@ export default function Participants({ user }: PageProps) {
             email: participantForm.email,
             phoneNo: participantForm.phoneNo,
             password: participantForm.password,
+            organisation: participantForm.organisation,
             createdBy: currentUser.email,
           }),
         }
@@ -80,6 +100,7 @@ export default function Participants({ user }: PageProps) {
           email: "",
           phoneNo: "",
           password: "",
+          organisation: "",
         });
 
         setShowParticipantModal(false);
@@ -116,7 +137,16 @@ export default function Participants({ user }: PageProps) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(editParticipant),
+        body: JSON.stringify({
+          id: editParticipant.id,
+          firstName: editParticipant.firstName,
+          middleName: editParticipant.middleName,
+          lastName: editParticipant.lastName,
+          email: editParticipant.email,
+          phoneNo: editParticipant.phoneNo,
+          password: editParticipant.password,
+          organisation: editParticipant.organization,
+        }),
       }
     );
 
@@ -290,6 +320,7 @@ export default function Participants({ user }: PageProps) {
                     <th style={tableHeader}>Middle Name</th>
                     <th style={tableHeader}>Last Name</th>
                     <th style={tableHeader}>Email</th>
+                    <th style={tableHeader}>Organization</th>
                     <th style={tableHeader}>Phone No</th>
                     <th style={tableHeader}>Actions</th>
                   </tr>
@@ -322,6 +353,7 @@ export default function Participants({ user }: PageProps) {
                       <td style={tableCell}>{p.middleName}</td>
                       <td style={tableCell}>{p.lastName}</td>
                       <td style={tableCell}>{p.email}</td>
+                      <td style={tableCell}>{p.organization || "-"}</td>
                       <td style={tableCell}>{p.phoneNo}</td>
                     
                       <td style={tableCell}>
@@ -433,6 +465,24 @@ export default function Participants({ user }: PageProps) {
               }
             />
 
+            <select
+              style={inputStyle}
+              value={participantForm.organisation}
+              onChange={(e) =>
+                setParticipantForm({
+                  ...participantForm,
+                  organisation: e.target.value,
+                })
+              }
+            >
+              <option value="">Select Organization</option>
+              {organizations.map((org) => (
+                <option key={org.id} value={org.organizationName}>
+                  {org.organizationName}
+                </option>
+              ))}
+            </select>
+
             <div
               style={{
                 display: "flex",
@@ -530,6 +580,24 @@ export default function Participants({ user }: PageProps) {
                   })
                 }
               />
+
+              <select
+                style={inputStyle}
+                value={editParticipant.organization || ""}
+                onChange={(e) =>
+                  setEditParticipant({
+                    ...editParticipant,
+                    organization: e.target.value,
+                  })
+                }
+              >
+                <option value="">Select Organization</option>
+                {organizations.map((org) => (
+                  <option key={org.id} value={org.organizationName}>
+                    {org.organizationName}
+                  </option>
+                ))}
+              </select>
         
               <div
                 style={{

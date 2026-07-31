@@ -2,19 +2,14 @@ const { TableClient } = require("@azure/data-tables");
 
 module.exports = async function (context, req) {
   try {
-    const {
-      organizationName,
-      contactPerson,
-      email,
-      createdBy,
-    } = req.body;
+    const { workshopId } = req.body || {};
 
-    if (!organizationName || !contactPerson || !email) {
+    if (!workshopId) {
       context.res = {
         status: 400,
         body: {
           success: false,
-          message: "Organization name, contact person, and email are required.",
+          message: "Workshop id is required.",
         },
       };
       return;
@@ -22,25 +17,16 @@ module.exports = async function (context, req) {
 
     const client = TableClient.fromConnectionString(
       process.env.AZURE_STORAGE_CONNECTION_STRING,
-      "Organization"
+      "Workshop"
     );
 
-    const organizationId = Date.now().toString();
-
-    await client.createEntity({
-      partitionKey: "Organization",
-      rowKey: organizationId,
-      Organization_Name: organizationName.trim(),
-      Contact_Person: contactPerson.trim(),
-      Email: email.trim(),
-      Created_By: createdBy || "",
-    });
+    await client.deleteEntity("Workshop", workshopId);
 
     context.res = {
       status: 200,
       body: {
         success: true,
-        organizationId,
+        message: "Workshop deleted successfully.",
       },
     };
   } catch (error) {

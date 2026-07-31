@@ -10,6 +10,8 @@ export default function UserLogin() {
   const [email, setEmail] = useState("");
   const [organization, setOrganization] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const navigate = useNavigate();
   const { instance } = useMsal();
@@ -21,7 +23,7 @@ export default function UserLogin() {
         break;
 
       case "Participant":
-        navigate("/userdashboard");
+        navigate("/about-us");
         break;
 
       default:
@@ -69,7 +71,14 @@ export default function UserLogin() {
   };
 
   const handleLogin = async () => {
+    if (!email.trim() || !organization.trim() || !password.trim()) {
+      setErrorMessage("Please enter email, organization, and password.");
+      return;
+    }
+
     try {
+      setLoading(true);
+      setErrorMessage("");
 
       const response = await fetch("/api/user-login", {
         method: "POST",
@@ -77,30 +86,16 @@ export default function UserLogin() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email,
-          organization,
+          email: email.trim(),
+          organization: organization.trim(),
           password,
         }),
       });
 
-      const responseText = await response.text();
+      const data = await response.json();
 
-      console.log("API RESPONSE:", responseText);
-
-      if (!response.ok) {
-        alert(responseText);
-        return;
-      }
-
-      if (!responseText) {
-        alert("Empty response from API.");
-        return;
-      }
-
-      const data = JSON.parse(responseText);
-
-      if (!data.success) {
-        alert("Invalid credentials.");
+      if (!response.ok || !data.success) {
+        setErrorMessage(data.message || "Invalid credentials.");
         return;
       }
 
@@ -109,11 +104,18 @@ export default function UserLogin() {
         JSON.stringify(data.user)
       );
 
-      redirectUser(data.user.role);
-
+      redirectUser(data.user.role || "Participant");
     } catch (error) {
       console.error(error);
-      alert("Login failed.");
+      setErrorMessage("Login failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter" && !loading) {
+      handleLogin();
     }
   };
 
@@ -230,15 +232,18 @@ export default function UserLogin() {
         }}
       >
         <input
+          type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="Username"
+          onKeyDown={handleKeyDown}
+          placeholder="Email"
           style={inputStyle}
         />
 
         <input
           value={organization}
           onChange={(e) => setOrganization(e.target.value)}
+          onKeyDown={handleKeyDown}
           placeholder="Organization name"
           style={inputStyle}
         />
@@ -247,24 +252,39 @@ export default function UserLogin() {
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          onKeyDown={handleKeyDown}
           placeholder="Password"
           style={inputStyle}
         />
 
+        {errorMessage && (
+          <div
+            style={{
+              color: "#b42318",
+              fontSize: "13px",
+              fontWeight: 600,
+            }}
+          >
+            {errorMessage}
+          </div>
+        )}
+
         <button
           onClick={handleLogin}
+          disabled={loading}
           style={{
             background: "#7b0f2c",
             color: "white",
             border: "none",
             padding: "12px",
-            cursor: "pointer",
+            cursor: loading ? "not-allowed" : "pointer",
             fontWeight: 600,
             width: "100%",
             borderRadius: "4px",
+            opacity: loading ? 0.7 : 1,
           }}
         >
-          Get Started
+          {loading ? "Signing in..." : "Get Started"}
         </button>
 
         {/* OR Divider */}

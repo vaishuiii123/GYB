@@ -14,6 +14,13 @@ export default function Workshop({ user }: PageProps) {
   const [loading, setLoading] = useState(false);
   const [showCreatePopup, setShowCreatePopup] = useState(false);
   const [workshops, setWorkshops] = useState<any[]>([]);
+  const [sendingWorkshopId, setSendingWorkshopId] = useState("");
+  const [deletingWorkshopId, setDeletingWorkshopId] = useState("");
+  const [showOrgViewModal, setShowOrgViewModal] = useState(false);
+  const [selectedOrgDetails, setSelectedOrgDetails] = useState<any>(null);
+  const [viewWorkshopDetails, setViewWorkshopDetails] = useState<any>(null);
+  const [viewParticipants, setViewParticipants] = useState<any[]>([]);
+  const [loadingOrgView, setLoadingOrgView] = useState(false);
 
   const [formData, setFormData] = useState({
     workshopName: "",
@@ -35,7 +42,7 @@ export default function Workshop({ user }: PageProps) {
 
   useEffect(() => {
     if (formData.organizationId) {
-      loadParticipants(formData.organizationId);
+      loadParticipants(formData.organizationId).then(setParticipants);
     } else {
       setParticipants([]);
     }
@@ -86,11 +93,55 @@ export default function Workshop({ user }: PageProps) {
       const data = await response.json();
 
       if (data.success) {
-        setParticipants(data.participants || []);
+        return data.participants || [];
       }
     } catch (error) {
       console.error(error);
     }
+
+    return [];
+  };
+
+  const handleOrganizationSelect = async (organizationId: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      organizationId,
+    }));
+
+    if (organizationId) {
+      const orgParticipants = await loadParticipants(organizationId);
+      setParticipants(orgParticipants);
+    } else {
+      setParticipants([]);
+    }
+  };
+
+  const handleViewOrganization = async (org: any, workshop?: any) => {
+    try {
+      setLoadingOrgView(true);
+      setSelectedOrgDetails(org);
+      setViewWorkshopDetails(workshop || null);
+      const orgParticipants = await loadParticipants(org.id);
+      setViewParticipants(orgParticipants);
+      setShowOrgViewModal(true);
+    } catch (error) {
+      console.error(error);
+      alert("Failed to load organization participants");
+    } finally {
+      setLoadingOrgView(false);
+    }
+  };
+
+  const handleViewWorkshopOrganization = async (workshop: any) => {
+    const org =
+      organizations.find((item) => item.id === workshop.organizationId) || {
+        id: workshop.organizationId,
+        organizationName: workshop.organizationName,
+        contactPerson: "-",
+        email: "-",
+      };
+
+    await handleViewOrganization(org, workshop);
   };
 
 
@@ -180,6 +231,87 @@ export default function Workshop({ user }: PageProps) {
     console.error("Error loading workshops", error);
   }
 };
+
+  const handleSendWorkshopNotification = async (workshop: any) => {
+    const confirmed = window.confirm(
+      `Send workshop login details via SMS to all participants in "${workshop.organizationName}"?`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setSendingWorkshopId(workshop.id);
+
+      const response = await fetch("/api/send-workshop-notification", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          workshopId: workshop.id,
+          loginUrl: window.location.origin,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert(data.message || "Notifications sent successfully");
+      } else {
+        const failedDetails = (data.results || [])
+          .filter((item: any) => !item.success)
+          .slice(0, 3)
+          .map((item: any) => `${item.name}: ${item.error}`)
+          .join("\n");
+
+        alert(
+          data.message ||
+            data.error ||
+            failedDetails ||
+            "Failed to send notifications"
+        );
+      }
+    } catch (error) {
+      console.error("Error sending workshop notifications:", error);
+      alert("Failed to send workshop notifications");
+    } finally {
+      setSendingWorkshopId("");
+    }
+  };
+
+  const handleDeleteWorkshop = async (workshop: any) => {
+    const confirmed = window.confirm(
+      `Delete workshop "${workshop.workshopName}"?`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setDeletingWorkshopId(workshop.id);
+
+      const response = await fetch("/api/delete-workshop", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ workshopId: workshop.id }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert(data.message || "Workshop deleted successfully");
+        await loadWorkshops();
+      } else {
+        alert(data.message || data.error || "Failed to delete workshop");
+      }
+    } catch (error) {
+      console.error("Error deleting workshop:", error);
+      alert("Failed to delete workshop");
+    } finally {
+      setDeletingWorkshopId("");
+    }
+  };
 
   return (
     <div className={styles.page}>
@@ -300,10 +432,7 @@ export default function Workshop({ user }: PageProps) {
                       className={styles.select}
                       value={formData.organizationId}
                       onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          organizationId: e.target.value,
-                        })
+                        handleOrganizationSelect(e.target.value)
                       }
                     >
                       <option value="">
@@ -321,6 +450,53 @@ export default function Workshop({ user }: PageProps) {
                     </select>
                   </div>
                 </div>
+
+                {formData.organizationId && (
+                  <div className={styles.modalParticipants}>
+                    {formData.templateId && (
+                      <p className={styles.selectedTemplateName}>
+                        Template:{" "}
+                        <strong>
+                          {templates.find((t) => t.id === formData.templateId)
+                            ?.templateName || "-"}
+                        </strong>
+                      </p>
+                    )}
+
+                    <h4 className={styles.modalParticipantsTitle}>
+                      Participants in selected organization ({participants.length})
+                    </h4>
+
+                    {participants.length > 0 ? (
+                      <table className={styles.table}>
+                        <thead>
+                          <tr>
+                            <th className={styles.th}>Sr No</th>
+                            <th className={styles.th}>Name</th>
+                            <th className={styles.th}>Email</th>
+                            <th className={styles.th}>Phone</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {participants.map((p, index) => (
+                            <tr key={p.id}>
+                              <td className={styles.td}>{index + 1}</td>
+                              <td className={styles.td}>
+                                {p.firstName} {p.lastName}
+                              </td>
+                              <td className={styles.td}>{p.email}</td>
+                              <td className={styles.td}>{p.phoneNo || "-"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <p className={styles.emptyText}>
+                        No participants assigned to this organization yet.
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 <div className={styles.buttonRow}>
                   <button
@@ -355,48 +531,8 @@ export default function Workshop({ user }: PageProps) {
             </div>
           )}
 
-          {participants.length > 0 && (
-            <div className={styles.tableCard}>
-              <h3 className={styles.tableTitle}>
-                Participants
-              </h3>
-
-              <table className={styles.table}>
-                <thead>
-                  <tr>
-                    <th className={styles.th}>Sr No</th>
-                    <th className={styles.th}>Name</th>
-                    <th className={styles.th}>Email</th>
-                    <th className={styles.th}>Phone</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {participants.map((p, index) => (
-                    <tr key={p.id}>
-                      <td className={styles.td}>
-                        {index + 1}
-                      </td>
-
-                      <td className={styles.td}>
-                        {p.firstName} {p.lastName}
-                      </td>
-
-                      <td className={styles.td}>
-                        {p.email}
-                      </td>
-
-                      <td className={styles.td}>
-                        {p.phoneNo}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
           <div className={styles.tableCard}>
-  <h3 className={styles.tableTitle}>Scheduled Workshops</h3>
+            <h3 className={styles.tableTitle}>Scheduled Workshops</h3>
 
   <table className={styles.table}>
     <thead>
@@ -408,6 +544,7 @@ export default function Workshop({ user }: PageProps) {
         <th className={styles.th}>Start Date</th>
         <th className={styles.th}>End Date</th>
         <th className={styles.th}>Participants</th>
+        <th className={styles.th}>Actions</th>
       </tr>
     </thead>
 
@@ -426,11 +563,40 @@ export default function Workshop({ user }: PageProps) {
               {new Date(workshop.endDate).toLocaleString()}
             </td>
             <td className={styles.td}>{workshop.participantCount}</td>
+            <td className={styles.td}>
+              <div className={styles.actionGroup}>
+                <button
+                  className={styles.viewButton}
+                  onClick={() => handleViewWorkshopOrganization(workshop)}
+                  disabled={loadingOrgView}
+                >
+                  View
+                </button>
+                <button
+                  className={styles.sendButton}
+                  onClick={() => handleSendWorkshopNotification(workshop)}
+                  disabled={sendingWorkshopId === workshop.id}
+                >
+                  {sendingWorkshopId === workshop.id
+                    ? "Sending..."
+                    : "Send SMS"}
+                </button>
+                <button
+                  className={styles.deleteButton}
+                  onClick={() => handleDeleteWorkshop(workshop)}
+                  disabled={deletingWorkshopId === workshop.id}
+                >
+                  {deletingWorkshopId === workshop.id
+                    ? "Deleting..."
+                    : "Delete"}
+                </button>
+              </div>
+            </td>
           </tr>
         ))
       ) : (
         <tr>
-          <td className={styles.td} colSpan={7}>
+          <td className={styles.td} colSpan={8}>
             No workshops scheduled.
           </td>
         </tr>
@@ -438,6 +604,105 @@ export default function Workshop({ user }: PageProps) {
     </tbody>
   </table>
 </div>
+
+          {showOrgViewModal && selectedOrgDetails && (
+            <div className={styles.modalOverlay}>
+              <div className={styles.modal}>
+                <div className={styles.modalHeader}>
+                  <h3 className={styles.modalTitle}>
+                    {viewWorkshopDetails ? "Workshop Details" : "Organization Details"}
+                  </h3>
+                  <button
+                    className={styles.closeButton}
+                    onClick={() => {
+                      setShowOrgViewModal(false);
+                      setSelectedOrgDetails(null);
+                      setViewWorkshopDetails(null);
+                      setViewParticipants([]);
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div className={styles.orgInfoGrid}>
+                  {viewWorkshopDetails && (
+                    <>
+                      <div>
+                        <span className={styles.infoLabel}>Workshop Name</span>
+                        <p className={styles.infoValue}>
+                          {viewWorkshopDetails.workshopName}
+                        </p>
+                      </div>
+                      <div>
+                        <span className={styles.infoLabel}>Template</span>
+                        <p className={styles.infoValue}>
+                          {viewWorkshopDetails.templateName || "-"}
+                        </p>
+                      </div>
+                    </>
+                  )}
+                  <div>
+                    <span className={styles.infoLabel}>Organization</span>
+                    <p className={styles.infoValue}>
+                      {selectedOrgDetails.organizationName}
+                    </p>
+                  </div>
+                  <div>
+                    <span className={styles.infoLabel}>Contact Person</span>
+                    <p className={styles.infoValue}>
+                      {selectedOrgDetails.contactPerson || "-"}
+                    </p>
+                  </div>
+                  <div>
+                    <span className={styles.infoLabel}>Email</span>
+                    <p className={styles.infoValue}>
+                      {selectedOrgDetails.email || "-"}
+                    </p>
+                  </div>
+                  <div>
+                    <span className={styles.infoLabel}>Total Participants</span>
+                    <p className={styles.infoValue}>{viewParticipants.length}</p>
+                  </div>
+                </div>
+
+                <h4 className={styles.modalParticipantsTitle}>
+                  Assigned Participants
+                </h4>
+
+                {viewParticipants.length > 0 ? (
+                  <table className={styles.table}>
+                    <thead>
+                      <tr>
+                        <th className={styles.th}>Sr No</th>
+                        <th className={styles.th}>Name</th>
+                        <th className={styles.th}>Email</th>
+                        <th className={styles.th}>Phone</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {viewParticipants.map((participant, index) => (
+                        <tr key={participant.id}>
+                          <td className={styles.td}>{index + 1}</td>
+                          <td className={styles.td}>
+                            {participant.firstName} {participant.lastName}
+                          </td>
+                          <td className={styles.td}>{participant.email}</td>
+                          <td className={styles.td}>
+                            {participant.phoneNo || "-"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <p className={styles.emptyText}>
+                    No participants assigned to this organization.
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
       

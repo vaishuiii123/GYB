@@ -1,171 +1,170 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useMsal } from "@azure/msal-react";
+import { loginRequest } from "../../authConfig";
+import "../../styles/AdminLogin.css";
 
 type LoginProps = {
   onLogin: (user?: any) => void;
 };
 
+const ADMIN_ROLES = ["organizer", "admin"];
+
 export default function AdminLogin({ onLogin }: LoginProps) {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  
+  const { instance } = useMsal();
+
+  const completeAdminLogin = (user: {
+    name: string;
+    role: string;
+    email: string;
+  }) => {
+    onLogin(user);
+    navigate("/dashboard");
+  };
+
+  const verifyAdminEmail = async (emailToCheck: string) => {
+    const response = await fetch("/api/check-email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email: emailToCheck }),
+    });
+
+    const data = await response.json();
+
+    if (!data.found) {
+      setMessage("Email not registered for admin access.");
+      return false;
+    }
+
+    const role = String(data.role || "").toLowerCase();
+
+    if (!ADMIN_ROLES.includes(role)) {
+      setMessage("This account does not have admin access.");
+      return false;
+    }
+
+    setMessage("Email verified.");
+    completeAdminLogin({
+      name: data.name,
+      role: data.role,
+      email: emailToCheck,
+    });
+    return true;
+  };
+
   const checkEmail = async () => {
+    if (!email.trim()) {
+      setMessage("Please enter your email address.");
+      return;
+    }
+
     try {
+      setLoading(true);
       setMessage("");
-
-      const response = await fetch("/api/check-email", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await response.json();
-
-      console.log("API Response:", data);
-
-      if (data.found) {
-        //setIsAuthorized(true);
-        setMessage("✓ Email verified");
-
-        // Pass user details to App.tsx
-        onLogin({
-          name: data.name,
-          role: data.role,
-          email: email,
-        });
-        
-  navigate("/dashboard");   // ✅ THIS IS KEY
-
-      } else {
-        //setIsAuthorized(false);
-        setMessage("✗ Email not found");
-      }
+      await verifyAdminEmail(email.trim());
     } catch (err) {
       console.error(err);
-     // setIsAuthorized(false);
       setMessage("Unable to validate email.");
+    } finally {
+      setLoading(false);
     }
   };
 
-return (
-  <div
-    style={{
-      height: "100vh",
-      width: "100vw",
-      margin: 0,
-      padding: 0,
-      background: "#eef3ff",
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      overflow: "hidden",
-      fontFamily: "Segoe UI, sans-serif",
-    }}
-  >
-    <div
-      style={{
-        width: "360px",
-        background: "white",
-        borderRadius: "24px",
-        padding: "30px",
-        boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
-        textAlign: "center",
-      }}
-    >
-      {/* Email Icon */}
-      <div
-        style={{
-          width: "75px",
-          height: "75px",
-          background: "#edf2ff",
-          borderRadius: "50%",
-          margin: "0 auto 20px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: "32px",
-        }}
-      >
-        📧
-      </div>
+  const handleMicrosoftLogin = async () => {
+    try {
+      setLoading(true);
+      setMessage("");
 
-      {/* Heading */}
-      <h1
-        style={{
-          margin: 0,
-          fontSize: "22px",
-          fontWeight: "700",
-          color: "#0f172a",
-        }}
-      >
-        Welcome Back
-      </h1>
+      const loginResponse = await instance.loginPopup(loginRequest);
+      const microsoftEmail = loginResponse.account?.username;
 
-      <p
-        style={{
-          color: "#6b7280",
-          fontSize: "14px",
-          marginTop: "10px",
-          marginBottom: "24px",
-        }}
-      >
-        Enter your registered email address
-      </p>
+      if (!microsoftEmail) {
+        setMessage("Unable to retrieve your Microsoft account.");
+        return;
+      }
 
-      {/* Email Input */}
-      <input
-        type="email"
-        placeholder="Enter Email ID"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        style={{
-          width: "100%",
-          height: "48px",
-          border: "2px solid #d1d5db",
-          borderRadius: "12px",
-          padding: "0 16px",
-          fontSize: "15px",
-          boxSizing: "border-box",
-          marginBottom: "15px",
-          outline: "none",
-        }}
-      />
+      setEmail(microsoftEmail);
+      await verifyAdminEmail(microsoftEmail);
+    } catch (err) {
+      console.error(err);
+      setMessage("Microsoft sign-in failed.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      {/* Message */}
-      {message && (
-        <div
-          style={{
-            color: message.includes("✓") ? "green" : "red",
-            marginBottom: "15px",
-            fontSize: "13px",
-            fontWeight: "600",
-          }}
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter" && !loading) {
+      checkEmail();
+    }
+  };
+
+  const isSuccessMessage = message.toLowerCase().includes("verified");
+
+  return (
+    <div className="admin-login-page">
+      <div className="admin-login-card">
+        <div className="admin-login-icon">📧</div>
+
+        <h1 className="admin-login-title">Welcome Back</h1>
+
+        <p className="admin-login-subtitle">
+          Sign in with Microsoft or use your registered admin email
+        </p>
+
+        <input
+          type="email"
+          placeholder="Enter Email ID"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="admin-login-input"
+          disabled={loading}
+        />
+
+        {message && (
+          <div
+            className={`admin-login-message ${
+              isSuccessMessage ? "success" : "error"
+            }`}
+          >
+            {message}
+          </div>
+        )}
+
+        <button
+          onClick={checkEmail}
+          className="admin-login-primary-btn"
+          disabled={loading}
         >
-          {message}
-        </div>
-      )}
+          {loading ? "Please wait..." : "Continue"}
+        </button>
 
-      {/* Button */}
-      <button
-        onClick={checkEmail}
-        style={{
-          width: "100%",
-          height: "48px",
-          border: "none",
-          borderRadius: "12px",
-          background: "#2f56d4",
-          color: "white",
-          fontSize: "16px",
-          fontWeight: "600",
-          cursor: "pointer",
-        }}
-      >
-        Continue
-      </button>
+        <div className="admin-login-divider">
+          <span />
+          <p>OR</p>
+          <span />
+        </div>
+
+        <button
+          onClick={handleMicrosoftLogin}
+          className="admin-login-microsoft-btn"
+          disabled={loading}
+          type="button"
+        >
+          Continue with Microsoft
+        </button>
+
+        <Link to="/" className="admin-login-back-link">
+          Back to participant login
+        </Link>
+      </div>
     </div>
-  </div>
-);
+  );
 }

@@ -6,7 +6,7 @@
       "direction": "in",
       "name": "req",
       "methods": ["post"],
-      "route": "delete-organization-participant"
+      "route": "save-vision-mission-response"
     },
     {
       "type": "http",

@@ -15,6 +15,7 @@ import TemplateDetails from "./pages/Admin/TemplateDetails";
 import Workshop from "./pages/Admin/Workshop";
 import UserLogin from "./pages/User/UserLogin";
 import UserDashboard from "./pages/User/UserDashboard";
+import AboutUs from "./pages/User/AboutUs";
 import VisionMission from "./pages/User/VisionMission";
 import CategoryManagement from "./pages/Admin/CategoryManagement";
 import MiddleCategory from "./pages/Admin/MiddleCategory";
@@ -45,6 +46,11 @@ function App() {
         <Route
           path="/"
           element={<UserLogin />}
+        />
+
+        <Route
+          path="/about-us"
+          element={<AboutUs />}
         />
 
         <Route

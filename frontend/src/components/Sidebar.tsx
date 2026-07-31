@@ -9,6 +9,7 @@ export default function Sidebar() {
     { name: "Category Management", path: "/category", icon: "📂" },
     { name: "Tag Management", path: "/tag-management", icon: "🏷️" },
     { name: "Question Management", path: "/question-management", icon: "❓" },
+    { name: "Vision & Mission", path: "/vision-mission-management", icon: "🎯" },
     { name: "Template", path: "/template", icon: "📄" },
     { name: "Workshop", path: "/workshop", icon: "🎓" },
   ];
