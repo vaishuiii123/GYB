@@ -1,8 +1,9 @@
 import { useState } from "react";
 import {
-  HashRouter,
+  BrowserRouter,
   Routes,
   Route,
+  Navigate,
 } from "react-router-dom";
 
 import Dashboard from "./pages/Admin/Dashboard";
@@ -15,8 +16,12 @@ import TemplateDetails from "./pages/Admin/TemplateDetails";
 import Workshop from "./pages/Admin/Workshop";
 import UserLogin from "./pages/User/UserLogin";
 import UserDashboard from "./pages/User/UserDashboard";
+import WorkshopSelection from "./pages/User/WorkshopSelection";
 import AboutUs from "./pages/User/AboutUs";
 import VisionMission from "./pages/User/VisionMission";
+import ODChart from "./pages/User/ODChart";
+import ODChartQuestions from "./pages/User/ODChartQuestions";
+import ActionableForm from "./pages/User/ActionableForm";
 import CategoryManagement from "./pages/Admin/CategoryManagement";
 import MiddleCategory from "./pages/Admin/MiddleCategory";
 import ParentCategory from "./pages/Admin/ParentCategory";
@@ -24,7 +29,7 @@ import Category from "./pages/Admin/Category";
 import CategoryQuestions from "./pages/Admin/CategoryQuestions";
 import TagManagement from "./pages/Admin/TagManagement";
 import QuestionManagement from "./pages/Admin/QuestionManagement";
-import VisionMissionManagement from "./pages/Admin/VisionMissionManagement";
+import PreOD from "./pages/Admin/PreOD";
 
 function App() {
 
@@ -41,7 +46,7 @@ function App() {
 
 
   return (
-    <HashRouter>
+    <BrowserRouter>
      <Routes>
         <Route
           path="/"
@@ -54,13 +59,38 @@ function App() {
         />
 
         <Route
+          path="/select-workshop"
+          element={<WorkshopSelection />}
+        />
+
+        <Route
           path="/userdashboard"
           element={<UserDashboard />}
         />
 
         <Route
+          path="/od-chart"
+          element={<ODChart />}
+        />
+
+        <Route
+          path="/questionnaire"
+          element={<Navigate to="/od-chart" replace />}
+        />
+
+        <Route
+          path="/od-chart/questions"
+          element={<ODChartQuestions />}
+        />
+
+        <Route
           path="/vision-mission"
           element={<VisionMission />}
+        />
+
+        <Route
+          path="/actionables"
+          element={<ActionableForm />}
         />
        
        <Route
@@ -114,8 +144,8 @@ function App() {
     />
 
       <Route
-        path="/vision-mission-management"
-        element={<VisionMissionManagement user={currentUser} />}
+        path="/pre-od"
+        element={<PreOD user={currentUser} />}
       />
 
        <Route
@@ -144,7 +174,7 @@ function App() {
         />
        
       </Routes>
-    </HashRouter>
+    </BrowserRouter>
   );
 }
 

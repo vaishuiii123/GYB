@@ -15,7 +15,7 @@
 }
 
 .category-body {
-  padding: 25px;
+  padding: 20px;
   margin-top: 70px;
 }
 
@@ -27,7 +27,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 25px;
+  margin-bottom: 10px;
+  margin-top: 10px;
 }
 
 .page-title {

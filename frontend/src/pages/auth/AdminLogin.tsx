@@ -1,7 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useMsal } from "@azure/msal-react";
-import { loginRequest } from "../../authConfig";
+import { InteractionStatus } from "@azure/msal-browser";
+import {
+  adminLoginRequest,
+  MSAL_LOGIN_TARGET_KEY,
+} from "../../authConfig";
 import "../../styles/AdminLogin.css";
 
 type LoginProps = {
@@ -15,7 +19,8 @@ export default function AdminLogin({ onLogin }: LoginProps) {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { instance } = useMsal();
+  const { instance, accounts, inProgress } = useMsal();
+  const handledRedirect = useRef(false);
 
   const completeAdminLogin = (user: {
     name: string;
@@ -58,6 +63,50 @@ export default function AdminLogin({ onLogin }: LoginProps) {
     return true;
   };
 
+  useEffect(() => {
+    if (handledRedirect.current) {
+      return;
+    }
+
+    if (inProgress !== InteractionStatus.None) {
+      return;
+    }
+
+    if (sessionStorage.getItem(MSAL_LOGIN_TARGET_KEY) !== "admin") {
+      return;
+    }
+
+    if (accounts.length === 0) {
+      sessionStorage.removeItem(MSAL_LOGIN_TARGET_KEY);
+      setMessage("Microsoft sign-in failed.");
+      setLoading(false);
+      return;
+    }
+
+    handledRedirect.current = true;
+    sessionStorage.removeItem(MSAL_LOGIN_TARGET_KEY);
+
+    const microsoftEmail = accounts[0].username;
+
+    if (!microsoftEmail) {
+      setMessage("Unable to retrieve your Microsoft account.");
+      setLoading(false);
+      return;
+    }
+
+    setEmail(microsoftEmail);
+    setLoading(true);
+
+    verifyAdminEmail(microsoftEmail)
+      .catch((err) => {
+        console.error(err);
+        setMessage("Unable to validate email.");
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [accounts, inProgress]);
+
   const checkEmail = async () => {
     if (!email.trim()) {
       setMessage("Please enter your email address.");
@@ -80,21 +129,12 @@ export default function AdminLogin({ onLogin }: LoginProps) {
     try {
       setLoading(true);
       setMessage("");
-
-      const loginResponse = await instance.loginPopup(loginRequest);
-      const microsoftEmail = loginResponse.account?.username;
-
-      if (!microsoftEmail) {
-        setMessage("Unable to retrieve your Microsoft account.");
-        return;
-      }
-
-      setEmail(microsoftEmail);
-      await verifyAdminEmail(microsoftEmail);
+      sessionStorage.setItem(MSAL_LOGIN_TARGET_KEY, "admin");
+      await instance.loginRedirect(adminLoginRequest);
     } catch (err) {
       console.error(err);
+      sessionStorage.removeItem(MSAL_LOGIN_TARGET_KEY);
       setMessage("Microsoft sign-in failed.");
-    } finally {
       setLoading(false);
     }
   };
@@ -106,6 +146,19 @@ export default function AdminLogin({ onLogin }: LoginProps) {
   };
 
   const isSuccessMessage = message.toLowerCase().includes("verified");
+  const isRedirecting =
+    inProgress === InteractionStatus.HandleRedirect ||
+    inProgress === InteractionStatus.Startup;
+
+  if (isRedirecting) {
+    return (
+      <div className="admin-login-page">
+        <div className="admin-login-card">
+          <p className="admin-login-subtitle">Signing in with Microsoft...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="admin-login-page">

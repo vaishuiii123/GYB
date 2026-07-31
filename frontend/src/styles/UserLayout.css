@@ -1,0 +1,36 @@
+.user-layout {
+  min-height: 100vh;
+  background: #f5f5f5;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+.user-layout-main {
+  flex: 1;
+  padding: 24px 32px 40px;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+.user-layout-main-vision {
+  padding: 24px 40px 48px;
+}
+
+.user-layout-main-actionables {
+  padding: 32px 40px 48px;
+}
+
+.user-layout-main-od {
+  padding: 24px 32px 40px;
+}
+
+@media (max-width: 768px) {
+  .user-layout-main,
+  .user-layout-main-vision,
+  .user-layout-main-actionables,
+  .user-layout-main-od {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}

@@ -1,118 +1,124 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Menu } from "lucide-react";
+import UserNavDrawer from "./UserNavDrawer";
+import WorkshopHeaderCard from "../../components/WorkshopHeaderCard";
+import { fetchWorkshopByOrganization } from "../../utils/workshopCache";
+import {
+  clearSelectedWorkshop,
+  getParticipantDisplayName,
+  getParticipantFromStorage,
+  getSelectedWorkshop,
+} from "../../utils/selectedWorkshop";
+import "../../styles/UserHeader.css";
 
 export default function UserHeader() {
   const navigate = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [organizationName, setOrganizationName] = useState("");
+  const [workshopName, setWorkshopName] = useState("");
 
-  const user = JSON.parse(
-    localStorage.getItem("participant") || "{}"
-  );
+  const participant = getParticipantFromStorage();
+  const participantName = getParticipantDisplayName(participant);
+  const selectedWorkshop = getSelectedWorkshop();
 
-  const fullName = `${user?.First_Name || ""} ${
-    user?.Last_Name || ""
-  }`.trim();
+  useEffect(() => {
+    if (selectedWorkshop) {
+      setOrganizationName(
+        selectedWorkshop.organizationName ||
+          participant.organization ||
+          participant.Organization ||
+          ""
+      );
+      setWorkshopName(selectedWorkshop.workshopName || "");
+    }
 
-  const initials =
-    `${user?.First_Name?.[0] || ""}${user?.Last_Name?.[0] || ""}`.toUpperCase() ||
-    "U";
+    const loadWorkshop = async () => {
+      if (!participant.organizationId) {
+        return;
+      }
+
+      try {
+        const workshopData = await fetchWorkshopByOrganization(
+          participant.organizationId
+        );
+
+        if (workshopData.success && workshopData.workshop) {
+          setOrganizationName(
+            workshopData.workshop.organizationName ||
+              participant.organization ||
+              participant.Organization ||
+              ""
+          );
+          setWorkshopName(workshopData.workshop.workshopName || "");
+        }
+      } catch {
+        // keep selected workshop labels if API fails
+      }
+    };
+
+    loadWorkshop();
+  }, [
+    participant.organizationId,
+    participant.organization,
+    participant.Organization,
+    selectedWorkshop?.id,
+    selectedWorkshop?.workshopName,
+    selectedWorkshop?.organizationName,
+  ]);
 
   const handleLogout = () => {
     if (window.confirm("Do you really want to logout?")) {
+      clearSelectedWorkshop();
       localStorage.removeItem("participant");
       navigate("/");
     }
   };
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        height: "70px",
-        background: "#264ECF",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        padding: "0 40px",
-        boxSizing: "border-box",
-        zIndex: 1000,
-      }}
-    >
-      {/* Left Side */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "50px",
-          color: "white",
-          fontWeight: "600",
-          fontSize: "20px",
-        }}
-      >
-        <span>
-          {user.Organization ||
-            user.organization ||
-            user.Organisation ||
-            "Organization Name"}
-        </span>
+    <>
+      <header className="user-header">
+        <div className="user-header-top">
+          <div className="user-header-left">
+            <button
+              type="button"
+              className="user-header-menu-btn"
+              onClick={() => setMenuOpen(true)}
+              aria-label="Open menu"
+            >
+              <Menu size={24} strokeWidth={2} />
+            </button>
 
-        <span>KNAV BAS OD</span>
-      </div>
+            <span className="user-header-participant-name">
+              {participantName}
+            </span>
 
-      {/* Right Side */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "20px",
-          color: "white",
-        }}
-      >
-        <span
-          style={{
-            fontWeight: "600",
-            fontSize: "18px",
-          }}
-        >
-          {fullName || "Participant"}
-        </span>
+            <WorkshopHeaderCard
+              organizationName={organizationName}
+              workshopName={workshopName}
+            />
+          </div>
 
-        <div
-          style={{
-            width: "45px",
-            height: "45px",
-            borderRadius: "50%",
-            background: "rgba(255,255,255,0.2)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontWeight: "700",
-            fontSize: "16px",
-          }}
-        >
-          {initials}
+          <div className="user-header-right">
+            <button
+              type="button"
+              className="user-header-link"
+              onClick={handleLogout}
+            >
+              Logout
+            </button>
+            <button
+              type="button"
+              className="user-header-link"
+              onClick={() => navigate("/userdashboard")}
+            >
+              Home
+            </button>
+          </div>
         </div>
+      </header>
 
-        <div
-          style={{
-            width: "1px",
-            height: "35px",
-            background: "rgba(255,255,255,0.3)",
-          }}
-        />
-
-        <span
-          onClick={handleLogout}
-          style={{
-            cursor: "pointer",
-            fontWeight: "600",
-            fontSize: "18px",
-          }}
-        >
-          ↪ Logout
-        </span>
-      </div>
-    </div>
+      <UserNavDrawer open={menuOpen} onClose={() => setMenuOpen(false)} />
+    </>
   );
 }

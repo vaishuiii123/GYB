@@ -1,84 +1,192 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useMsal } from "@azure/msal-react";
+import { InteractionStatus } from "@azure/msal-browser";
+import { Globe } from "lucide-react";
 
 import myImage from "../../images/KNAV logo.png";
-import { loginRequest } from "../../authConfig";
+import { MSAL_LOGIN_TARGET_KEY } from "../../authConfig";
+import { clearSelectedWorkshop } from "../../utils/selectedWorkshop";
+import "../../styles/UserLogin.css";
+
+function LinkedInIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 1 1 0-4.124 2.062 2.062 0 0 1 0 4.124zM7.119 20.452H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+    </svg>
+  );
+}
+
+type LoginStep = "phone" | "otp";
 
 export default function UserLogin() {
-
-  const [email, setEmail] = useState("");
-  const [organization, setOrganization] = useState("");
-  const [password, setPassword] = useState("");
+  const [step, setStep] = useState<LoginStep>("phone");
+  const [phoneNo, setPhoneNo] = useState("");
+  const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [infoMessage, setInfoMessage] = useState("");
 
   const navigate = useNavigate();
-  const { instance } = useMsal();
+  const { accounts, inProgress } = useMsal();
+  const handledRedirect = useRef(false);
 
   const redirectUser = (role: string) => {
     switch (role) {
       case "Organizer":
         navigate("/dashboard");
         break;
-
       case "Participant":
-        navigate("/about-us");
+        clearSelectedWorkshop();
+        navigate("/select-workshop");
         break;
-
       default:
         alert("No role has been assigned to this user.");
     }
   };
 
-  const handleMicrosoftLogin = async () => {
-    try {
-      const loginResponse = await instance.loginPopup(loginRequest);
+  const completeMicrosoftLogin = async (microsoftEmail: string) => {
+    const response = await fetch("/api/sso-login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email: microsoftEmail }),
+    });
 
-      const email = loginResponse.account?.username;
+    const data = await response.json();
 
-      if (!email) {
-        alert("Unable to retrieve your Microsoft account.");
-        return;
-      }
-
-      const response = await fetch("/api/sso-login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await response.json();
-
-      if (!data.success) {
-        alert("User not found.");
-        return;
-      }
-
-      localStorage.setItem(
-        "participant",
-        JSON.stringify(data.user)
-      );
-
-      redirectUser(data.user.role);
-
-    } catch (err) {
-      console.error(err);
-      alert("Microsoft login failed.");
+    if (!data.success) {
+      setErrorMessage("User not found.");
+      return;
     }
+
+    localStorage.setItem("participant", JSON.stringify(data.user));
+    redirectUser(data.user.role);
   };
 
-  const handleLogin = async () => {
-    if (!email.trim() || !organization.trim() || !password.trim()) {
-      setErrorMessage("Please enter email, organization, and password.");
+  useEffect(() => {
+    if (handledRedirect.current) {
+      return;
+    }
+
+    if (inProgress !== InteractionStatus.None) {
+      return;
+    }
+
+    if (sessionStorage.getItem(MSAL_LOGIN_TARGET_KEY) !== "participant") {
+      return;
+    }
+
+    if (accounts.length === 0) {
+      sessionStorage.removeItem(MSAL_LOGIN_TARGET_KEY);
+      setErrorMessage("Microsoft sign-in failed.");
+      setLoading(false);
+      return;
+    }
+
+    handledRedirect.current = true;
+    sessionStorage.removeItem(MSAL_LOGIN_TARGET_KEY);
+
+    const microsoftEmail = accounts[0].username;
+
+    if (!microsoftEmail) {
+      setErrorMessage("Unable to retrieve your Microsoft account.");
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+
+    completeMicrosoftLogin(microsoftEmail)
+      .catch((err) => {
+        console.error(err);
+        setErrorMessage("Microsoft login failed.");
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [accounts, inProgress]);
+
+  const getPhoneDigits = () => phoneNo.replace(/\D/g, "");
+
+  const validatePhone = () => {
+    const digits = getPhoneDigits();
+
+    if (!digits) {
+      setErrorMessage("Please enter your phone number.");
+      return null;
+    }
+
+    if (digits.length !== 10) {
+      setErrorMessage("Enter a valid 10-digit mobile number.");
+      return null;
+    }
+
+    return digits;
+  };
+
+  const handleSendOtp = async () => {
+    const digits = validatePhone();
+    if (!digits) {
       return;
     }
 
     try {
       setLoading(true);
       setErrorMessage("");
+      setInfoMessage("");
+
+      const response = await fetch("/api/send-login-otp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ phoneNo: digits }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        setErrorMessage(data.message || "Failed to send OTP.");
+        return;
+      }
+
+      setStep("otp");
+      setOtp("");
+      setInfoMessage(
+        data.message ||
+          `OTP sent to ${digits}. Valid for ${data.expiresInMinutes || 30} minutes.`
+      );
+    } catch (error) {
+      console.error(error);
+      setErrorMessage("Failed to send OTP. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    const digits = validatePhone();
+    if (!digits) {
+      return;
+    }
+
+    if (!otp.trim()) {
+      setErrorMessage("Please enter the OTP sent to your phone.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setErrorMessage("");
+      setInfoMessage("");
 
       const response = await fetch("/api/user-login", {
         method: "POST",
@@ -86,24 +194,19 @@ export default function UserLogin() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: email.trim(),
-          organization: organization.trim(),
-          password,
+          phoneNo: digits,
+          otp: otp.trim(),
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        setErrorMessage(data.message || "Invalid credentials.");
+        setErrorMessage(data.message || "Invalid OTP.");
         return;
       }
 
-      localStorage.setItem(
-        "participant",
-        JSON.stringify(data.user)
-      );
-
+      localStorage.setItem("participant", JSON.stringify(data.user));
       redirectUser(data.user.role || "Participant");
     } catch (error) {
       console.error(error);
@@ -113,276 +216,126 @@ export default function UserLogin() {
     }
   };
 
+  const handleBackToPhone = () => {
+    setStep("phone");
+    setOtp("");
+    setErrorMessage("");
+    setInfoMessage("");
+  };
+
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Enter" && !loading) {
-      handleLogin();
+      if (step === "phone") {
+        handleSendOtp();
+      } else {
+        handleVerifyOtp();
+      }
     }
   };
 
   return (
-  <div
-    style={{
-      height: "100vh",
-      width: "100%",
-      background: "#f5f5f5",
-      display: "flex",
-      justifyContent: "space-between",
-      overflow: "hidden",
-      position: "relative",
-    }}
-  >
-    {/* Left Side */}
-    <div
-      style={{
-        width: "45%",
-        position: "relative",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <img
-        src={myImage}
-        alt="KNAV"
-        style={{
-          position: "absolute",
-          top: "40px",
-          left: "40px",
-          width: "140px",
-        }}
-      />
-
-      <div
-        style={{
-          width: "500px",
-          height: "350px",
-          background:
-            "linear-gradient(90deg,#efefef,#fafafa,#efefef)",
-          clipPath:
-            "polygon(0 0,60% 0,100% 50%,60% 100%,0 100%,40% 50%)",
-          opacity: 0.7,
-        }}
-      />
-    </div>
-
-    {/* Right Side */}
-    <div
-      style={{
-        width: "55%",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        paddingRight: "120px",
-      }}
-    >
-      {/* Top Links */}
-      <div
-        style={{
-          position: "absolute",
-          top: "40px",
-          right: "60px",
-          display: "flex",
-          gap: "20px",
-          alignItems: "center",
-        }}
-      >
-        <span
-          style={{
-            color: "#7b0f2c",
-            fontWeight: 600,
-            cursor: "pointer",
-          }}
-        >
-          About KNAV
-        </span>
-
-        <span style={{ fontSize: "24px" }}>🌐</span>
-        <span style={{ fontSize: "24px" }}>in</span>
+    <div className="user-login-page">
+      <div className="user-login-left">
+        <img src={myImage} alt="KNAV" className="user-login-logo" />
+        <div className="user-login-shape" aria-hidden="true" />
       </div>
 
-      {/* Heading */}
-      <h1
-        style={{
-          color: "#7b0f2c",
-          fontSize: "58px",
-          fontWeight: 700,
-          marginBottom: "10px",
-        }}
-      >
-        GROW YOUR BUSINESS
-      </h1>
-
-      <h2
-        style={{
-          color: "#5f5f5f",
-          fontWeight: 400,
-          marginBottom: "50px",
-        }}
-      >
-        Organisation Development Workshop
-      </h2>
-
-      {/* Login Form */}
-      <div
-        style={{
-          width: "340px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "16px",
-        }}
-      >
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Email"
-          style={inputStyle}
-        />
-
-        <input
-          value={organization}
-          onChange={(e) => setOrganization(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Organization name"
-          style={inputStyle}
-        />
-
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Password"
-          style={inputStyle}
-        />
-
-        {errorMessage && (
-          <div
-            style={{
-              color: "#b42318",
-              fontSize: "13px",
-              fontWeight: 600,
-            }}
-          >
-            {errorMessage}
-          </div>
-        )}
-
-        <button
-          onClick={handleLogin}
-          disabled={loading}
-          style={{
-            background: "#7b0f2c",
-            color: "white",
-            border: "none",
-            padding: "12px",
-            cursor: loading ? "not-allowed" : "pointer",
-            fontWeight: 600,
-            width: "100%",
-            borderRadius: "4px",
-            opacity: loading ? 0.7 : 1,
-          }}
-        >
-          {loading ? "Signing in..." : "Get Started"}
-        </button>
-
-        {/* OR Divider */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            margin: "8px 0",
-          }}
-        >
-          <div
-            style={{
-              flex: 1,
-              height: "1px",
-              background: "#d9d9d9",
-            }}
-          />
-
-          <span
-            style={{
-              margin: "0 12px",
-              color: "#777",
-              fontWeight: 600,
-              fontSize: "13px",
-            }}
-          >
-            OR
-          </span>
-
-          <div
-            style={{
-              flex: 1,
-              height: "1px",
-              background: "#d9d9d9",
-            }}
-          />
-        </div>
-
-        {/* Microsoft Login */}
-        <button
-          onClick={handleMicrosoftLogin}
-          style={{
-            background: "#fff",
-            color: "#7b0f2c",
-            border: "1px solid #7b0f2c",
-            padding: "12px",
-            cursor: "pointer",
-            fontWeight: 600,
-            width: "100%",
-            borderRadius: "4px",
-          }}
-        >
-          Continue with Microsoft
-        </button>
-
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginTop: "20px",
-            fontSize: "13px",
-            color: "#555",
-          }}
-        >
-          <span>Remember me</span>
-          <span>Need Help?</span>
-        </div>
-
-        <div
-          style={{
-            textAlign: "center",
-            marginTop: "20px",
-          }}
-        >
-          <Link
-            to="/adminlogin"
-            style={{
-              color: "#7b0f2c",
-              fontWeight: 600,
-              textDecoration: "none",
-            }}
-          >
-            Admin Login
+      <div className="user-login-right">
+        <div className="user-login-toplinks">
+          <Link to="/about-us" className="user-login-about">
+            About KNAV
           </Link>
+          <button type="button" className="user-login-icon-btn" aria-label="Language">
+            <Globe size={20} strokeWidth={2} />
+          </button>
+          <button type="button" className="user-login-icon-btn" aria-label="LinkedIn">
+            <LinkedInIcon />
+          </button>
+        </div>
+
+        <h1 className="user-login-title">GROW YOUR BUSINESS</h1>
+        <p className="user-login-subtitle">Organisation Development Workshop</p>
+
+        <div className="user-login-form">
+          <input
+            type="tel"
+            className="user-login-input"
+            value={phoneNo}
+            onChange={(e) =>
+              setPhoneNo(e.target.value.replace(/\D/g, "").slice(0, 10))
+            }
+            onKeyDown={handleKeyDown}
+            placeholder="Phone number"
+            inputMode="numeric"
+            maxLength={10}
+            disabled={step === "otp"}
+          />
+
+          {step === "otp" && (
+            <input
+              type="text"
+              className="user-login-input"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              onKeyDown={handleKeyDown}
+              placeholder="Enter OTP"
+              inputMode="numeric"
+              maxLength={6}
+              autoFocus
+            />
+          )}
+
+          {infoMessage && (
+            <div className="user-login-info">{infoMessage}</div>
+          )}
+
+          {errorMessage && (
+            <div className="user-login-error">{errorMessage}</div>
+          )}
+
+          {step === "phone" ? (
+            <button
+              type="button"
+              className="user-login-btn user-login-btn-primary"
+              onClick={handleSendOtp}
+              disabled={loading}
+            >
+              {loading ? "Checking..." : "Send OTP"}
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="user-login-btn user-login-btn-primary"
+                onClick={handleVerifyOtp}
+                disabled={loading}
+              >
+                {loading ? "Verifying..." : "Verify OTP"}
+              </button>
+              <button
+                type="button"
+                className="user-login-btn user-login-btn-secondary"
+                onClick={handleSendOtp}
+                disabled={loading}
+              >
+                Resend OTP
+              </button>
+              <button
+                type="button"
+                className="user-login-link-btn"
+                onClick={handleBackToPhone}
+                disabled={loading}
+              >
+                Change phone number
+              </button>
+            </>
+          )}
+        </div>
+
+        <div className="user-login-admin-link">
+          <Link to="/adminlogin">Admin Login</Link>
         </div>
       </div>
     </div>
-  </div>
-);
-  
+  );
 }
-
-const inputStyle = {
-  width: "100%",
-  height: "42px",
-  border: "none",
-  background: "white",
-  padding: "0 15px",
-  fontSize: "14px",
-  outline: "none",
-} as React.CSSProperties;

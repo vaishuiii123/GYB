@@ -22,6 +22,7 @@ const emptyOrgForm: OrganizationForm = {
 export default function Organization({ user }: PageProps) {
   const [organizations, setOrganizations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState("");
 
   const [showOrgModal, setShowOrgModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -45,10 +46,17 @@ export default function Organization({ user }: PageProps) {
   });
 
   useEffect(() => {
-    if (user?.email) {
-      fetchOrganizations();
+    fetchOrganizations();
+  }, [user?.email, user?.role]);
+
+  const getCurrentUser = () => {
+    if (user?.email) return user;
+    try {
+      return JSON.parse(localStorage.getItem("user") || "{}");
+    } catch {
+      return {};
     }
-  }, [user]);
+  };
 
   const showToast = (message: string) => {
     setSuccessMessage(message);
@@ -58,13 +66,28 @@ export default function Organization({ user }: PageProps) {
   const fetchOrganizations = async () => {
     try {
       setLoading(true);
-      const res = await fetch(
-        `/api/get-organizations?createdBy=${encodeURIComponent(user?.email || "")}`
-      );
-      const data = await res.json();
-      if (data.success) setOrganizations(data.organizations);
-    } catch (err) {
+      setFetchError("");
+
+      const res = await fetch("/api/get-organizations");
+      const raw = await res.text();
+
+      if (!raw.trim()) {
+        throw new Error(
+          "Empty response from /api/get-organizations. Make sure the API is running (func start in the api folder)."
+        );
+      }
+
+      const data = JSON.parse(raw);
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || data.message || `Request failed (${res.status})`);
+      }
+
+      setOrganizations(data.organizations || []);
+    } catch (err: any) {
       console.error(err);
+      setOrganizations([]);
+      setFetchError(err?.message || "Failed to load organizations");
     } finally {
       setLoading(false);
     }
@@ -327,6 +350,12 @@ export default function Organization({ user }: PageProps) {
             </div>
 
             <div className="org-card">
+              {fetchError && (
+                <div className="org-fetch-error" role="alert">
+                  {fetchError}
+                </div>
+              )}
+
               <input
                 type="text"
                 placeholder="Search organizations..."

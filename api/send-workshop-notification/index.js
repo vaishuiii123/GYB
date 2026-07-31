@@ -1,97 +1,24 @@
 const { TableClient } = require("@azure/data-tables");
+const { sendSms } = require("../shared/smsProvider");
+const {
+  buildVerificationCode,
+  buildWorkshopSmsMessage,
+} = require("../shared/workshopSmsMessage");
 
-function normalizePhone(phone) {
-  const digits = String(phone || "").replace(/\D/g, "");
-  if (!digits) return "";
-  if (digits.length === 10) return `91${digits}`;
-  return digits;
-}
+async function updateParticipantPassword(participantId, password) {
+  const client = TableClient.fromConnectionString(
+    process.env.AZURE_STORAGE_CONNECTION_STRING,
+    "Participants"
+  );
 
-function formatDateTime(value) {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString("en-IN", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
-}
-
-function buildMessage({ participant, workshop, loginUrl }) {
-  const name = [participant.firstName, participant.lastName]
-    .filter(Boolean)
-    .join(" ")
-    .trim();
-
-  return [
-    `Dear ${name || "Participant"},`,
-    `You are invited to the GYB workshop "${workshop.workshopName}".`,
-    `Schedule: ${formatDateTime(workshop.startDate)} to ${formatDateTime(workshop.endDate)}.`,
-    `Organization: ${workshop.organizationName || participant.organization || "-"}.`,
-    `Login URL: ${loginUrl}`,
-    `Username: ${participant.email}`,
-    `Password: ${participant.password}`,
-    "Team KNAV",
-  ].join(" ");
-}
-
-async function sendSms(phone, message) {
-  const provider = (process.env.SMS_PROVIDER || "msg91").toLowerCase();
-
-  if (provider === "fast2sms") {
-    const apiKey = process.env.FAST2SMS_API_KEY;
-    if (!apiKey) {
-      throw new Error("FAST2SMS_API_KEY is not configured");
-    }
-
-    const response = await fetch("https://www.fast2sms.com/dev/bulkV2", {
-      method: "POST",
-      headers: {
-        authorization: apiKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        route: "q",
-        message,
-        language: "english",
-        numbers: phone.replace(/^91/, ""),
-      }),
-    });
-
-    const data = await response.json();
-    if (!response.ok || data.return === false) {
-      throw new Error(data.message || "Fast2SMS request failed");
-    }
-
-    return data;
-  }
-
-  const authKey = process.env.MSG91_AUTH_KEY;
-  const senderId = process.env.MSG91_SENDER_ID || "KNAVGY";
-
-  if (!authKey) {
-    throw new Error("MSG91_AUTH_KEY is not configured");
-  }
-
-  const url =
-    "https://api.msg91.com/api/sendhttp.php?" +
-    new URLSearchParams({
-      authkey: authKey,
-      mobiles: phone,
-      message,
-      sender: senderId,
-      route: "4",
-      country: "91",
-    }).toString();
-
-  const response = await fetch(url);
-  const text = await response.text();
-
-  if (!response.ok) {
-    throw new Error(text || "MSG91 request failed");
-  }
-
-  return { provider: "msg91", response: text };
+  await client.updateEntity(
+    {
+      partitionKey: "Participant",
+      rowKey: participantId,
+      Password: password,
+    },
+    "Merge"
+  );
 }
 
 async function getWorkshop(workshopId) {
@@ -111,7 +38,7 @@ async function getWorkshop(workshopId) {
       organizationId: entity.OrganizationId || "",
       organizationName: entity.OrganizationName || "",
     };
-  } catch (error) {
+  } catch {
     return null;
   }
 }
@@ -218,49 +145,69 @@ module.exports = async function (context, req) {
     const results = [];
 
     for (const participant of participants) {
-      const phone = normalizePhone(participant.phoneNo);
+      const displayName =
+        `${participant.firstName} ${participant.lastName}`.trim() ||
+        participant.email ||
+        participant.id;
 
-      if (!phone) {
+      if (!participant.phoneNo) {
         results.push({
           participantId: participant.id,
-          name: `${participant.firstName} ${participant.lastName}`.trim(),
+          name: displayName,
           success: false,
           error: "Phone number missing",
         });
         continue;
       }
 
-      if (!participant.email || !participant.password) {
+      if (!participant.email) {
         results.push({
           participantId: participant.id,
-          name: `${participant.firstName} ${participant.lastName}`.trim(),
+          name: displayName,
           success: false,
-          error: "Login credentials missing for participant",
+          error: "Email missing for participant",
         });
         continue;
       }
 
-      try {
-        const message = buildMessage({
-          participant,
-          workshop,
-          loginUrl: appLoginUrl,
-        });
+      let message = "";
 
-        await sendSms(phone, message);
+      try {
+        const verificationCode = buildVerificationCode(participant.password);
+
+        if (verificationCode !== participant.password) {
+          await updateParticipantPassword(participant.id, verificationCode);
+          participant.password = verificationCode;
+        }
+
+        message = buildWorkshopSmsMessage({ verificationCode });
+
+        context.log("Workshop SMS message:", message);
+        context.log("Workshop SMS length:", message.length);
+
+        const smsResult = await sendSms(participant.phoneNo, message);
+
+        context.log(
+          "BulkSMSLink response:",
+          JSON.stringify(smsResult.response)
+        );
 
         results.push({
           participantId: participant.id,
-          name: `${participant.firstName} ${participant.lastName}`.trim(),
-          phone,
+          name: displayName,
+          phone: participant.phoneNo,
           success: true,
+          messageSent: message,
+          provider: smsResult.provider,
+          providerResponse: smsResult.response,
         });
       } catch (error) {
         results.push({
           participantId: participant.id,
-          name: `${participant.firstName} ${participant.lastName}`.trim(),
-          phone,
+          name: displayName,
+          phone: participant.phoneNo,
           success: false,
+          messageSent: message,
           error: error.message,
         });
       }
@@ -276,11 +223,14 @@ module.exports = async function (context, req) {
         sentCount,
         failedCount,
         total: results.length,
+        provider: process.env.SMS_PROVIDER || "bulksmslink",
         results,
         message:
           sentCount === results.length
             ? "Workshop notifications sent to all participants"
-            : `Sent ${sentCount} of ${results.length} notifications`,
+            : sentCount > 0
+              ? `Sent ${sentCount} of ${results.length} notifications`
+              : "Failed to send notifications to all participants",
       },
     };
   } catch (error) {

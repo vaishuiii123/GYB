@@ -1,0 +1,250 @@
+.user-login-page {
+  height: 100vh;
+  width: 100%;
+  background: #f5f5f5;
+  display: flex;
+  overflow: hidden;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.user-login-left {
+  width: 42%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.user-login-logo {
+  position: absolute;
+  top: 28px;
+  left: 32px;
+  width: 140px;
+  height: auto;
+}
+
+.user-login-shape {
+  width: min(420px, 80%);
+  height: 280px;
+  background: linear-gradient(90deg, #efefef, #fafafa, #efefef);
+  clip-path: polygon(0 0, 60% 0, 100% 50%, 60% 100%, 0 100%, 40% 50%);
+  opacity: 0.7;
+}
+
+.user-login-right {
+  width: 58%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 72px 0 24px;
+  box-sizing: border-box;
+}
+
+.user-login-toplinks {
+  position: absolute;
+  top: 28px;
+  right: 48px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.user-login-about {
+  color: #7b0f2c;
+  font-weight: 600;
+  font-size: 15px;
+  text-decoration: none;
+}
+
+.user-login-about:hover {
+  text-decoration: underline;
+}
+
+.user-login-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  color: #7b0f2c;
+  cursor: pointer;
+  padding: 0;
+}
+
+.user-login-title {
+  color: #7b0f2c;
+  font-size: 42px;
+  font-weight: 700;
+  font-family: Georgia, "Times New Roman", serif;
+  line-height: 1.1;
+  margin: 0 0 8px;
+  letter-spacing: 0.02em;
+}
+
+.user-login-subtitle {
+  color: #5f5f5f;
+  font-size: 16px;
+  font-weight: 400;
+  margin: 0 0 28px;
+}
+
+.user-login-form {
+  width: 340px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.user-login-input {
+  width: 100%;
+  height: 42px;
+  border: none;
+  background: #ffffff;
+  padding: 0 14px;
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.user-login-input::placeholder {
+  color: #9ca3af;
+}
+
+.user-login-input:disabled {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.user-login-info {
+  color: #166534;
+  font-size: 13px;
+  font-weight: 600;
+  margin: -4px 0 0;
+}
+
+.user-login-error {
+  color: #b42318;
+  font-size: 13px;
+  font-weight: 600;
+  margin: -4px 0 0;
+}
+
+.user-login-btn {
+  width: 100%;
+  height: 42px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.user-login-btn-primary {
+  background: #7b0f2c;
+  color: #ffffff;
+}
+
+.user-login-btn-primary:hover:not(:disabled) {
+  background: #651025;
+}
+
+.user-login-btn-primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.user-login-btn-secondary {
+  background: #ffffff;
+  color: #7b0f2c;
+  border: 1px solid #7b0f2c;
+}
+
+.user-login-btn-secondary:hover:not(:disabled) {
+  background: #fdf2f4;
+}
+
+.user-login-btn-secondary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.user-login-link-btn {
+  border: none;
+  background: none;
+  color: #7b0f2c;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+  font-family: inherit;
+}
+
+.user-login-link-btn:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.user-login-link-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.user-login-admin-link {
+  margin-top: 16px;
+  font-size: 13px;
+}
+
+.user-login-admin-link a {
+  color: #7b0f2c;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.user-login-admin-link a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 900px) {
+  .user-login-page {
+    height: auto;
+    min-height: 100vh;
+    flex-direction: column;
+    overflow: auto;
+  }
+
+  .user-login-left {
+    width: 100%;
+    min-height: 160px;
+    padding: 80px 24px 24px;
+    box-sizing: border-box;
+  }
+
+  .user-login-shape {
+    width: 200px;
+    height: 140px;
+  }
+
+  .user-login-right {
+    width: 100%;
+    padding: 24px 24px 40px;
+  }
+
+  .user-login-toplinks {
+    top: 24px;
+    right: 24px;
+  }
+
+  .user-login-title {
+    font-size: 32px;
+  }
+
+  .user-login-form {
+    width: 100%;
+  }
+}

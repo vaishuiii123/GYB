@@ -2,8 +2,6 @@ const { TableClient } = require("@azure/data-tables");
 
 module.exports = async function (context, req) {
   try {
-    const createdBy = req.query.createdBy;
-
     const client = TableClient.fromConnectionString(
       process.env.AZURE_STORAGE_CONNECTION_STRING,
       "Organization"
@@ -12,14 +10,6 @@ module.exports = async function (context, req) {
     const organizations = [];
 
     for await (const entity of client.listEntities()) {
-      if (
-        createdBy &&
-        entity.Created_By &&
-        entity.Created_By.toLowerCase() !== createdBy.toLowerCase()
-      ) {
-        continue;
-      }
-
       organizations.push({
         id: entity.rowKey,
         organizationName: entity.Organization_Name || "",
@@ -28,6 +18,10 @@ module.exports = async function (context, req) {
         createdBy: entity.Created_By || "",
       });
     }
+
+    organizations.sort((a, b) =>
+      a.organizationName.localeCompare(b.organizationName)
+    );
 
     context.res = {
       status: 200,

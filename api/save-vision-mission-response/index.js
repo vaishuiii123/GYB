@@ -1,4 +1,5 @@
-const { TableClient } = require("@azure/data-tables");
+const { ensureTableClient } = require("../shared/tableHelper");
+const { assertWorkshopEditable } = require("../shared/workshopAccess");
 
 function cleanKeywords(value) {
   if (!Array.isArray(value)) {
@@ -13,6 +14,7 @@ module.exports = async function (context, req) {
     const {
       participantId,
       organizationId,
+      workshopId,
       visionKeywords,
       missionKeywords,
       visionText,
@@ -49,10 +51,22 @@ module.exports = async function (context, req) {
       return;
     }
 
-    const tableClient = TableClient.fromConnectionString(
-      process.env.AZURE_STORAGE_CONNECTION_STRING,
-      "VisionMissionResponse"
-    );
+    const access = await assertWorkshopEditable({
+      workshopId,
+      organizationId,
+    });
+    if (!access.allowed) {
+      context.res = {
+        status: access.status,
+        body: {
+          success: false,
+          message: access.message,
+        },
+      };
+      return;
+    }
+
+    const tableClient = await ensureTableClient("VisionMissionResponse");
 
     const entity = {
       partitionKey: "Participant",
@@ -61,8 +75,8 @@ module.exports = async function (context, req) {
       OrganizationId: organizationId || "",
       VisionKeywords: JSON.stringify(cleanedVisionKeywords),
       MissionKeywords: JSON.stringify(cleanedMissionKeywords),
-      VisionText: cleanedVisionText,
-      MissionText: cleanedMissionText,
+      VisionText: cleanedVisionText || cleanedVisionKeywords.join(" "),
+      MissionText: cleanedMissionText || cleanedMissionKeywords.join(" "),
       SubmittedDate: new Date().toISOString(),
     };
 
@@ -78,13 +92,14 @@ module.exports = async function (context, req) {
       body: {
         success: true,
         message: "Vision & Mission saved successfully.",
+        table: "VisionMissionResponse",
         data: {
           participantId,
           organizationId: organizationId || "",
           visionKeywords: cleanedVisionKeywords,
           missionKeywords: cleanedMissionKeywords,
-          visionText: cleanedVisionText,
-          missionText: cleanedMissionText,
+          visionText: entity.VisionText,
+          missionText: entity.MissionText,
           submittedDate: entity.SubmittedDate,
         },
       },

@@ -1,4 +1,4 @@
-const { TableClient } = require("@azure/data-tables");
+const { getTableClient } = require("../shared/tableHelper");
 
 function parseJsonArray(value) {
   if (Array.isArray(value)) {
@@ -34,21 +34,16 @@ module.exports = async function (context, req) {
       return;
     }
 
-    const tableClient = TableClient.fromConnectionString(
-      process.env.AZURE_STORAGE_CONNECTION_STRING,
-      "VisionMissionResponse"
-    );
+    const tableClient = await getTableClient("VisionMissionResponse");
 
     try {
-      const entity = await tableClient.getEntity(
-        "Participant",
-        participantId
-      );
+      const entity = await tableClient.getEntity("Participant", participantId);
 
       context.res = {
         status: 200,
         body: {
           success: true,
+          table: "VisionMissionResponse",
           data: {
             participantId: entity.ParticipantId || participantId,
             organizationId: entity.OrganizationId || "",
@@ -65,6 +60,7 @@ module.exports = async function (context, req) {
         status: 200,
         body: {
           success: true,
+          table: "VisionMissionResponse",
           data: {
             participantId,
             organizationId: "",

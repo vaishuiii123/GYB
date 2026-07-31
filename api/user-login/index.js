@@ -1,136 +1,112 @@
-const { TableClient } = require("@azure/data-tables");
-
-function normalize(value) {
-  return String(value || "").trim().toLowerCase();
-}
-
-function buildUserResponse(entity, orgName, organizationId) {
-  return {
-    id: entity.rowKey,
-    email: entity.Email,
-    firstName: entity.First_Name || "",
-    middleName: entity.Middle_Name || "",
-    lastName: entity.Last_Name || "",
-    phoneNo: entity.Phone_No || "",
-    organization: orgName,
-    organizationId,
-    role: entity.Role || "Participant",
-    First_Name: entity.First_Name || "",
-    Last_Name: entity.Last_Name || "",
-    Organisation: orgName,
-    Organization: orgName,
-  };
-}
+const {
+  buildUserResponse,
+  parsePhoneInput,
+  getParticipantLoginContext,
+  clearParticipantOtp,
+} = require("../shared/participantAuth");
 
 module.exports = async function (context, req) {
   try {
-    const { email, organization, password } = req.body || {};
+    const { phoneNo, phone, otp, otpCode } = req.body || {};
+    const rawPhone = phoneNo || phone;
+    const submittedOtp = String(otp || otpCode || "").trim();
 
-    if (!email || !password || !organization) {
+    const phoneResult = parsePhoneInput(rawPhone);
+
+    if (!phoneResult.valid) {
       context.res = {
         status: 400,
         body: {
           success: false,
-          message: "Email, organization, and password are required.",
+          message: phoneResult.message,
         },
       };
       return;
     }
 
-    const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
-    const orgClient = TableClient.fromConnectionString(
-      connectionString,
-      "Organization"
-    );
-    const participantClient = TableClient.fromConnectionString(
-      connectionString,
-      "Participants"
-    );
-    const orgParticipantClient = TableClient.fromConnectionString(
-      connectionString,
-      "OrganizationParticipants"
-    );
-
-    const normalizedEmail = normalize(email);
-    const normalizedOrganization = normalize(organization);
-
-    // Step 1: Validate organization exists
-    let matchedOrg = null;
-    for await (const entity of orgClient.listEntities()) {
-      if (normalize(entity.Organization_Name) === normalizedOrganization) {
-        matchedOrg = entity;
-        break;
-      }
+    if (!submittedOtp) {
+      context.res = {
+        status: 400,
+        body: {
+          success: false,
+          message: "OTP is required.",
+        },
+      };
+      return;
     }
 
-    if (!matchedOrg) {
+    const loginContext = await getParticipantLoginContext(
+      phoneResult.normalizedPhone
+    );
+
+    if (!loginContext) {
       context.res = {
         status: 401,
         body: {
           success: false,
-          message: "Organization not found.",
+          message: "Phone number not found.",
         },
       };
       return;
     }
 
-    const organizationId = matchedOrg.rowKey;
-    const orgName = matchedOrg.Organization_Name || organization;
-
-    // Step 2: Validate participant credentials
-    let matchedParticipant = null;
-    for await (const entity of participantClient.listEntities()) {
-      const emailMatches = normalize(entity.Email) === normalizedEmail;
-      const passwordMatches =
-        String(entity.Password || "") === String(password);
-
-      if (emailMatches && passwordMatches) {
-        matchedParticipant = entity;
-        break;
-      }
-    }
-
-    if (!matchedParticipant) {
+    if (loginContext.missingOrganization) {
       context.res = {
         status: 401,
         body: {
           success: false,
-          message: "Invalid email or password.",
+          message: "You are not assigned to an organization.",
         },
       };
       return;
     }
 
-    const participantId = matchedParticipant.rowKey;
+    const { participant, organizationId, orgName } = loginContext;
+    const storedOtp = String(participant.OtpCode || "").trim();
+    const expiresAt = participant.OtpExpiresAt
+      ? new Date(participant.OtpExpiresAt)
+      : null;
 
-    // Step 3: Validate participant is linked to the organization
-    let isLinked = false;
-    for await (const entity of orgParticipantClient.listEntities()) {
-      if (
-        entity.OrganizationId === organizationId &&
-        entity.ParticipantId === participantId
-      ) {
-        isLinked = true;
-        break;
-      }
-    }
-
-    if (!isLinked) {
+    if (!storedOtp || !expiresAt || Number.isNaN(expiresAt.getTime())) {
       context.res = {
         status: 401,
         body: {
           success: false,
-          message: "You are not assigned to this organization.",
+          message: "OTP expired or not requested. Please request a new OTP.",
         },
       };
       return;
     }
+
+    if (expiresAt.getTime() < Date.now()) {
+      context.res = {
+        status: 401,
+        body: {
+          success: false,
+          message: "OTP has expired. Please request a new OTP.",
+        },
+      };
+      return;
+    }
+
+    if (storedOtp !== submittedOtp) {
+      context.res = {
+        status: 401,
+        body: {
+          success: false,
+          message: "Invalid OTP.",
+        },
+      };
+      return;
+    }
+
+    await clearParticipantOtp(participant.rowKey);
 
     context.res = {
       status: 200,
       body: {
         success: true,
-        user: buildUserResponse(matchedParticipant, orgName, organizationId),
+        user: buildUserResponse(participant, orgName, organizationId),
       },
     };
   } catch (error) {

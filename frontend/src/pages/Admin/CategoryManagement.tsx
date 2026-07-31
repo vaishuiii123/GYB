@@ -16,11 +16,50 @@ export default function CategoryManagement({ user }: PageProps) {
 
   const [editMode, setEditMode] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
-
-  
-  
+  const [importing, setImporting] = useState(false);
 
   const navigate = useNavigate();
+
+  const handleImportUnlockValue = async () => {
+    if (
+      !window.confirm(
+        "Import the full Unlock Value chart (Top, Middle, Parent, and Category levels)? Existing matching items will be kept."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setImporting(true);
+
+      const response = await fetch("/api/seed-unlock-value-categories", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          createdBy: user?.email || "Admin",
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        const { stats } = result;
+        alert(
+          `Unlock Value chart imported.\n\nCreated:\n- Top: ${stats.topCreated}\n- Middle: ${stats.middleCreated}\n- Parent: ${stats.parentCreated}\n- Category: ${stats.categoryCreated}`
+        );
+        fetchTopCategories();
+      } else {
+        alert(result.message || "Import failed.");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Import failed.");
+    } finally {
+      setImporting(false);
+    }
+  };
 
 
   // CREATE TOP CATEGORY
@@ -207,26 +246,31 @@ const handleEditCategory = (category:any) => {
         <Header user={user} />
 
         <div className="category-body">
-          {/* Breadcrumb */}
-
           <div className="breadcrumb">
             Category Management
           </div>
-
-          {/* Header */}
 
           <div className="page-header">
             <h1 className="page-title">
               Top Categories
             </h1>
 
-            <button
-              className="create-btn"
-              onClick={() => setShowModal(true)}
-            >
-              + Create Top Category
+            <div className="page-header-actions">
+              <button
+                className="import-btn"
+                onClick={handleImportUnlockValue}
+                disabled={importing}
+              >
+                {importing ? "Importing..." : "Import Unlock Value Chart"}
+              </button>
 
-            </button>
+              <button
+                className="create-btn"
+                onClick={() => setShowModal(true)}
+              >
+                + Create Top Category
+              </button>
+            </div>
           </div>
           {/* Table */}
           <div className="category-card">

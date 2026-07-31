@@ -14,7 +14,6 @@ export default function Workshop({ user }: PageProps) {
   const [loading, setLoading] = useState(false);
   const [showCreatePopup, setShowCreatePopup] = useState(false);
   const [workshops, setWorkshops] = useState<any[]>([]);
-  const [sendingWorkshopId, setSendingWorkshopId] = useState("");
   const [deletingWorkshopId, setDeletingWorkshopId] = useState("");
   const [showOrgViewModal, setShowOrgViewModal] = useState(false);
   const [selectedOrgDetails, setSelectedOrgDetails] = useState<any>(null);
@@ -31,14 +30,19 @@ export default function Workshop({ user }: PageProps) {
   });
 
   useEffect(() => {
-    console.log("User:", user);
+    loadTemplates();
+    loadOrganizations();
+    loadWorkshops();
+  }, [user?.email, user?.role]);
 
-    if (user?.email) {
-      loadTemplates();
-      loadOrganizations();
-      loadWorkshops();
+  const getCurrentUser = () => {
+    if (user?.email) return user;
+    try {
+      return JSON.parse(localStorage.getItem("user") || "{}");
+    } catch {
+      return {};
     }
-  }, [user]);
+  };
 
   useEffect(() => {
     if (formData.organizationId) {
@@ -68,10 +72,7 @@ export default function Workshop({ user }: PageProps) {
 
   const loadOrganizations = async () => {
     try {
-      const response = await fetch(
-        `/api/get-organizations?createdBy=${user?.email}`
-      );
-
+      const response = await fetch("/api/get-organizations");
       const data = await response.json();
 
       console.log("Organizations:", data);
@@ -182,7 +183,7 @@ export default function Workshop({ user }: PageProps) {
         organizationId: selectedOrganization?.id,
         organizationName: selectedOrganization?.organizationName,
         participantCount: participants.length,
-        createdBy: user?.email || "",
+        createdBy: getCurrentUser().email || "",
       }),
     });
 
@@ -218,66 +219,20 @@ export default function Workshop({ user }: PageProps) {
 };
   const loadWorkshops = async () => {
   try {
-    const response = await fetch(
-      `/api/get-workshops?createdBy=${user?.email}`
-    );
-
+    const response = await fetch("/api/get-workshops");
     const data = await response.json();
 
     if (data.success) {
       setWorkshops(data.workshops || []);
+    } else {
+      console.error(data.error || "Failed to load workshops");
+      setWorkshops([]);
     }
   } catch (error) {
     console.error("Error loading workshops", error);
+    setWorkshops([]);
   }
 };
-
-  const handleSendWorkshopNotification = async (workshop: any) => {
-    const confirmed = window.confirm(
-      `Send workshop login details via SMS to all participants in "${workshop.organizationName}"?`
-    );
-
-    if (!confirmed) return;
-
-    try {
-      setSendingWorkshopId(workshop.id);
-
-      const response = await fetch("/api/send-workshop-notification", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          workshopId: workshop.id,
-          loginUrl: window.location.origin,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        alert(data.message || "Notifications sent successfully");
-      } else {
-        const failedDetails = (data.results || [])
-          .filter((item: any) => !item.success)
-          .slice(0, 3)
-          .map((item: any) => `${item.name}: ${item.error}`)
-          .join("\n");
-
-        alert(
-          data.message ||
-            data.error ||
-            failedDetails ||
-            "Failed to send notifications"
-        );
-      }
-    } catch (error) {
-      console.error("Error sending workshop notifications:", error);
-      alert("Failed to send workshop notifications");
-    } finally {
-      setSendingWorkshopId("");
-    }
-  };
 
   const handleDeleteWorkshop = async (workshop: any) => {
     const confirmed = window.confirm(
@@ -395,9 +350,9 @@ export default function Workshop({ user }: PageProps) {
 
                 <div className={styles.formGridTwo}>
 
-                                    <div className={styles.formGroup}>
+                  <div className={styles.formGroup}>
                     <label className={styles.label}>
-                      Select Template *
+                      Select OD Template *
                     </label>
 
                     <select
@@ -410,7 +365,7 @@ export default function Workshop({ user }: PageProps) {
                         })
                       }
                     >
-                      <option value="">Select Template</option>
+                      <option value="">Select OD Template</option>
 
                       {templates.map((template: any) => (
                         <option
@@ -422,6 +377,9 @@ export default function Workshop({ user }: PageProps) {
                       ))}
                     </select>
                   </div>
+                </div>
+
+                <div className={styles.formGridTwo}>
 
                   <div className={styles.formGroup}>
                     <label className={styles.label}>
@@ -455,7 +413,7 @@ export default function Workshop({ user }: PageProps) {
                   <div className={styles.modalParticipants}>
                     {formData.templateId && (
                       <p className={styles.selectedTemplateName}>
-                        Template:{" "}
+                        OD Template:{" "}
                         <strong>
                           {templates.find((t) => t.id === formData.templateId)
                             ?.templateName || "-"}
@@ -539,7 +497,8 @@ export default function Workshop({ user }: PageProps) {
       <tr>
         <th className={styles.th}>Sr No</th>
         <th className={styles.th}>Workshop Name</th>
-        <th className={styles.th}>Template</th>
+        <th className={styles.th}>OD Template</th>
+        <th className={styles.th}>Pre OD Questions</th>
         <th className={styles.th}>Organization</th>
         <th className={styles.th}>Start Date</th>
         <th className={styles.th}>End Date</th>
@@ -555,6 +514,11 @@ export default function Workshop({ user }: PageProps) {
             <td className={styles.td}>{index + 1}</td>
             <td className={styles.td}>{workshop.workshopName}</td>
             <td className={styles.td}>{workshop.templateName}</td>
+            <td className={styles.td}>
+              {workshop.preOdQuestionCount
+                ? `${workshop.preOdQuestionCount} questions`
+                : "-"}
+            </td>
             <td className={styles.td}>{workshop.organizationName}</td>
             <td className={styles.td}>
               {new Date(workshop.startDate).toLocaleString()}
@@ -573,15 +537,6 @@ export default function Workshop({ user }: PageProps) {
                   View
                 </button>
                 <button
-                  className={styles.sendButton}
-                  onClick={() => handleSendWorkshopNotification(workshop)}
-                  disabled={sendingWorkshopId === workshop.id}
-                >
-                  {sendingWorkshopId === workshop.id
-                    ? "Sending..."
-                    : "Send SMS"}
-                </button>
-                <button
                   className={styles.deleteButton}
                   onClick={() => handleDeleteWorkshop(workshop)}
                   disabled={deletingWorkshopId === workshop.id}
@@ -596,7 +551,7 @@ export default function Workshop({ user }: PageProps) {
         ))
       ) : (
         <tr>
-          <td className={styles.td} colSpan={8}>
+          <td className={styles.td} colSpan={9}>
             No workshops scheduled.
           </td>
         </tr>

@@ -13,6 +13,8 @@ module.exports = async function (
       endDate,
       templateId,
       templateName,
+      preOdTemplateId,
+      preOdTemplateName,
       organizationId,
       organizationName,
       participantCount,
@@ -87,6 +89,12 @@ module.exports = async function (
 
       TemplateName:
         templateName || "",
+
+      PreOdTemplateId:
+        preOdTemplateId || "",
+
+      PreOdTemplateName:
+        preOdTemplateName || "",
 
       OrganizationId:
         organizationId,

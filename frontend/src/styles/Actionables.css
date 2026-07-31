@@ -1,0 +1,284 @@
+.user-layout-main-actionables {
+  background: #f5f5f5;
+}
+
+.actionables-page-wrap {
+  max-width: 960px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.actionables-panel {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 28px 36px 32px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.actionables-panel-header {
+  margin-bottom: 28px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.actionables-title {
+  color: #7b0f2c;
+  font-size: 30px;
+  font-weight: 700;
+  font-family: Georgia, "Times New Roman", serif;
+  margin: 0 0 8px;
+  line-height: 1.2;
+}
+
+.actionables-intro {
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+  max-width: 560px;
+}
+
+.actionables-empty {
+  color: #64748b;
+  font-size: 15px;
+  padding: 8px 0 4px;
+}
+
+.actionables-alert {
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+.actionables-alert-error {
+  background: #fef3f2;
+  color: #b42318;
+  border: 1px solid #fecdca;
+}
+
+.actionables-alert-success {
+  background: #ecfdf3;
+  color: #027a48;
+  border: 1px solid #abefc6;
+}
+
+.actionables-form-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.actionables-form-block {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px 24px 20px;
+  background: #ffffff;
+}
+
+.actionables-form-block-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.actionables-form-block-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #7b0f2c;
+}
+
+.actionables-remove-btn {
+  background: none;
+  border: none;
+  color: #b42318;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  padding: 4px 0;
+}
+
+.actionables-remove-btn:hover {
+  text-decoration: underline;
+}
+
+.actionables-field {
+  margin-bottom: 18px;
+}
+
+.actionables-field:last-child {
+  margin-bottom: 0;
+}
+
+.actionables-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.actionables-field-row .actionables-field {
+  margin-bottom: 0;
+}
+
+.actionables-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.actionables-input,
+.actionables-select,
+.actionables-textarea {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 15px;
+  color: #111827;
+  padding: 11px 12px;
+  font-family: inherit;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.actionables-input:focus,
+.actionables-select:focus,
+.actionables-textarea:focus {
+  border-color: #9b304a;
+  box-shadow: 0 0 0 3px rgba(155, 48, 74, 0.12);
+}
+
+.actionables-select {
+  appearance: none;
+  cursor: pointer;
+  padding-right: 36px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+
+.actionables-input::placeholder,
+.actionables-textarea::placeholder {
+  color: #9ca3af;
+}
+
+.actionables-textarea {
+  resize: vertical;
+  min-height: 88px;
+  line-height: 1.5;
+}
+
+.actionables-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.actionables-add-btn,
+.actionables-save-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 8px;
+  padding: 12px 22px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.actionables-add-btn {
+  background: #ffffff;
+  color: #7b0f2c;
+  border: 1px solid #7b0f2c;
+}
+
+.actionables-add-btn:hover:not(:disabled) {
+  background: #fdf2f4;
+}
+
+.actionables-add-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.actionables-save-btn {
+  background: #7b0f2c;
+  color: #ffffff;
+  border: none;
+  min-width: 150px;
+}
+
+.actionables-save-btn:hover:not(:disabled) {
+  background: #651025;
+}
+
+.actionables-save-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.actionables-footer {
+  margin-top: 32px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 13px;
+  font-style: italic;
+}
+
+@media (max-width: 768px) {
+  .actionables-panel {
+    padding: 22px 18px 24px;
+  }
+
+  .actionables-panel-header {
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 22px;
+    padding-bottom: 18px;
+  }
+
+  .actionables-workshop-card {
+    max-width: none;
+    width: 100%;
+  }
+
+  .actionables-title {
+    font-size: 24px;
+  }
+
+  .actionables-form-block {
+    padding: 18px 16px;
+  }
+
+  .actionables-field-row {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .actionables-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .actionables-add-btn,
+  .actionables-save-btn {
+    width: 100%;
+  }
+}

@@ -18,8 +18,11 @@ module.exports = async function (context, req) {
     });
 
     for await (const entity of entities) {
-      // If createdBy is supplied, return only that user's workshops
-      if (createdBy && entity.CreatedBy !== createdBy) {
+      if (
+        createdBy &&
+        entity.CreatedBy &&
+        entity.CreatedBy.toLowerCase() !== String(createdBy).toLowerCase()
+      ) {
         continue;
       }
 
@@ -30,6 +33,10 @@ module.exports = async function (context, req) {
         endDate: entity.EndDate,
         templateId: entity.TemplateId,
         templateName: entity.TemplateName,
+        preOdTemplateId: entity.PreOdTemplateId || "",
+        preOdTemplateName: entity.PreOdTemplateName || "",
+        preOdQuestionSrNos: entity.PreOdQuestionSrNos || "",
+        preOdQuestionCount: entity.PreOdQuestionCount || 0,
         organizationId: entity.OrganizationId,
         organizationName: entity.OrganizationName,
         participantCount: entity.ParticipantCount,
