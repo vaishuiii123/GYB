@@ -21,9 +21,5 @@ jobs:
 
           # React/Vite frontend folder
           app_location: "frontend"
-
-          # Azure Functions API folder
-          api_location: "api"
-
-          # Vite build output
           output_location: "dist"
+          skip_api_build: true
