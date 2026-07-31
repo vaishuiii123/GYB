@@ -1,3 +1,34 @@
+const { Agent } = require("undici");
+
+let bulkSmsLinkDispatcher;
+
+function getBulkSmsLinkDispatcher() {
+  if (!bulkSmsLinkDispatcher) {
+    bulkSmsLinkDispatcher = new Agent({
+      connect: {
+        rejectUnauthorized: false,
+        timeout: 30000,
+      },
+    });
+  }
+
+  return bulkSmsLinkDispatcher;
+}
+
+function normalizeBulkSmsLinkUrl(apiUrl) {
+  if (!apiUrl.includes("bulksmslink.in")) {
+    return apiUrl;
+  }
+
+  // Azure Functions block outbound HTTP (port 80). BulkSMSLink has a bad cert
+  // on HTTPS, so we allow insecure TLS instead of downgrading to HTTP.
+  if (apiUrl.startsWith("http://")) {
+    return apiUrl.replace(/^http:\/\//, "https://");
+  }
+
+  return apiUrl;
+}
+
 function normalizePhone(phone) {
   const digits = String(phone || "").replace(/\D/g, "");
   if (!digits) {
@@ -89,11 +120,7 @@ async function sendViaBulkSmsLink(phone, message, templateId) {
     );
   }
 
-  // BulkSMSLink's login endpoint currently serves an invalid SSL certificate.
-  // Node fetch rejects HTTPS; HTTP works for the same API path.
-  if (apiUrl.includes("bulksmslink.in") && apiUrl.startsWith("https://")) {
-    apiUrl = apiUrl.replace(/^https:\/\//, "http://");
-  }
+  apiUrl = normalizeBulkSmsLinkUrl(apiUrl);
 
   if (!username || !apiKey) {
     throw new Error(
@@ -140,13 +167,19 @@ async function sendViaBulkSmsLink(phone, message, templateId) {
 
   let response;
   try {
-    response = await fetch(apiUrl, {
+    const fetchOptions = {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: body.toString(),
-    });
+    };
+
+    if (apiUrl.startsWith("https://") && apiUrl.includes("bulksmslink.in")) {
+      fetchOptions.dispatcher = getBulkSmsLinkDispatcher();
+    }
+
+    response = await fetch(apiUrl, fetchOptions);
   } catch (error) {
     const cause = error.cause?.message || error.cause?.code || "";
     throw new Error(
