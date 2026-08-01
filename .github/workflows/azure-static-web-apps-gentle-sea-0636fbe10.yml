@@ -21,5 +21,7 @@ jobs:
 
           # React/Vite frontend folder
           app_location: "frontend"
+          # Required for linked/BYO Function App (growyourbusiness)
+          api_location: ""
           output_location: "dist"
           skip_api_build: true
