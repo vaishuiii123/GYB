@@ -4,7 +4,6 @@ module.exports = async function (context, req) {
   try {
 
     const organization = req.query.organization;
-    const createdBy = req.query.createdBy;
 
     const client = TableClient.fromConnectionString(
       process.env.AZURE_STORAGE_CONNECTION_STRING,
@@ -13,36 +12,22 @@ module.exports = async function (context, req) {
 
     const participants = [];
 
+    // Shared admin view: return all participants (optional organization filter only).
     for await (const entity of client.listEntities()) {
-
-      let include = true;
-
-      if (organization) {
-        include =
-          include &&
-          entity.Organisation === organization;
+      if (organization && entity.Organisation !== organization) {
+        continue;
       }
 
-      if (createdBy) {
-        include =
-          include &&
-          entity.Created_By &&
-          entity.Created_By.toLowerCase() ===
-            createdBy.toLowerCase();
-      }
-
-      if (include) {
-        participants.push({
-          id: entity.rowKey,
-          organization: entity.Organisation || "",
-          firstName: entity.First_Name || "",
-          middleName: entity.Middle_Name || "",
-          lastName: entity.Last_Name || "",
-          email: entity.Email || "",
-          phoneNo: entity.Phone_No || "",
-          password: entity.Password || "",
-        });
-      }
+      participants.push({
+        id: entity.rowKey,
+        organization: entity.Organisation || "",
+        firstName: entity.First_Name || "",
+        middleName: entity.Middle_Name || "",
+        lastName: entity.Last_Name || "",
+        email: entity.Email || "",
+        phoneNo: entity.Phone_No || "",
+        password: entity.Password || "",
+      });
     }
 
     context.res = {

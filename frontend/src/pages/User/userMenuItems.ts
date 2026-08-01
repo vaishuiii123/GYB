@@ -16,18 +16,19 @@ export const workshopNavItems: UserMenuItem[] = [
     match: (pathname) => pathname.startsWith("/vision-mission"),
   },
   {
-    label: "Questionnaire",
+    label: "Unlock Value",
     path: "/od-chart",
     match: (pathname) => pathname.startsWith("/od-chart"),
   },
   {
-    label: "List of Actionables",
+    label: "Actionables",
     path: "/actionables",
     match: (pathname) => pathname.startsWith("/actionables"),
   },
   {
     label: "Workshop Feedback",
-    path: null,
+    path: "/workshop-feedback",
+    match: (pathname) => pathname.startsWith("/workshop-feedback"),
   },
 ];
 
@@ -63,9 +64,15 @@ export const dashboardCards: DashboardCard[] = [
     path: "/actionables",
   },
   {
+    title: "Workshop Feedback",
+    description:
+      "Share one-time feedback after the workshop has ended.",
+    path: "/workshop-feedback",
+  },
+  {
     title: "Reports",
     description:
       "Summary of key insights, participant reflections & actionables.",
-    path: null,
+    path: "/reports",
   },
 ];

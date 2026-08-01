@@ -33,6 +33,60 @@
   align-items: center;
   gap: 16px;
   color: #7b0f2c;
+  margin-left: auto;
+}
+
+.workshop-selection-user-menu {
+  position: relative;
+}
+
+.workshop-selection-user-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: none;
+  color: #7b0f2c;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 6px 8px;
+  border-radius: 8px;
+}
+
+.workshop-selection-user-btn:hover {
+  background: #fdf2f4;
+}
+
+.workshop-selection-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 140px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  padding: 6px;
+  z-index: 1100;
+}
+
+.workshop-selection-dropdown button {
+  width: 100%;
+  border: none;
+  background: none;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.workshop-selection-dropdown button:hover {
+  background: #fdf2f4;
+  color: #7b0f2c;
 }
 
 .workshop-selection-link {

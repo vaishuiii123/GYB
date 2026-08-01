@@ -4,6 +4,7 @@ import UserHeader from "./UserHeader";
 import { dashboardCards } from "./userMenuItems";
 import {
   fetchParticipantWorkshops,
+  getFeedbackAccessStatus,
   getPreOdAccessStatus,
   type WorkshopRecord,
 } from "../../utils/workshopCache";
@@ -18,6 +19,8 @@ export default function UserDashboard() {
   const navigate = useNavigate();
   const [preOdEnabled, setPreOdEnabled] = useState(false);
   const [preOdMessage, setPreOdMessage] = useState("");
+  const [feedbackEnabled, setFeedbackEnabled] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState("");
 
   useEffect(() => {
     const participant = getParticipantFromStorage();
@@ -41,9 +44,13 @@ export default function UserDashboard() {
     }
 
     const applyStatus = (workshop?: WorkshopRecord | null) => {
-      const status = getPreOdAccessStatus(workshop || selectedWorkshop);
-      setPreOdEnabled(status.enabled);
-      setPreOdMessage(status.message);
+      const source = workshop || selectedWorkshop;
+      const preOdStatus = getPreOdAccessStatus(source);
+      const feedbackStatus = getFeedbackAccessStatus(source);
+      setPreOdEnabled(preOdStatus.enabled);
+      setPreOdMessage(preOdStatus.message);
+      setFeedbackEnabled(feedbackStatus.enabled);
+      setFeedbackMessage(feedbackStatus.message);
     };
 
     applyStatus(selectedWorkshop);
@@ -80,11 +87,20 @@ export default function UserDashboard() {
         <div className="user-dashboard-grid">
           {dashboardCards.map((card) => {
             const isPreOdCard = card.path === "/pre-od-workshop";
-            const path = isPreOdCard
-              ? preOdEnabled
-                ? card.path
-                : null
-              : card.path;
+            const isFeedbackCard = card.path === "/workshop-feedback";
+            let path = card.path;
+            let note = "";
+
+            if (isPreOdCard) {
+              path = preOdEnabled ? card.path : null;
+              note = preOdMessage;
+            }
+
+            if (isFeedbackCard) {
+              path = feedbackEnabled ? card.path : null;
+              note = feedbackMessage;
+            }
+
             const disabled = !path;
 
             return (
@@ -94,7 +110,7 @@ export default function UserDashboard() {
                 className={`user-dashboard-card ${disabled ? "disabled" : ""}`}
                 onClick={() => path && navigate(path)}
                 disabled={disabled}
-                title={isPreOdCard && disabled ? preOdMessage : undefined}
+                title={disabled && note ? note : undefined}
               >
                 <span className="user-dashboard-card-icon" aria-hidden="true">
                   ❖
@@ -102,8 +118,8 @@ export default function UserDashboard() {
                 <div className="user-dashboard-card-body">
                   <h2>{card.title}</h2>
                   <p>{card.description}</p>
-                  {isPreOdCard && disabled && preOdMessage ? (
-                    <p className="user-dashboard-card-note">{preOdMessage}</p>
+                  {disabled && note ? (
+                    <p className="user-dashboard-card-note">{note}</p>
                   ) : null}
                 </div>
               </button>

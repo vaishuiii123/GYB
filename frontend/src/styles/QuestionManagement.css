@@ -117,39 +117,23 @@
    ACTION BUTTONS
 ========================= */
 
-.tag-edit-btn {
-  display: inline-flex;
+.question-actions {
+  display: flex;
   align-items: center;
-  gap: 7px;
-  background: white;
-  color: #2563eb;
-  border: 1px solid #2563eb;
-  border-radius: 8px;
-  padding: 8px 18px;
-  font-weight: 600;
-  cursor: pointer;
-  margin-right: 8px;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
-.tag-edit-btn:hover {
-  background: #eff6ff;
+.question-actions .edit-btn,
+.question-actions .delete-btn {
+  margin-right: 0;
+  gap: 6px;
 }
 
-.tag-delete-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  background: white;
-  color: #ef4444;
-  border: 1px solid #ef4444;
-  border-radius: 8px;
-  padding: 8px 18px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.tag-delete-btn:hover {
-  background: #fef2f2;
+.question-table th:last-child,
+.question-table td:last-child {
+  width: 220px;
+  white-space: nowrap;
 }
 
 /* =========================

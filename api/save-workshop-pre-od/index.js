@@ -1,10 +1,14 @@
 const { TableClient } = require("@azure/data-tables");
 const { PRE_OD_QUESTIONS } = require("../shared/preOdQuestions");
 const { canEditPreOd } = require("../shared/workshopAccess");
+const {
+  normalizeCustomQuestions,
+  serializeCustomQuestions,
+} = require("../shared/preOdCustomQuestions");
 
 module.exports = async function (context, req) {
   try {
-    const { workshopId, questionSrNos } = req.body || {};
+    const { workshopId, questionSrNos, customQuestions } = req.body || {};
 
     if (!workshopId) {
       context.res = {
@@ -24,28 +28,18 @@ module.exports = async function (context, req) {
           .map((item) => item.trim())
           .filter(Boolean);
 
-    if (srNos.length === 0) {
-      context.res = {
-        status: 400,
-        body: {
-          success: false,
-          message: "Select at least one Pre OD question.",
-        },
-      };
-      return;
-    }
-
     const validSrNos = new Set(
       PRE_OD_QUESTIONS.map((item) => String(item.srNo))
     );
     const filteredSrNos = srNos.filter((srNo) => validSrNos.has(String(srNo)));
+    const normalizedCustom = normalizeCustomQuestions(customQuestions);
 
-    if (filteredSrNos.length === 0) {
+    if (filteredSrNos.length === 0 && normalizedCustom.length === 0) {
       context.res = {
         status: 400,
         body: {
           success: false,
-          message: "No valid Pre OD question numbers were selected.",
+          message: "Select at least one Pre OD question or add a custom question.",
         },
       };
       return;
@@ -82,12 +76,15 @@ module.exports = async function (context, req) {
       return;
     }
 
+    const questionCount = filteredSrNos.length + normalizedCustom.length;
+
     await client.updateEntity(
       {
         partitionKey: "Workshop",
         rowKey: workshopId,
         PreOdQuestionSrNos: filteredSrNos.join(","),
-        PreOdQuestionCount: filteredSrNos.length,
+        PreOdCustomQuestions: serializeCustomQuestions(normalizedCustom),
+        PreOdQuestionCount: questionCount,
         PreOdTemplateId: "",
         PreOdTemplateName: "",
       },
@@ -102,7 +99,8 @@ module.exports = async function (context, req) {
         workshopId,
         workshopName: workshop.WorkshopName || "",
         questionSrNos: filteredSrNos,
-        questionCount: filteredSrNos.length,
+        customQuestions: normalizedCustom,
+        questionCount,
       },
     };
   } catch (error) {

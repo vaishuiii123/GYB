@@ -64,217 +64,142 @@ export type ODQuestionsNavState = {
 
 export const OD_CHART_NAV_KEY = "od-chart-questions-nav";
 
-type BranchState = {
-  expandedMiddleIds: string[];
-  expandedParentIds: Record<string, string[]>;
-};
-
-const emptyBranchState = (): BranchState => ({
-  expandedMiddleIds: [],
-  expandedParentIds: {},
-});
-
-function leafNodeStyle(leaf: Leaf) {
-  const color = leaf.tagColor || "#c0392b";
-
-  return {
-    borderColor: color,
-    ...(leaf.hasAssignedQuestions === false
-      ? { opacity: 0.72, borderStyle: "dashed" as const }
-      : {}),
-  };
+function leafHasAssignedQuestions(leaf: Leaf) {
+  return leaf.hasAssignedQuestions === true;
 }
 
-function TreeLink() {
+function parentHasAssignedQuestions(parent: Parent) {
+  return parent.leaves.some(leafHasAssignedQuestions);
+}
+
+function middleHasAssignedQuestions(middle: Middle) {
+  return middle.parents.some(parentHasAssignedQuestions);
+}
+
+function topHasAssignedQuestions(top: Top) {
+  return top.middles.some(middleHasAssignedQuestions);
+}
+
+function assignedClass(hasAssigned: boolean) {
+  return hasAssigned ? "is-assigned" : "is-unassigned";
+}
+
+function LeafNode({
+  leaf,
+  onOpen,
+}: {
+  leaf: Leaf;
+  onOpen: () => void;
+}) {
+  const assigned = leafHasAssignedQuestions(leaf);
+  const tagColor = leaf.tagColor || "#c0392b";
+
   return (
-    <div className="od-tree-link" aria-hidden="true">
-      <span className="od-tree-link-line" />
-      <span className="od-tree-link-dot" />
-    </div>
+    <button
+      type="button"
+      className={`od-node od-node-leaf ${assignedClass(assigned)}`}
+      style={
+        assigned
+          ? {
+              borderColor: tagColor,
+              background: tagColor,
+              color: "#ffffff",
+            }
+          : undefined
+      }
+      title={
+        assigned
+          ? "Open questions"
+          : "No questions assigned for your workshop"
+      }
+      onClick={onOpen}
+    >
+      {leaf.name}
+    </button>
   );
 }
 
-function TopColumn({
-  top,
-  isExpanded,
-  branch,
-  onToggleTop,
-  onToggleMiddle,
-  onToggleParent,
+function ChartTree({
+  tops,
   onOpenLeaf,
 }: {
-  top: Top;
-  isExpanded: boolean;
-  branch: BranchState;
-  onToggleTop: () => void;
-  onToggleMiddle: (middleId: string) => void;
-  onToggleParent: (middleId: string, parentId: string) => void;
-  onOpenLeaf: (middle: Middle, parent: Parent, leaf: Leaf) => void;
+  tops: Top[];
+  onOpenLeaf: (
+    top: Top,
+    middle: Middle,
+    parent: Parent,
+    leaf: Leaf
+  ) => void;
 }) {
   return (
-    <div className={`od-tree-column${isExpanded ? " is-expanded" : ""}`}>
-      <span className="od-tree-col-vline" aria-hidden="true" />
-
-      <button
-        type="button"
-        className={`od-full-tree-node od-full-tree-node-green od-expand-btn ${
-          isExpanded ? "is-open" : ""
-        }`}
-        onClick={onToggleTop}
-      >
-        {top.name}
-      </button>
-
-      {isExpanded && top.middles.length > 0 && (
-        <div className="od-tree-middles-wrap">
-          <TreeLink />
-          {top.middles.length > 1 && (
-            <span className="od-tree-middles-rail" aria-hidden="true" />
-          )}
-          <div className="od-tree-middles-row">
-            {top.middles.map((middle) => {
-              const middleOpen = branch.expandedMiddleIds.includes(middle.id);
-              const openParentIds = branch.expandedParentIds[middle.id] || [];
-
-              return (
+    <div className="od-org">
+      <ul>
+        <li>
+          <div className="od-node od-node-root">UNLOCK VALUE</div>
+          <ul>
+            {tops.map((top) => (
+              <li key={top.id}>
                 <div
-                  key={middle.id}
-                  className={`od-tree-middle-column${
-                    middleOpen &&
-                    middle.parents.some(
-                      (p) =>
-                        openParentIds.includes(p.id) && p.leaves.length > 1
-                    )
-                      ? " has-multiple-leaves"
-                      : ""
-                  }`}
+                  className={`od-node od-node-green od-node-top ${assignedClass(
+                    topHasAssignedQuestions(top)
+                  )}`}
                 >
-                  {top.middles.length > 1 && (
-                    <span className="od-tree-middle-vline" aria-hidden="true" />
-                  )}
-                  <button
-                    type="button"
-                    className={`od-full-tree-node od-full-tree-node-green od-full-tree-node-sm od-expand-btn ${
-                      middleOpen ? "is-open" : ""
-                    }`}
-                    onClick={() => onToggleMiddle(middle.id)}
-                  >
-                    {middle.name}
-                  </button>
-
-                  {middleOpen && middle.parents.length > 0 && (
-                    <div className="od-tree-parents-wrap">
-                      {middle.parents.length > 1 && (
-                        <>
-                          <TreeLink />
-                          <span
-                            className="od-tree-parents-rail"
-                            aria-hidden="true"
-                          />
-                        </>
-                      )}
-                      <div
-                        className={`od-tree-parents-row ${
-                          middle.parents.length === 1
-                            ? "od-tree-parents-row-single"
-                            : ""
-                        }`}
-                      >
-                        {middle.parents.map((parent) => {
-                          const parentOpen = openParentIds.includes(parent.id);
-
-                          return (
-                            <div
-                              key={parent.id}
-                              className={`od-tree-parent-column${
-                                parentOpen && parent.leaves.length > 1
-                                  ? " has-multiple-leaves"
-                                  : ""
-                              }`}
-                            >
-                              {middle.parents.length > 1 && (
-                                <span
-                                  className="od-tree-parent-vline"
-                                  aria-hidden="true"
-                                />
-                              )}
-                              {middle.parents.length === 1 && <TreeLink />}
-                              <button
-                                type="button"
-                                className={`od-full-tree-node od-full-tree-node-parent od-expand-btn ${
-                                  parentOpen ? "is-open" : ""
-                                }`}
-                                onClick={() =>
-                                  onToggleParent(middle.id, parent.id)
-                                }
-                              >
-                                {parent.name}
-                              </button>
-
-                              {parentOpen && parent.leaves.length > 0 && (
-                                <div className="od-tree-leaves-wrap">
-                                  {parent.leaves.length > 1 && (
-                                    <>
-                                      <TreeLink />
-                                      <span
-                                        className="od-tree-leaves-rail"
-                                        aria-hidden="true"
-                                      />
-                                    </>
-                                  )}
-                                  <div
-                                    className={`od-tree-leaves-row ${
-                                      parent.leaves.length === 1
-                                        ? "od-tree-leaves-row-single"
-                                        : ""
-                                    }`}
-                                  >
-                                    {parent.leaves.map((leaf) => (
-                                      <div
-                                        key={leaf.id}
-                                        className="od-tree-leaf-column"
-                                      >
-                                        {parent.leaves.length > 1 && (
-                                          <span
-                                            className="od-tree-leaf-vline"
-                                            aria-hidden="true"
-                                          />
-                                        )}
-                                        {parent.leaves.length === 1 && (
-                                          <TreeLink />
-                                        )}
-                                        <button
-                                          type="button"
-                                          className="od-full-tree-node od-full-tree-node-leaf od-expand-btn"
-                                          style={leafNodeStyle(leaf)}
-                                          title={
-                                            leaf.hasAssignedQuestions === false
-                                              ? "No questions assigned for your workshop"
-                                              : "Open questions"
-                                          }
-                                          onClick={() =>
-                                            onOpenLeaf(middle, parent, leaf)
-                                          }
-                                        >
-                                          {leaf.name}
-                                        </button>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
+                  {top.name}
                 </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+                {top.middles.length > 0 && (
+                  <ul>
+                    {top.middles.map((middle) => (
+                      <li key={middle.id}>
+                        <div
+                          className={`od-node od-node-green od-node-middle ${assignedClass(
+                            middleHasAssignedQuestions(middle)
+                          )}`}
+                        >
+                          {middle.name}
+                        </div>
+                        {middle.parents.length > 0 && (
+                          <ul>
+                            {middle.parents.map((parent) => (
+                              <li key={parent.id}>
+                                <div
+                                  className={`od-node od-node-parent ${assignedClass(
+                                    parentHasAssignedQuestions(parent)
+                                  )}`}
+                                >
+                                  {parent.name}
+                                </div>
+                                {parent.leaves.length > 0 && (
+                                  <ul>
+                                    {parent.leaves.map((leaf) => (
+                                      <li key={leaf.id}>
+                                        <LeafNode
+                                          leaf={leaf}
+                                          onOpen={() =>
+                                            onOpenLeaf(
+                                              top,
+                                              middle,
+                                              parent,
+                                              leaf
+                                            )
+                                          }
+                                        />
+                                      </li>
+                                    ))}
+                                  </ul>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            ))}
+          </ul>
+        </li>
+      </ul>
     </div>
   );
 }
@@ -285,11 +210,6 @@ export default function ODChart() {
   const [errorMessage, setErrorMessage] = useState("");
   const [workshop, setWorkshop] = useState<WorkshopInfo | null>(null);
   const [tops, setTops] = useState<Top[]>([]);
-  const [rootOpen, setRootOpen] = useState(false);
-  const [expandedTopIds, setExpandedTopIds] = useState<string[]>([]);
-  const [branchState, setBranchState] = useState<Record<string, BranchState>>(
-    {}
-  );
 
   const participant = (() => {
     try {
@@ -359,77 +279,6 @@ export default function ODChart() {
     loadData();
   }, [participant.organizationId]);
 
-  const toggleRoot = () => {
-    if (rootOpen) {
-      setRootOpen(false);
-      setExpandedTopIds([]);
-      setBranchState({});
-      return;
-    }
-
-    setRootOpen(true);
-  };
-
-  const toggleTop = (topId: string) => {
-    setExpandedTopIds((current) => {
-      if (current.includes(topId)) {
-        setBranchState((branches) => {
-          const next = { ...branches };
-          delete next[topId];
-          return next;
-        });
-        return current.filter((id) => id !== topId);
-      }
-
-      return [...current, topId];
-    });
-  };
-
-  const toggleMiddle = (topId: string, middleId: string) => {
-    setBranchState((current) => {
-      const branch = current[topId] || emptyBranchState();
-      const isOpen = branch.expandedMiddleIds.includes(middleId);
-      const expandedMiddleIds = isOpen
-        ? branch.expandedMiddleIds.filter((id) => id !== middleId)
-        : [...branch.expandedMiddleIds, middleId];
-
-      const expandedParentIds = { ...branch.expandedParentIds };
-      if (isOpen) {
-        delete expandedParentIds[middleId];
-      }
-
-      return {
-        ...current,
-        [topId]: {
-          expandedMiddleIds,
-          expandedParentIds,
-        },
-      };
-    });
-  };
-
-  const toggleParent = (topId: string, middleId: string, parentId: string) => {
-    setBranchState((current) => {
-      const branch = current[topId] || emptyBranchState();
-      const openParents = branch.expandedParentIds[middleId] || [];
-      const isOpen = openParents.includes(parentId);
-      const nextParents = isOpen
-        ? openParents.filter((id) => id !== parentId)
-        : [...openParents, parentId];
-
-      return {
-        ...current,
-        [topId]: {
-          ...branch,
-          expandedParentIds: {
-            ...branch.expandedParentIds,
-            [middleId]: nextParents,
-          },
-        },
-      };
-    });
-  };
-
   const openQuestions = (
     top: Top,
     middle: Middle,
@@ -467,52 +316,15 @@ export default function ODChart() {
           No categories found. Please contact your administrator.
         </div>
       ) : (
-        <div className="od-full-tree-scroll">
-          <div className="od-tree-chart">
-            <button
-              type="button"
-              className={`od-full-tree-root od-expand-btn ${rootOpen ? "is-open" : ""}`}
-              onClick={toggleRoot}
-            >
-              UNLOCK VALUE
-            </button>
-
-            {!rootOpen && (
-              <p className="od-expand-hint">Click UNLOCK VALUE to explore</p>
-            )}
-
-            {rootOpen && (
-              <>
-                <div className="od-tree-root-stem" aria-hidden="true">
-                  <span className="od-tree-link-line od-tree-link-line-root" />
-                  <span className="od-tree-link-dot" />
-                </div>
-
-                <div className="od-tree-columns-wrap">
-                  <span className="od-tree-top-rail" aria-hidden="true" />
-                  <div className="od-tree-columns">
-                    {tops.map((top) => (
-                      <TopColumn
-                        key={top.id}
-                        top={top}
-                        isExpanded={expandedTopIds.includes(top.id)}
-                        branch={branchState[top.id] || emptyBranchState()}
-                        onToggleTop={() => toggleTop(top.id)}
-                        onToggleMiddle={(middleId) =>
-                          toggleMiddle(top.id, middleId)
-                        }
-                        onToggleParent={(middleId, parentId) =>
-                          toggleParent(top.id, middleId, parentId)
-                        }
-                        onOpenLeaf={(middle, parent, leaf) =>
-                          openQuestions(top, middle, parent, leaf)
-                        }
-                      />
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
+        <div className="od-chart-body">
+          <div className="od-chart-legend" role="note">
+            <span className="od-chart-legend-swatch od-chart-legend-swatch-assigned" />
+            <p>
+              <strong>Maroon</strong> = questions assigned
+            </p>
+          </div>
+          <div className="od-full-tree-scroll">
+            <ChartTree tops={tops} onOpenLeaf={openQuestions} />
           </div>
         </div>
       )}

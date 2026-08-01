@@ -1,5 +1,6 @@
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
+import { DeleteIconBtn } from "../../components/AdminActionIcons";
 import "../../styles/CategoryManagement.css";
 import { useState, useEffect } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
@@ -258,16 +259,13 @@ export default function CategoryQuestions({ user }: PageProps) {
                                                 {formatOptions(q.options)}
                                             </td>
                                             <td>
-                                                <button
-                                                    className="delete-btn"
+                                                <DeleteIconBtn
                                                     onClick={() =>
                                                         handleRemoveQuestion(
                                                             q.questionId
                                                         )
                                                     }
-                                                >
-                                                    Delete
-                                                </button>
+                                                />
                                             </td>
                                         </tr>
                                     ))

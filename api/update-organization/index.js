@@ -1,4 +1,5 @@
 const { TableClient } = require("@azure/data-tables");
+const { isValidEmail } = require("../shared/validation");
 
 module.exports = async function (context, req) {
   try {
@@ -9,19 +10,30 @@ module.exports = async function (context, req) {
       email,
     } = req.body;
 
-    if (
-      !id ||
-      !organizationName ||
-      !contactPerson ||
-      !email
-    ) {
-      return {
+    const name = String(organizationName || "").trim();
+    const contact = String(contactPerson || "").trim();
+    const orgEmail = String(email || "").trim();
+
+    if (!id || !name || !contact || !orgEmail) {
+      context.res = {
         status: 400,
         body: {
           success: false,
-          error: "All fields are required",
+          error: "Organization name, contact person, and email are required.",
         },
       };
+      return;
+    }
+
+    if (!isValidEmail(orgEmail)) {
+      context.res = {
+        status: 400,
+        body: {
+          success: false,
+          error: "Enter a valid email address.",
+        },
+      };
+      return;
     }
 
     const client =
@@ -34,14 +46,14 @@ module.exports = async function (context, req) {
       {
         partitionKey: "Organization",
         rowKey: id,
-        Organization_Name: organizationName,
-        Contact_Person: contactPerson,
-        Email: email,
+        Organization_Name: name,
+        Contact_Person: contact,
+        Email: orgEmail,
       },
       "Merge"
     );
 
-    return {
+    context.res = {
       status: 200,
       body: {
         success: true,
@@ -50,7 +62,7 @@ module.exports = async function (context, req) {
   } catch (error) {
     context.log(error);
 
-    return {
+    context.res = {
       status: 500,
       body: {
         success: false,

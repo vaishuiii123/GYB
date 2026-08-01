@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
+import {
+  DeleteIconBtn,
+  EditIconBtn,
+  ViewIconBtn,
+} from "../../components/AdminActionIcons";
 import styles from "../../styles/Workshop.module.css";
 
 type PageProps = {
@@ -28,6 +33,52 @@ export default function Workshop({ user }: PageProps) {
     templateId: "",
     organizationId: "",
   });
+  const [editingWorkshopId, setEditingWorkshopId] = useState("");
+  const [modalMode, setModalMode] = useState<"create" | "edit">("create");
+
+  const emptyForm = {
+    workshopName: "",
+    startDate: "",
+    endDate: "",
+    templateId: "",
+    organizationId: "",
+  };
+
+  const toDateTimeLocal = (value?: string) => {
+    if (!value) {
+      return "";
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return String(value).slice(0, 16);
+    }
+
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+      date.getDate()
+    )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  };
+
+  const canEditWorkshop = (workshop: any) => {
+    if (!workshop?.startDate) {
+      return true;
+    }
+
+    const startMs = new Date(workshop.startDate).getTime();
+    if (Number.isNaN(startMs)) {
+      return true;
+    }
+
+    return Date.now() < startMs;
+  };
+
+  const resetForm = () => {
+    setFormData(emptyForm);
+    setParticipants([]);
+    setEditingWorkshopId("");
+    setModalMode("create");
+  };
 
   useEffect(() => {
     loadTemplates();
@@ -146,35 +197,62 @@ export default function Workshop({ user }: PageProps) {
   };
 
 
-  const handleCreateWorkshop = async () => {
-  if (
-    !formData.workshopName ||
-    !formData.startDate ||
-    !formData.endDate ||
-    !formData.templateId ||
-    !formData.organizationId
-  ) {
-    alert("Please fill all required fields");
-    return;
-  }
+  const openCreatePopup = () => {
+    resetForm();
+    setModalMode("create");
+    setShowCreatePopup(true);
+  };
 
-  try {
-    setLoading(true);
+  const openEditPopup = async (workshop: any) => {
+    if (!canEditWorkshop(workshop)) {
+      alert("This workshop has started and can no longer be edited.");
+      return;
+    }
 
-    const selectedTemplate = templates.find(
-      (t) => t.id === formData.templateId
-    );
+    setModalMode("edit");
+    setEditingWorkshopId(workshop.id);
+    setFormData({
+      workshopName: workshop.workshopName || "",
+      startDate: toDateTimeLocal(workshop.startDate),
+      endDate: toDateTimeLocal(workshop.endDate),
+      templateId: workshop.templateId || "",
+      organizationId: workshop.organizationId || "",
+    });
 
-    const selectedOrganization = organizations.find(
-      (o) => o.id === formData.organizationId
-    );
+    if (workshop.organizationId) {
+      const orgParticipants = await loadParticipants(workshop.organizationId);
+      setParticipants(orgParticipants);
+    } else {
+      setParticipants([]);
+    }
 
-    const response = await fetch("/api/create-workshop", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    setShowCreatePopup(true);
+  };
+
+  const handleSaveWorkshop = async () => {
+    if (
+      !formData.workshopName ||
+      !formData.startDate ||
+      !formData.endDate ||
+      !formData.templateId ||
+      !formData.organizationId
+    ) {
+      alert("Please fill all required fields");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const selectedTemplate = templates.find(
+        (t) => t.id === formData.templateId
+      );
+
+      const selectedOrganization = organizations.find(
+        (o) => o.id === formData.organizationId
+      );
+
+      const payload = {
         workshopName: formData.workshopName,
         startDate: formData.startDate,
         endDate: formData.endDate,
@@ -184,39 +262,44 @@ export default function Workshop({ user }: PageProps) {
         organizationName: selectedOrganization?.organizationName,
         participantCount: participants.length,
         createdBy: getCurrentUser().email || "",
-      }),
-    });
+      };
 
-    const data = await response.json();
+      const response = await fetch(
+        modalMode === "edit" ? "/api/update-workshop" : "/api/create-workshop",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(
+            modalMode === "edit"
+              ? { ...payload, workshopId: editingWorkshopId }
+              : payload
+          ),
+        }
+      );
 
-    if (data.success) {
-      alert("Workshop created successfully");
+      const data = await response.json();
 
-      setFormData({
-        workshopName: "",
-        startDate: "",
-        endDate: "",
-        templateId: "",
-        organizationId: "",
-      });
-
-      setParticipants([]);
-
-      // Refresh the workshop list
-      await loadWorkshops();
-
-      // Close the popup
-      setShowCreatePopup(false);
-    } else {
-      alert(data.error || "Failed to create workshop");
+      if (data.success) {
+        alert(
+          modalMode === "edit"
+            ? "Workshop updated successfully"
+            : "Workshop created successfully"
+        );
+        resetForm();
+        await loadWorkshops();
+        setShowCreatePopup(false);
+      } else {
+        alert(data.message || data.error || "Failed to save workshop");
+      }
+    } catch (error) {
+      console.error("Error saving workshop:", error);
+      alert("Failed to save workshop");
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error("Error creating workshop:", error);
-    alert("Failed to create workshop");
-  } finally {
-    setLoading(false);
-  }
-};
+  };
   const loadWorkshops = async () => {
   try {
     const response = await fetch("/api/get-workshops");
@@ -281,7 +364,7 @@ export default function Workshop({ user }: PageProps) {
 
             <button
               className={styles.primaryButton}
-              onClick={() => setShowCreatePopup(true)}
+              onClick={openCreatePopup}
             >
               + Create Workshop
             </button>
@@ -290,6 +373,12 @@ export default function Workshop({ user }: PageProps) {
           {showCreatePopup && (
             <div className={styles.modalOverlay}>
               <div className={styles.modal}>
+                <div className={styles.modalHeader}>
+                  <h3 className={styles.modalTitle}>
+                    {modalMode === "edit" ? "Edit Workshop" : "Create Workshop"}
+                  </h3>
+                </div>
+
                 <div className={styles.formGridThree}>
                   <div className={styles.formGroup}>
                     <label className={styles.label}>
@@ -312,7 +401,7 @@ export default function Workshop({ user }: PageProps) {
 
                   <div className={styles.formGroup}>
                     <label className={styles.label}>
-                      Start Date - Time *
+                      Pre OD / Workshop Start Date-Time *
                     </label>
 
                     <input
@@ -326,6 +415,9 @@ export default function Workshop({ user }: PageProps) {
                         })
                       }
                     />
+                    <p className={styles.fieldHint}>
+                      Pre OD closes when this start time is reached.
+                    </p>
                   </div>
 
                   <div className={styles.formGroup}>
@@ -459,25 +551,20 @@ export default function Workshop({ user }: PageProps) {
                 <div className={styles.buttonRow}>
                   <button
                     className={styles.primaryButton}
-                    onClick={handleCreateWorkshop}
+                    onClick={handleSaveWorkshop}
                     disabled={loading}
                   >
-                    {loading ? "Creating..." : "Create"}
+                    {loading
+                      ? "Saving..."
+                      : modalMode === "edit"
+                        ? "Save Changes"
+                        : "Create"}
                   </button>
 
                   <button
                     className={styles.secondaryButton}
                     onClick={() => {
-                      setFormData({
-                        workshopName: "",
-                        startDate: "",
-                        endDate: "",
-                        templateId: "",
-                        organizationId: "",
-                      });
-                    
-                      setParticipants([]);
-                    
+                      resetForm();
                       setShowCreatePopup(false);
                     }}
                   >
@@ -500,7 +587,7 @@ export default function Workshop({ user }: PageProps) {
         <th className={styles.th}>OD Template</th>
         <th className={styles.th}>Pre OD Questions</th>
         <th className={styles.th}>Organization</th>
-        <th className={styles.th}>Start Date</th>
+        <th className={styles.th}>Pre OD / Start</th>
         <th className={styles.th}>End Date</th>
         <th className={styles.th}>Participants</th>
         <th className={styles.th}>Actions</th>
@@ -529,22 +616,22 @@ export default function Workshop({ user }: PageProps) {
             <td className={styles.td}>{workshop.participantCount}</td>
             <td className={styles.td}>
               <div className={styles.actionGroup}>
-                <button
-                  className={styles.viewButton}
+                <ViewIconBtn
                   onClick={() => handleViewWorkshopOrganization(workshop)}
                   disabled={loadingOrgView}
-                >
-                  View
-                </button>
-                <button
-                  className={styles.deleteButton}
+                />
+                {canEditWorkshop(workshop) ? (
+                  <EditIconBtn onClick={() => openEditPopup(workshop)} />
+                ) : null}
+                <DeleteIconBtn
                   onClick={() => handleDeleteWorkshop(workshop)}
                   disabled={deletingWorkshopId === workshop.id}
-                >
-                  {deletingWorkshopId === workshop.id
-                    ? "Deleting..."
-                    : "Delete"}
-                </button>
+                  title={
+                    deletingWorkshopId === workshop.id
+                      ? "Deleting..."
+                      : "Delete"
+                  }
+                />
               </div>
             </td>
           </tr>

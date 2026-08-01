@@ -9,9 +9,10 @@ export default function Sidebar() {
     { name: "Category Management", path: "/category", icon: "📂" },
     { name: "Tag Management", path: "/tag-management", icon: "🏷️" },
     { name: "Question Management", path: "/question-management", icon: "❓" },
-    { name: "Pre OD", path: "/pre-od", icon: "📋" },
     { name: "Template", path: "/template", icon: "📄" },
     { name: "Workshop", path: "/workshop", icon: "🎓" },
+    { name: "Pre OD", path: "/pre-od", icon: "📋" },
+    { name: "Admin Management", path: "/admin-management", icon: "🛡️" },
   ];
 
   return (

@@ -2,7 +2,10 @@ import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import "../../styles/TagManagement.css";
 import { useState, useEffect } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import {
+  DeleteIconBtn,
+  EditIconBtn,
+} from "../../components/AdminActionIcons";
 
 
 type PageProps = {
@@ -429,32 +432,20 @@ export default function TagManagement({ user }: PageProps) {
 
 
                                             <td>
-
-
-                                                <button
-
-                                                    className="tag-edit-btn"
-
-                                                    onClick={()=>
-                                                        handleEditTag(tag)
-                                                    }
-
-                                                >
-
-                                                    <Pencil size={16}/>
-
-                                                    Edit
-                                                </button>
-
-                                                <button
-                                                    className="tag-delete-btn"
-                                                    onClick={()=>
-                                                        handleDeleteTag(tag.id)
-                                                    }
-                                                >
-                                                    <Trash2 size={16}/>
-                                                    Delete
-                                                </button>
+                                                <div className="admin-action-group">
+                                                    <EditIconBtn
+                                                        onClick={() =>
+                                                            handleEditTag(tag)
+                                                        }
+                                                    />
+                                                    <DeleteIconBtn
+                                                        onClick={() =>
+                                                            handleDeleteTag(
+                                                                tag.id
+                                                            )
+                                                        }
+                                                    />
+                                                </div>
                                             </td>
                                         </tr>
                                     ))

@@ -1,8 +1,17 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { getParticipantFromStorage } from "../../utils/selectedWorkshop";
 import "../../styles/AboutUs.css";
 
 export default function AboutUs() {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const participant = getParticipantFromStorage();
+    if (!participant?.id) {
+      navigate("/", { replace: true });
+    }
+  }, [navigate]);
 
   return (
     <div className="about-page">
@@ -11,8 +20,8 @@ export default function AboutUs() {
           <button
             type="button"
             className="menu-btn"
-            onClick={() => navigate("/userdashboard")}
-            aria-label="Open menu"
+            onClick={() => navigate("/select-workshop")}
+            aria-label="Go to dashboard"
           >
             <span />
             <span />
@@ -25,7 +34,7 @@ export default function AboutUs() {
           <button
             type="button"
             className="header-link"
-            onClick={() => navigate("/userdashboard")}
+            onClick={() => navigate("/select-workshop")}
           >
             Home
           </button>
@@ -79,7 +88,7 @@ export default function AboutUs() {
         <button
           type="button"
           className="next-btn"
-          onClick={() => navigate("/userdashboard")}
+          onClick={() => navigate("/select-workshop")}
         >
           Next
           <span className="next-arrow" aria-hidden="true">

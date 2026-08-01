@@ -1,6 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
+import {
+  DeleteIconBtn,
+  EditIconBtn,
+  ViewIconBtn,
+} from "../../components/AdminActionIcons";
+import { getEmailError, isValidEmail } from "../../utils/validation";
 import "../../styles/Organization.css";
 
 type PageProps = {
@@ -93,9 +99,32 @@ export default function Organization({ user }: PageProps) {
     }
   };
 
+  const isOrgFormValid = (form: {
+    organizationName?: string;
+    contactPerson?: string;
+    email?: string;
+  }) =>
+    Boolean(
+      String(form.organizationName || "").trim() &&
+        String(form.contactPerson || "").trim() &&
+        isValidEmail(String(form.email || ""))
+    );
+
   const handleCreateOrganization = async () => {
-    if (!orgForm.organizationName || !orgForm.contactPerson || !orgForm.email) {
-      alert("Please fill all fields");
+    const payload = {
+      organizationName: orgForm.organizationName.trim(),
+      contactPerson: orgForm.contactPerson.trim(),
+      email: orgForm.email.trim(),
+    };
+
+    if (!payload.organizationName || !payload.contactPerson) {
+      alert("Organization Name, Contact Person, and Email are all required.");
+      return;
+    }
+
+    const emailError = getEmailError(payload.email);
+    if (emailError) {
+      alert(emailError);
       return;
     }
 
@@ -104,7 +133,7 @@ export default function Organization({ user }: PageProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...orgForm,
+          ...payload,
           createdBy: user?.email || "",
         }),
       });
@@ -117,7 +146,7 @@ export default function Organization({ user }: PageProps) {
         setShowOrgModal(false);
         fetchOrganizations();
       } else {
-        alert(data.error || "Something went wrong");
+        alert(data.message || data.error || "Something went wrong");
       }
     } catch (err) {
       console.error(err);
@@ -131,11 +160,29 @@ export default function Organization({ user }: PageProps) {
   };
 
   const handleUpdateOrganization = async () => {
+    const payload = {
+      ...editOrganization,
+      organizationName: String(editOrganization.organizationName || "").trim(),
+      contactPerson: String(editOrganization.contactPerson || "").trim(),
+      email: String(editOrganization.email || "").trim(),
+    };
+
+    if (!payload.organizationName || !payload.contactPerson) {
+      alert("Organization Name, Contact Person, and Email are all required.");
+      return;
+    }
+
+    const emailError = getEmailError(payload.email);
+    if (emailError) {
+      alert(emailError);
+      return;
+    }
+
     try {
       const response = await fetch("/api/update-organization", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editOrganization),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
@@ -145,7 +192,7 @@ export default function Organization({ user }: PageProps) {
         setShowEditModal(false);
         fetchOrganizations();
       } else {
-        alert(data.error);
+        alert(data.message || data.error);
       }
     } catch (error) {
       console.error(error);
@@ -306,13 +353,21 @@ export default function Organization({ user }: PageProps) {
   };
 
   const filteredOrganizations = useMemo(() => {
-    const query = tableSearch.toLowerCase();
-    return organizations.filter(
-      (org) =>
-        org.organizationName?.toLowerCase().includes(query) ||
-        org.contactPerson?.toLowerCase().includes(query) ||
-        org.email?.toLowerCase().includes(query)
-    );
+    const query = tableSearch.trim().toLowerCase();
+    if (!query) {
+      return organizations;
+    }
+
+    return organizations.filter((org) => {
+      const name = String(org.organizationName || "").toLowerCase();
+      const contact = String(org.contactPerson || "").toLowerCase();
+      const email = String(org.email || "").toLowerCase();
+      return (
+        name.includes(query) ||
+        contact.includes(query) ||
+        email.includes(query)
+      );
+    });
   }, [organizations, tableSearch]);
 
   const assignedParticipantIds = useMemo(
@@ -389,24 +444,9 @@ export default function Organization({ user }: PageProps) {
                         <td>{org.email}</td>
                         <td>
                           <div className="org-action-group">
-                            <button
-                              className="org-btn org-btn-view"
-                              onClick={() => handleView(org)}
-                            >
-                              View
-                            </button>
-                            <button
-                              className="org-btn org-btn-edit"
-                              onClick={() => handleEdit(org)}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              className="org-btn org-btn-delete"
-                              onClick={() => handleDelete(org)}
-                            >
-                              Delete
-                            </button>
+                            <ViewIconBtn onClick={() => handleView(org)} />
+                            <EditIconBtn onClick={() => handleEdit(org)} />
+                            <DeleteIconBtn onClick={() => handleDelete(org)} />
                           </div>
                         </td>
                       </tr>
@@ -431,42 +471,58 @@ export default function Organization({ user }: PageProps) {
           <div className="org-modal org-modal-md">
             <h2 className="org-modal-title">Create Organization</h2>
 
+            <label className="org-field-label">
+              Organization Name <span className="org-required">*</span>
+            </label>
             <input
               className="org-input"
               placeholder="Organization Name"
               value={orgForm.organizationName}
+              required
               onChange={(e) =>
                 setOrgForm({ ...orgForm, organizationName: e.target.value })
               }
             />
 
+            <label className="org-field-label">
+              Contact Person <span className="org-required">*</span>
+            </label>
             <input
               className="org-input"
               placeholder="Contact Person"
               value={orgForm.contactPerson}
+              required
               onChange={(e) =>
                 setOrgForm({ ...orgForm, contactPerson: e.target.value })
               }
             />
 
+            <label className="org-field-label">
+              Email <span className="org-required">*</span>
+            </label>
             <input
               className="org-input"
               type="email"
               placeholder="Email"
               value={orgForm.email}
+              required
               onChange={(e) => setOrgForm({ ...orgForm, email: e.target.value })}
             />
 
             <div className="org-modal-footer">
               <button
                 className="org-btn org-btn-cancel"
-                onClick={() => setShowOrgModal(false)}
+                onClick={() => {
+                  setShowOrgModal(false);
+                  setOrgForm(emptyOrgForm);
+                }}
               >
                 Cancel
               </button>
               <button
                 className="org-btn org-btn-primary"
                 onClick={handleCreateOrganization}
+                disabled={!isOrgFormValid(orgForm)}
               >
                 Save
               </button>
@@ -547,12 +603,9 @@ export default function Organization({ user }: PageProps) {
                         </td>
                         <td>{participant.email}</td>
                         <td>
-                          <button
-                            className="org-btn org-btn-delete org-btn-sm"
+                          <DeleteIconBtn
                             onClick={() => deleteParticipant(participant.id)}
-                          >
-                            Delete
-                          </button>
+                          />
                         </td>
                       </tr>
                     ))
@@ -645,15 +698,6 @@ export default function Organization({ user }: PageProps) {
 
             <div className="org-modal-footer org-modal-footer-split">
               <button
-                className="org-btn org-btn-cancel"
-                onClick={() => {
-                  setShowViewModal(false);
-                  setShowAddParticipants(false);
-                }}
-              >
-                Close
-              </button>
-              <button
                 className="org-btn org-btn-danger-solid"
                 onClick={handleDeleteFromModal}
               >
@@ -670,9 +714,13 @@ export default function Organization({ user }: PageProps) {
           <div className="org-modal org-modal-md">
             <h2 className="org-modal-title">Edit Organization</h2>
 
+            <label className="org-field-label">
+              Organization Name <span className="org-required">*</span>
+            </label>
             <input
               className="org-input"
               value={editOrganization.organizationName}
+              required
               onChange={(e) =>
                 setEditOrganization({
                   ...editOrganization,
@@ -681,9 +729,13 @@ export default function Organization({ user }: PageProps) {
               }
             />
 
+            <label className="org-field-label">
+              Contact Person <span className="org-required">*</span>
+            </label>
             <input
               className="org-input"
               value={editOrganization.contactPerson}
+              required
               onChange={(e) =>
                 setEditOrganization({
                   ...editOrganization,
@@ -692,10 +744,14 @@ export default function Organization({ user }: PageProps) {
               }
             />
 
+            <label className="org-field-label">
+              Email <span className="org-required">*</span>
+            </label>
             <input
               className="org-input"
               type="email"
               value={editOrganization.email}
+              required
               onChange={(e) =>
                 setEditOrganization({
                   ...editOrganization,
@@ -714,6 +770,7 @@ export default function Organization({ user }: PageProps) {
               <button
                 className="org-btn org-btn-primary"
                 onClick={handleUpdateOrganization}
+                disabled={!isOrgFormValid(editOrganization)}
               >
                 Save
               </button>

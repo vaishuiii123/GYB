@@ -5,6 +5,7 @@ const {
   listPreOdResponsesForWorkshop,
   listPreOdWorkshopSummaries,
 } = require("../shared/preOdResponseStore");
+const { parseCustomQuestions } = require("../shared/preOdCustomQuestions");
 
 function parseSrNos(value) {
   if (!value) {
@@ -21,7 +22,7 @@ function personalizeQuestion(text, organizationName) {
   const company = organizationName || "the company";
   return String(text || "")
     .replace(/<<Company's>>/g, `${company}'s`)
-    .replace(/<<Company>>/g, company);
+    .replace(/KNAV/g, company);
 }
 
 async function loadParticipantNames(participantIds) {
@@ -84,7 +85,7 @@ module.exports = async function (context, req) {
       PRE_OD_QUESTIONS.map((item) => [item.srNo, item])
     );
 
-    const questions = assignedSrNos
+    const bankQuestions = assignedSrNos
       .map((srNo) => questionMap.get(srNo))
       .filter(Boolean)
       .map((item) => ({
@@ -95,6 +96,16 @@ module.exports = async function (context, req) {
           workshop.organizationName
         ),
       }));
+
+    const customQuestions = parseCustomQuestions(
+      workshop.preOdCustomQuestions
+    ).map((item) => ({
+      srNo: item.srNo,
+      category: item.category,
+      question: personalizeQuestion(item.question, workshop.organizationName),
+    }));
+
+    const questions = [...bankQuestions, ...customQuestions];
 
     const responses = await listPreOdResponsesForWorkshop(workshopId);
     const participantIds = responses.map((item) => item.participantId);

@@ -1,5 +1,10 @@
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
+import {
+  DeleteIconBtn,
+  EditIconBtn,
+  ViewIconBtn,
+} from "../../components/AdminActionIcons";
 import "../../styles/CategoryManagement.css";
 import { useState, useEffect } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
@@ -290,48 +295,41 @@ export default function Category({ user }: PageProps) {
                                                 )}
                                             </td>
                                             <td>
-                                                <button
-                                                    className="view-btn"
-                                                    onClick={() =>
-                                                        navigate(
-                                                            `/category-questions/${category.id}`,
-                                                            {
-                                                                state: {
-                                                                    topCategoryName,
-                                                                    middleCategoryId,
-                                                                    middleCategoryName,
-                                                                    parentCategoryId:
-                                                                        parentCategoryIdFromState,
-                                                                    parentCategoryName,
-                                                                    categoryName:
-                                                                        category.categoryName,
-                                                                },
-                                                            }
-                                                        )
-                                                    }
-                                                >
-                                                    View
-                                                </button>
-                                                <button
-                                                    className="edit-btn"
-                                                    onClick={() =>
-                                                        handleEditCategory(
-                                                            category
-                                                        )
-                                                    }
-                                                >
-                                                    Edit
-                                                </button>
-                                                <button
-                                                    className="delete-btn"
-                                                    onClick={() =>
-                                                        handleDeleteCategory(
-                                                            category.id
-                                                        )
-                                                    }
-                                                >
-                                                    Delete
-                                                </button>
+                                                <div className="admin-action-group">
+                                                    <ViewIconBtn
+                                                        onClick={() =>
+                                                            navigate(
+                                                                `/category-questions/${category.id}`,
+                                                                {
+                                                                    state: {
+                                                                        topCategoryName,
+                                                                        middleCategoryId,
+                                                                        middleCategoryName,
+                                                                        parentCategoryId:
+                                                                            parentCategoryIdFromState,
+                                                                        parentCategoryName,
+                                                                        categoryName:
+                                                                            category.categoryName,
+                                                                    },
+                                                                }
+                                                            )
+                                                        }
+                                                    />
+                                                    <EditIconBtn
+                                                        onClick={() =>
+                                                            handleEditCategory(
+                                                                category
+                                                            )
+                                                        }
+                                                    />
+                                                    <DeleteIconBtn
+                                                        onClick={() =>
+                                                            handleDeleteCategory(
+                                                                category.id
+                                                            )
+                                                        }
+                                                    />
+                                                </div>
                                             </td>
                                         </tr>
                                     ))

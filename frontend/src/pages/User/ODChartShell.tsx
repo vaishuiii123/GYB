@@ -24,7 +24,7 @@ export default function ODChartShell({
           <div className="od-panel-top">
             <button
               type="button"
-              className="od-back-btn"
+              className="user-btn-secondary od-back-btn"
               onClick={() => navigate(backPath)}
             >
               <ArrowLeft size={18} strokeWidth={2} />

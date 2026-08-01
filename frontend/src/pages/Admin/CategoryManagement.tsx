@@ -1,5 +1,10 @@
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
+import {
+  DeleteIconBtn,
+  EditIconBtn,
+  ViewIconBtn,
+} from "../../components/AdminActionIcons";
 import "../../styles/CategoryManagement.css";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -16,51 +21,8 @@ export default function CategoryManagement({ user }: PageProps) {
 
   const [editMode, setEditMode] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
-  const [importing, setImporting] = useState(false);
 
   const navigate = useNavigate();
-
-  const handleImportUnlockValue = async () => {
-    if (
-      !window.confirm(
-        "Import the full Unlock Value chart (Top, Middle, Parent, and Category levels)? Existing matching items will be kept."
-      )
-    ) {
-      return;
-    }
-
-    try {
-      setImporting(true);
-
-      const response = await fetch("/api/seed-unlock-value-categories", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          createdBy: user?.email || "Admin",
-        }),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        const { stats } = result;
-        alert(
-          `Unlock Value chart imported.\n\nCreated:\n- Top: ${stats.topCreated}\n- Middle: ${stats.middleCreated}\n- Parent: ${stats.parentCreated}\n- Category: ${stats.categoryCreated}`
-        );
-        fetchTopCategories();
-      } else {
-        alert(result.message || "Import failed.");
-      }
-    } catch (error) {
-      console.error(error);
-      alert("Import failed.");
-    } finally {
-      setImporting(false);
-    }
-  };
-
 
   // CREATE TOP CATEGORY
   const handleSaveTopCategory = async () => {
@@ -257,14 +219,6 @@ const handleEditCategory = (category:any) => {
 
             <div className="page-header-actions">
               <button
-                className="import-btn"
-                onClick={handleImportUnlockValue}
-                disabled={importing}
-              >
-                {importing ? "Importing..." : "Import Unlock Value Chart"}
-              </button>
-
-              <button
                 className="create-btn"
                 onClick={() => setShowModal(true)}
               >
@@ -292,33 +246,23 @@ const handleEditCategory = (category:any) => {
                       {category.topCategoryName}
                     </td>
                     <td>
-                     <button
-                      className="view-btn"
-                      onClick={() =>
-                        navigate(`/middle-category/${category.id}`, {
-                          state: {
-                            topCategoryName: category.topCategoryName
+                      <div className="admin-action-group">
+                        <ViewIconBtn
+                          onClick={() =>
+                            navigate(`/middle-category/${category.id}`, {
+                              state: {
+                                topCategoryName: category.topCategoryName,
+                              },
+                            })
                           }
-                        })
-                      }
-                    >
-                      View
-                    </button>
-
-                    <button
-                      className="edit-btn"
-                      onClick={() => handleEditCategory(category)}
-                    >
-                      Edit
-                    </button>
-                      <button
-                        className="delete-btn"
-                        onClick={() =>
-                          handleDeleteCategory(category.id)
-                        }
-                      >
-                        Delete
-                      </button>
+                        />
+                        <EditIconBtn
+                          onClick={() => handleEditCategory(category)}
+                        />
+                        <DeleteIconBtn
+                          onClick={() => handleDeleteCategory(category.id)}
+                        />
+                      </div>
                     </td>
                   </tr>
                 ))

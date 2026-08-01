@@ -44,7 +44,7 @@ export default function UserLogin() {
         break;
       case "Participant":
         clearSelectedWorkshop();
-        navigate("/select-workshop");
+        navigate("/about-us");
         break;
       default:
         alert("No role has been assigned to this user.");
@@ -235,24 +235,27 @@ export default function UserLogin() {
 
   return (
     <div className="user-login-page">
-      <div className="user-login-left">
-        <img src={myImage} alt="KNAV" className="user-login-logo" />
-        <div className="user-login-shape" aria-hidden="true" />
+      <img src={myImage} alt="KNAV" className="user-login-logo" />
+      <div className="user-login-shape" aria-hidden="true" />
+
+      <div className="user-login-toplinks">
+        <a
+          href="https://in.knavcpa.com/"
+          className="user-login-about"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          About KNAV
+        </a>
+        <button type="button" className="user-login-icon-btn" aria-label="Language">
+          <Globe size={20} strokeWidth={2} />
+        </button>
+        <button type="button" className="user-login-icon-btn" aria-label="LinkedIn">
+          <LinkedInIcon />
+        </button>
       </div>
 
-      <div className="user-login-right">
-        <div className="user-login-toplinks">
-          <Link to="/about-us" className="user-login-about">
-            About KNAV
-          </Link>
-          <button type="button" className="user-login-icon-btn" aria-label="Language">
-            <Globe size={20} strokeWidth={2} />
-          </button>
-          <button type="button" className="user-login-icon-btn" aria-label="LinkedIn">
-            <LinkedInIcon />
-          </button>
-        </div>
-
+      <div className="user-login-center">
         <h1 className="user-login-title">GROW YOUR BUSINESS</h1>
         <p className="user-login-subtitle">Organisation Development Workshop</p>
 

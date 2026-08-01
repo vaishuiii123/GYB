@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Globe } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import {
   clearSelectedWorkshop,
   getParticipantDisplayName,
@@ -10,20 +10,6 @@ import {
 } from "../../utils/selectedWorkshop";
 import { fetchParticipantWorkshops } from "../../utils/workshopCache";
 import "../../styles/WorkshopSelection.css";
-
-function LinkedInIcon() {
-  return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      aria-hidden="true"
-    >
-      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 1 1 0-4.124 2.062 2.062 0 0 1 0 4.124zM7.119 20.452H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-    </svg>
-  );
-}
 
 type WorkshopOption = SelectedWorkshop & {
   participantCount?: number;
@@ -69,11 +55,22 @@ export default function WorkshopSelection() {
   const [errorMessage, setErrorMessage] = useState("");
 
   const participantName = getParticipantDisplayName(participant);
-  const organizationName =
-    participant.organization ||
-    participant.Organization ||
-    participant.Organisation ||
-    "";
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(event.target as Node)
+      ) {
+        setMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (!participant?.id) {
@@ -99,7 +96,8 @@ export default function WorkshopSelection() {
 
         if (!data.success) {
           setErrorMessage(
-            data.editMessage || "Failed to load workshops. Restart the API and try again."
+            data.editMessage ||
+              "Failed to load workshops. Restart the API and try again."
           );
           return;
         }
@@ -107,8 +105,7 @@ export default function WorkshopSelection() {
         const items = (data.workshops || []).map((workshop) => ({
           id: workshop.id,
           workshopName: workshop.workshopName || "Workshop",
-          organizationName:
-            workshop.organizationName || organizationName || "",
+          organizationName: workshop.organizationName || "",
           organizationId: workshop.organizationId || participant.organizationId,
           templateId: workshop.templateId,
           templateName: workshop.templateName,
@@ -128,7 +125,7 @@ export default function WorkshopSelection() {
     };
 
     loadWorkshops();
-  }, [navigate, organizationName, participant.id, participant.organizationId]);
+  }, [navigate, participant.id, participant.organizationId]);
 
   const handleSelectWorkshop = (workshop: WorkshopOption) => {
     setSelectedWorkshop(workshop);
@@ -146,31 +143,52 @@ export default function WorkshopSelection() {
   return (
     <div className="workshop-selection-page">
       <header className="workshop-selection-header">
-        <div className="workshop-selection-header-left">
-          <span className="workshop-selection-name">{participantName}</span>
-        </div>
+        <div className="workshop-selection-header-left" />
 
         <div className="workshop-selection-header-right">
-          <button
-            type="button"
-            className="workshop-selection-link"
-            onClick={handleLogout}
-          >
-            Logout
-          </button>
-          <button type="button" className="workshop-selection-icon-btn" aria-label="Language">
-            <Globe size={18} strokeWidth={2} />
-          </button>
-          <button type="button" className="workshop-selection-icon-btn" aria-label="LinkedIn">
-            <LinkedInIcon />
-          </button>
+          <div className="workshop-selection-user-menu" ref={menuRef}>
+            <button
+              type="button"
+              className="workshop-selection-user-btn"
+              onClick={() => setMenuOpen((open) => !open)}
+              aria-expanded={menuOpen}
+              aria-haspopup="menu"
+            >
+              <span className="workshop-selection-name">{participantName}</span>
+              <ChevronDown size={18} strokeWidth={2} />
+            </button>
+
+            {menuOpen ? (
+              <div className="workshop-selection-dropdown" role="menu">
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    navigate("/select-workshop");
+                  }}
+                >
+                  Home
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    handleLogout();
+                  }}
+                >
+                  Logout
+                </button>
+              </div>
+            ) : null}
+          </div>
         </div>
       </header>
 
       <main className="workshop-selection-main">
         <div className="workshop-selection-intro">
-          <p className="workshop-selection-org">{organizationName}</p>
-          <h1>Select Workshop</h1>
+          <h1>Dashboard</h1>
           <p className="workshop-selection-subtitle">
             Choose the workshop assigned to you to continue.
           </p>
@@ -195,15 +213,20 @@ export default function WorkshopSelection() {
                 className="workshop-selection-card"
                 onClick={() => handleSelectWorkshop(workshop)}
               >
-                <span className="workshop-selection-card-icon" aria-hidden="true">
+                <span
+                  className="workshop-selection-card-icon"
+                  aria-hidden="true"
+                >
                   ❖
                 </span>
                 <div className="workshop-selection-card-body">
                   <h2>{workshop.workshopName}</h2>
-                  <p>{workshop.organizationName}</p>
                   {formatWorkshopDates(workshop.startDate, workshop.endDate) && (
                     <p className="workshop-selection-card-dates">
-                      {formatWorkshopDates(workshop.startDate, workshop.endDate)}
+                      {formatWorkshopDates(
+                        workshop.startDate,
+                        workshop.endDate
+                      )}
                     </p>
                   )}
                   {workshop.preOdQuestionCount ? (

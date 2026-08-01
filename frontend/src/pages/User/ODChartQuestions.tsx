@@ -334,14 +334,14 @@ export default function ODChartQuestions() {
         <div className="od-chart-actions">
           <button
             type="button"
-            className="secondary-btn"
+            className="user-btn-secondary"
             onClick={() => navigate("/od-chart")}
           >
             Back to Chart
           </button>
           <button
             type="button"
-            className="save-btn"
+            className="user-btn-primary"
             onClick={handleSave}
             disabled={saving || loading || !canEdit}
           >

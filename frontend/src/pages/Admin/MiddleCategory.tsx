@@ -1,5 +1,10 @@
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
+import {
+  DeleteIconBtn,
+  EditIconBtn,
+  ViewIconBtn,
+} from "../../components/AdminActionIcons";
 import "../../styles/CategoryManagement.css";
 import { useState, useEffect } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
@@ -447,67 +452,39 @@ export default function MiddleCategory({ user }: PageProps) {
 
 
                                             <td>
-
-
-                                                <button
-
-                                                    className="view-btn"
-
-                                                    onClick={()=>{
-
-                                                        navigate(
-                                                            `/parent-category/${category.id}`,
-                                                            {
-                                                                state:{
-                                                                    topCategoryId,
-                                                                    topCategoryName,
-                                                                    middleCategoryId:category.id,
-                                                                    middleCategoryName:category.middleCategoryName
+                                                <div className="admin-action-group">
+                                                    <ViewIconBtn
+                                                        onClick={() => {
+                                                            navigate(
+                                                                `/parent-category/${category.id}`,
+                                                                {
+                                                                    state: {
+                                                                        topCategoryId,
+                                                                        topCategoryName,
+                                                                        middleCategoryId:
+                                                                            category.id,
+                                                                        middleCategoryName:
+                                                                            category.middleCategoryName,
+                                                                    },
                                                                 }
-                                                            }
-                                                        );
-
-                                                    }}
-
-                                                >
-
-                                                    View
-
-                                                </button>
-
-
-
-
-                                                <button
-
-                                                    className="edit-btn"
-
-                                                    onClick={()=>
-                                                        handleEditMiddleCategory(category)
-                                                    }
-
-                                                >
-
-                                                    Edit
-
-                                                </button>
-
-
-
-
-                                                <button
-
-                                                    className="delete-btn"
-
-                                                    onClick={()=>
-                                                        handleDeleteMiddleCategory(category.id)
-                                                    }
-
-                                                >
-
-                                                    Delete
-
-                                                </button>
+                                                            );
+                                                        }}
+                                                    />
+                                                    <EditIconBtn
+                                                        onClick={() =>
+                                                            handleEditMiddleCategory(
+                                                                category
+                                                            )
+                                                        }
+                                                    />
+                                                    <DeleteIconBtn
+                                                        onClick={() =>
+                                                            handleDeleteMiddleCategory(
+                                                                category.id
+                                                            )
+                                                        }
+                                                    />
+                                                </div>
 
 
 

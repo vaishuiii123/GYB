@@ -1,0 +1,234 @@
+/* Shared admin button system — keep sizes/colors consistent across admin pages */
+
+:root {
+  --admin-brand: #9b304a;
+  --admin-brand-hover: #7e263c;
+  --admin-brand-disabled: #c4a0ab;
+}
+
+.create-btn,
+.save-btn,
+.org-btn-primary,
+.admin-dashboard-link-btn,
+.pre-od-save-btn,
+.admin-btn-primary {
+  box-sizing: border-box;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 8px;
+  background: var(--admin-brand) !important;
+  color: #ffffff !important;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+}
+
+.create-btn:hover,
+.save-btn:hover,
+.org-btn-primary:hover,
+.admin-dashboard-link-btn:hover,
+.pre-od-save-btn:hover,
+.admin-btn-primary:hover {
+  background: var(--admin-brand-hover) !important;
+}
+
+.create-btn:disabled,
+.save-btn:disabled,
+.org-btn-primary:disabled,
+.admin-dashboard-link-btn:disabled,
+.pre-od-save-btn:disabled,
+.admin-btn-primary:disabled {
+  background: var(--admin-brand-disabled) !important;
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.cancel-btn,
+.org-btn-cancel,
+.pre-od-cancel-btn,
+.admin-btn-cancel,
+.admin-dashboard-secondary-btn {
+  box-sizing: border-box;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid #d1d5db !important;
+  border-radius: 8px;
+  background: #ffffff !important;
+  color: #374151 !important;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.cancel-btn:hover,
+.org-btn-cancel:hover,
+.pre-od-cancel-btn:hover,
+.admin-btn-cancel:hover,
+.admin-dashboard-secondary-btn:hover {
+  background: #f9fafb !important;
+}
+
+.admin-action-group,
+.org-action-group,
+.action-icons,
+.question-actions,
+.actionGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-icon-btn,
+.view-btn,
+.edit-btn,
+.delete-btn,
+.org-btn-view,
+.org-btn-edit,
+.org-btn-delete,
+.pre-od-edit-btn,
+.admin-btn-view,
+.admin-btn-edit,
+.admin-btn-delete,
+.tag-edit-btn,
+.tag-delete-btn,
+.icon-btn {
+  box-sizing: border-box;
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  min-height: 34px !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 8px;
+  font-size: 0;
+  line-height: 0;
+  cursor: pointer;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  margin: 0 !important;
+  white-space: nowrap;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.admin-icon-btn:disabled,
+.view-btn:disabled,
+.edit-btn:disabled,
+.delete-btn:disabled,
+.org-btn-view:disabled,
+.org-btn-edit:disabled,
+.org-btn-delete:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.admin-icon-view,
+.view-btn,
+.org-btn-view,
+.admin-btn-view,
+.icon-btn.view {
+  background: #eef2ff !important;
+  color: #3730a3 !important;
+}
+
+.admin-icon-edit,
+.edit-btn,
+.org-btn-edit,
+.pre-od-edit-btn,
+.admin-btn-edit,
+.tag-edit-btn,
+.icon-btn.edit {
+  background: #fff7ed !important;
+  color: #c2410c !important;
+}
+
+.admin-icon-delete,
+.delete-btn,
+.org-btn-delete,
+.admin-btn-delete,
+.tag-delete-btn,
+.icon-btn.delete {
+  background: #fee2e2 !important;
+  color: #b91c1c !important;
+}
+
+.admin-icon-btn:hover:not(:disabled),
+.view-btn:hover:not(:disabled),
+.edit-btn:hover:not(:disabled),
+.delete-btn:hover:not(:disabled),
+.org-btn-view:hover:not(:disabled),
+.org-btn-edit:hover:not(:disabled),
+.org-btn-delete:hover:not(:disabled),
+.tag-edit-btn:hover:not(:disabled),
+.tag-delete-btn:hover:not(:disabled),
+.icon-btn:hover:not(:disabled) {
+  filter: brightness(0.97);
+}
+
+.org-btn-danger-solid,
+.admin-btn-danger {
+  box-sizing: border-box;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 8px;
+  background: #dc2626 !important;
+  color: #ffffff !important;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.org-btn-add-participant,
+.pre-od-select-all-btn,
+.admin-btn-outline {
+  box-sizing: border-box;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--admin-brand) !important;
+  border-radius: 8px;
+  background: #ffffff !important;
+  color: var(--admin-brand) !important;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.org-btn {
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.15s ease;
+}
+
+.org-btn-sm {
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 0 12px !important;
+  font-size: 13px !important;
+}

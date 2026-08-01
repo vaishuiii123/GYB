@@ -68,16 +68,21 @@ module.exports = async function (context, req) {
 
     const tableClient = await ensureTableClient("VisionMissionResponse");
 
+    const submittedDate = new Date().toISOString();
+    const resolvedWorkshopId =
+      workshopId || access.workshop?.id || "";
+
     const entity = {
       partitionKey: "Participant",
       rowKey: participantId,
       ParticipantId: participantId,
-      OrganizationId: organizationId || "",
+      OrganizationId: organizationId || access.workshop?.organizationId || "",
+      WorkshopId: resolvedWorkshopId,
       VisionKeywords: JSON.stringify(cleanedVisionKeywords),
       MissionKeywords: JSON.stringify(cleanedMissionKeywords),
       VisionText: cleanedVisionText || cleanedVisionKeywords.join(" "),
       MissionText: cleanedMissionText || cleanedMissionKeywords.join(" "),
-      SubmittedDate: new Date().toISOString(),
+      SubmittedDate: submittedDate,
     };
 
     try {
@@ -85,6 +90,21 @@ module.exports = async function (context, req) {
       await tableClient.updateEntity(entity, "Replace");
     } catch {
       await tableClient.createEntity(entity);
+    }
+
+    if (resolvedWorkshopId) {
+      const workshopEntity = {
+        ...entity,
+        partitionKey: String(resolvedWorkshopId),
+        rowKey: participantId,
+      };
+
+      try {
+        await tableClient.getEntity(String(resolvedWorkshopId), participantId);
+        await tableClient.updateEntity(workshopEntity, "Replace");
+      } catch {
+        await tableClient.createEntity(workshopEntity);
+      }
     }
 
     context.res = {

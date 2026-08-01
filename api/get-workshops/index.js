@@ -2,8 +2,7 @@ const { TableClient } = require("@azure/data-tables");
 
 module.exports = async function (context, req) {
   try {
-    const createdBy = req.query.createdBy;
-
+    // Shared admin view: return all workshops (no creator filter).
     const client = TableClient.fromConnectionString(
       process.env.AZURE_STORAGE_CONNECTION_STRING,
       "Workshop"
@@ -18,14 +17,6 @@ module.exports = async function (context, req) {
     });
 
     for await (const entity of entities) {
-      if (
-        createdBy &&
-        entity.CreatedBy &&
-        entity.CreatedBy.toLowerCase() !== String(createdBy).toLowerCase()
-      ) {
-        continue;
-      }
-
       workshops.push({
         id: entity.rowKey,
         workshopName: entity.WorkshopName,
@@ -36,6 +27,7 @@ module.exports = async function (context, req) {
         preOdTemplateId: entity.PreOdTemplateId || "",
         preOdTemplateName: entity.PreOdTemplateName || "",
         preOdQuestionSrNos: entity.PreOdQuestionSrNos || "",
+        preOdCustomQuestions: entity.PreOdCustomQuestions || "[]",
         preOdQuestionCount: entity.PreOdQuestionCount || 0,
         organizationId: entity.OrganizationId,
         organizationName: entity.OrganizationName,

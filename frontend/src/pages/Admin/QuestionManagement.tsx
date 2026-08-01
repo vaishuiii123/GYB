@@ -2,7 +2,10 @@ import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import "../../styles/QuestionManagement.css";
 import { useEffect, useState } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import {
+  DeleteIconBtn,
+  EditIconBtn,
+} from "../../components/AdminActionIcons";
 
 type PageProps = {
     user?: any;
@@ -321,28 +324,22 @@ export default function QuestionManagement({ user }: PageProps) {
                                                 )}
                                             </td>
                                             <td>
-                                                <button
-                                                    className="tag-edit-btn"
-                                                    onClick={() =>
-                                                        handleEditQuestion(
-                                                            question
-                                                        )
-                                                    }
-                                                >
-                                                    <Pencil size={16} />
-                                                    Edit
-                                                </button>
-                                                <button
-                                                    className="tag-delete-btn"
-                                                    onClick={() =>
-                                                        handleDeleteQuestion(
-                                                            question.id
-                                                        )
-                                                    }
-                                                >
-                                                    <Trash2 size={16} />
-                                                    Delete
-                                                </button>
+                                                <div className="question-actions">
+                                                    <EditIconBtn
+                                                        onClick={() =>
+                                                            handleEditQuestion(
+                                                                question
+                                                            )
+                                                        }
+                                                    />
+                                                    <DeleteIconBtn
+                                                        onClick={() =>
+                                                            handleDeleteQuestion(
+                                                                question.id
+                                                            )
+                                                        }
+                                                    />
+                                                </div>
                                             </td>
                                         </tr>
                                     ))

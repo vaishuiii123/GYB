@@ -30,7 +30,12 @@ import CategoryQuestions from "./pages/Admin/CategoryQuestions";
 import TagManagement from "./pages/Admin/TagManagement";
 import QuestionManagement from "./pages/Admin/QuestionManagement";
 import PreOD from "./pages/Admin/PreOD";
+import PreODResponses from "./pages/Admin/PreODResponses";
+import WorkshopResponses from "./pages/Admin/WorkshopResponses";
+import AdminManagement from "./pages/Admin/AdminManagement";
 import PreODForm from "./pages/User/PreODForm";
+import WorkshopFeedback from "./pages/User/WorkshopFeedback";
+import Reports from "./pages/User/Reports";
 
 function App() {
 
@@ -98,6 +103,16 @@ function App() {
           path="/actionables"
           element={<ActionableForm />}
         />
+
+        <Route
+          path="/workshop-feedback"
+          element={<WorkshopFeedback />}
+        />
+
+        <Route
+          path="/reports"
+          element={<Reports />}
+        />
        
        <Route
           path="/adminlogin"
@@ -154,6 +169,16 @@ function App() {
         element={<PreOD user={currentUser} />}
       />
 
+      <Route
+        path="/pre-od-responses/:workshopId"
+        element={<PreODResponses user={currentUser} />}
+      />
+
+      <Route
+        path="/workshop-responses/:workshopId"
+        element={<WorkshopResponses user={currentUser} />}
+      />
+
        <Route
           path="/participants"
           element={<Participants user={currentUser} />}
@@ -177,6 +202,11 @@ function App() {
        <Route
           path="/workshop"
           element={<Workshop user={currentUser} />}
+        />
+
+       <Route
+          path="/admin-management"
+          element={<AdminManagement user={currentUser} />}
         />
        
       </Routes>

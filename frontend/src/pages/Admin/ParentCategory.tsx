@@ -1,5 +1,10 @@
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
+import {
+  DeleteIconBtn,
+  EditIconBtn,
+  ViewIconBtn,
+} from "../../components/AdminActionIcons";
 import "../../styles/CategoryManagement.css";
 import { useState, useEffect } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
@@ -228,35 +233,40 @@ export default function ParentCategory({ user }: PageProps) {
                                         <tr key={category.id}>
                                             <td> {category.parentCategoryName} </td>
                                             <td>
-                                               <button
-                                                className="view-btn"
-                                                onClick={() =>
-                                                    navigate(`/category/${category.id}`, {
-                                                        state:{
-                                                            topCategoryName,
-                                                            middleCategoryId,
-                                                            middleCategoryName,
-                                                            parentCategoryId: category.id,
-                                                            parentCategoryName: category.parentCategoryName
+                                                <div className="admin-action-group">
+                                                    <ViewIconBtn
+                                                        onClick={() =>
+                                                            navigate(
+                                                                `/category/${category.id}`,
+                                                                {
+                                                                    state: {
+                                                                        topCategoryName,
+                                                                        middleCategoryId,
+                                                                        middleCategoryName,
+                                                                        parentCategoryId:
+                                                                            category.id,
+                                                                        parentCategoryName:
+                                                                            category.parentCategoryName,
+                                                                    },
+                                                                }
+                                                            )
                                                         }
-                                                    })
-                                                }
-                                            >
-                                                View
-                                            </button>
-                                                <button
-                                                    className="edit-btn"
-                                                    onClick={() => handleEditParentCategory(category)}
-                                                >
-                                                    Edit
-                                                </button>
-
-                                               <button
-                                                    className="delete-btn"
-                                                    onClick={() => handleDeleteParentCategory(category.id)}
-                                                >
-                                                    Delete
-                                                </button>
+                                                    />
+                                                    <EditIconBtn
+                                                        onClick={() =>
+                                                            handleEditParentCategory(
+                                                                category
+                                                            )
+                                                        }
+                                                    />
+                                                    <DeleteIconBtn
+                                                        onClick={() =>
+                                                            handleDeleteParentCategory(
+                                                                category.id
+                                                            )
+                                                        }
+                                                    />
+                                                </div>
                                             </td>
                                         </tr>
                                     ))

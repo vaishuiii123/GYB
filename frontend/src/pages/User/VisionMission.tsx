@@ -374,7 +374,7 @@ export default function VisionMission() {
               <div className="vision-actions user-actions">
                 <button
                   type="button"
-                  className="save-btn"
+                  className="user-btn-primary save-btn"
                   onClick={handleSave}
                   disabled={saving || !canEdit}
                 >

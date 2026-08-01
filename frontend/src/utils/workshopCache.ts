@@ -78,6 +78,30 @@ type PreOdWorkshop = Pick<
   "preOdQuestionCount" | "startDate"
 >;
 
+export function getFeedbackAccessStatus(workshop?: {
+  endDate?: string;
+} | null) {
+  if (!workshop?.endDate) {
+    return {
+      enabled: false,
+      message: "Workshop feedback opens after the workshop has ended.",
+    };
+  }
+
+  const endMs = parseWorkshopEndMs(workshop.endDate);
+  if (endMs === null || Date.now() <= endMs) {
+    return {
+      enabled: false,
+      message: "Workshop feedback opens after the workshop has ended.",
+    };
+  }
+
+  return {
+    enabled: true,
+    message: "",
+  };
+}
+
 export function getPreOdAccessStatus(workshop?: PreOdWorkshop | null) {
   const questionCount = Number(workshop?.preOdQuestionCount || 0);
 

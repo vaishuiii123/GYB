@@ -1,0 +1,109 @@
+/* Shared user button system — keep action buttons consistent across user pages */
+
+:root {
+  --user-brand: #9b304a;
+  --user-brand-hover: #7e263c;
+  --user-brand-disabled: #c4a0ab;
+  --user-btn-height: 40px;
+  --user-btn-radius: 8px;
+  --user-btn-font: 14px;
+}
+
+.user-btn-primary,
+.save-btn,
+.actionables-save-btn,
+.pre-od-form-submit,
+.feedback-submit,
+.user-login-btn-primary {
+  box-sizing: border-box;
+  height: var(--user-btn-height);
+  min-height: var(--user-btn-height);
+  padding: 0 18px;
+  border: 1px solid var(--user-brand) !important;
+  border-radius: var(--user-btn-radius);
+  background: var(--user-brand) !important;
+  color: #ffffff !important;
+  font-size: var(--user-btn-font);
+  font-weight: 600;
+  line-height: 1;
+  font-family: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.user-btn-primary:hover:not(:disabled),
+.save-btn:hover:not(:disabled),
+.actionables-save-btn:hover:not(:disabled),
+.pre-od-form-submit:hover:not(:disabled),
+.feedback-submit:hover:not(:disabled),
+.user-login-btn-primary:hover:not(:disabled) {
+  background: var(--user-brand-hover) !important;
+  border-color: var(--user-brand-hover) !important;
+}
+
+.user-btn-primary:disabled,
+.save-btn:disabled,
+.actionables-save-btn:disabled,
+.pre-od-form-submit:disabled,
+.feedback-submit:disabled,
+.user-login-btn-primary:disabled {
+  background: var(--user-brand-disabled) !important;
+  border-color: var(--user-brand-disabled) !important;
+  color: #ffffff !important;
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.user-btn-secondary,
+.secondary-btn,
+.od-back-btn,
+.actionables-add-btn,
+.user-login-btn-secondary {
+  box-sizing: border-box;
+  height: var(--user-btn-height);
+  min-height: var(--user-btn-height);
+  padding: 0 18px;
+  border: 1px solid var(--user-brand) !important;
+  border-radius: var(--user-btn-radius);
+  background: #ffffff !important;
+  color: var(--user-brand) !important;
+  font-size: var(--user-btn-font);
+  font-weight: 600;
+  line-height: 1;
+  font-family: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+}
+
+.user-btn-secondary:hover:not(:disabled),
+.secondary-btn:hover:not(:disabled),
+.od-back-btn:hover:not(:disabled),
+.actionables-add-btn:hover:not(:disabled),
+.user-login-btn-secondary:hover:not(:disabled) {
+  background: #fdf2f4 !important;
+}
+
+.user-btn-secondary:disabled,
+.secondary-btn:disabled,
+.od-back-btn:disabled,
+.actionables-add-btn:disabled,
+.user-login-btn-secondary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Full-width variants (login) */
+.user-login-btn.user-login-btn-primary,
+.user-login-btn.user-login-btn-secondary {
+  width: 100%;
+}

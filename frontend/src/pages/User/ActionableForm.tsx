@@ -447,9 +447,8 @@ export default function ActionableForm() {
                       </label>
                       <input
                         id={`timeline-${form.key}`}
-                        type="text"
+                        type="date"
                         className="actionables-input"
-                        placeholder="e.g. Q1 2026"
                         value={form.timeline}
                         onChange={(event) =>
                           updateForm(form.key, "timeline", event.target.value)
@@ -508,24 +507,24 @@ export default function ActionableForm() {
               </div>
 
               <div className="actionables-actions">
-              <button
-                type="button"
-                className="actionables-add-btn"
-                onClick={addAnotherForm}
-                disabled={!canEdit || forms.length >= categories.length}
-              >
-                <Plus size={18} strokeWidth={2} />
-                Add another category
-              </button>
+                <button
+                  type="button"
+                  className="user-btn-secondary actionables-add-btn"
+                  onClick={addAnotherForm}
+                  disabled={!canEdit || forms.length >= categories.length}
+                >
+                  <Plus size={18} strokeWidth={2} />
+                  Add actionable items
+                </button>
 
-              <button
-                type="button"
-                className="actionables-save-btn"
-                onClick={handleSubmit}
-                disabled={saving || loading || !canEdit}
-              >
-                {saving ? "Saving..." : "Save & Submit"}
-              </button>
+                <button
+                  type="button"
+                  className="user-btn-primary actionables-save-btn"
+                  onClick={handleSubmit}
+                  disabled={saving || loading || !canEdit}
+                >
+                  {saving ? "Saving..." : "Save & Submit"}
+                </button>
               </div>
             </>
           )}

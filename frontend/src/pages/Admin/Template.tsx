@@ -2,7 +2,11 @@ import { useState, useEffect, useMemo } from "react";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import { useNavigate } from "react-router-dom";
-import { Pencil, Trash2, Search } from "lucide-react";
+import { Search } from "lucide-react";
+import {
+  DeleteIconBtn,
+  ViewIconBtn,
+} from "../../components/AdminActionIcons";
 import "../../styles/Template.css";
 
 type PageProps = {
@@ -90,14 +94,15 @@ export default function Template({ user }: PageProps) {
         <div className="template-body">
           <div className="breadcrumb">Template</div>
 
-          <h1 className="page-title">Template</h1>
-
-          <button
-            className="create-btn"
-            onClick={() => navigate("/create-template")}
-          >
-            + Create Template
-          </button>
+          <div className="template-page-header">
+            <h1 className="page-title">Template</h1>
+            <button
+              className="create-btn"
+              onClick={() => navigate("/create-template")}
+            >
+              + Create Template
+            </button>
+          </div>
 
           <div className="template-card">
             <div className="filter-box">
@@ -136,22 +141,14 @@ export default function Template({ user }: PageProps) {
                       <td>{template.questionCount}</td>
                       <td>
                         <div className="action-icons">
-                          <button
-                            className="icon-btn edit"
-                            title="View"
+                          <ViewIconBtn
                             onClick={() =>
                               navigate(`/template-details/${template.id}`)
                             }
-                          >
-                            <Pencil size={16} />
-                          </button>
-                          <button
-                            className="icon-btn delete"
-                            title="Delete"
+                          />
+                          <DeleteIconBtn
                             onClick={() => deleteTemplate(template.id)}
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                          />
                         </div>
                       </td>
                     </tr>

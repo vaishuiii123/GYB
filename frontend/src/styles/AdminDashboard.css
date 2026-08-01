@@ -1,0 +1,255 @@
+.admin-dashboard-page {
+  background: #f3f4f6;
+  min-height: 100vh;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.admin-dashboard-content {
+  margin-left: 220px;
+  padding: 90px 30px 40px;
+}
+
+.admin-dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.admin-dashboard-header h1 {
+  margin: 0;
+  font-size: 40px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.admin-dashboard-subtitle {
+  margin: 8px 0 0;
+  color: #6b7280;
+  font-size: 15px;
+}
+
+.admin-dashboard-header-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-dashboard-secondary-btn {
+  height: 40px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 0 16px;
+  background: #ffffff;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-dashboard-card-action {
+  display: inline-block;
+  margin-top: 10px;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.admin-dashboard-card-meta {
+  margin: 0 0 8px !important;
+  color: #6b7280 !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+}
+
+.admin-dashboard-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.admin-dashboard-tab {
+  height: 38px;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  padding: 0 14px;
+  background: #ffffff;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-dashboard-tab.active {
+  background: #9b304a;
+  border-color: #9b304a;
+  color: #ffffff;
+}
+
+.admin-dashboard-link-btn {
+  height: 40px;
+  border: none;
+  border-radius: 8px;
+  padding: 0 16px;
+  background: #9b304a;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-dashboard-section {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.admin-dashboard-section-header h2 {
+  margin: 0 0 6px;
+  font-size: 22px;
+  color: #111827;
+}
+
+.admin-dashboard-section-header p {
+  margin: 0 0 16px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.admin-dashboard-status,
+.admin-dashboard-empty {
+  margin: 0;
+  padding: 16px;
+  border-radius: 10px;
+  background: #f9fafb;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.admin-dashboard-workshop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.admin-dashboard-workshop-card {
+  text-align: left;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+  background: #fafafa;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.admin-dashboard-workshop-card:hover,
+.admin-dashboard-workshop-card.active {
+  border-color: #9b304a;
+  background: #fff7f9;
+}
+
+.admin-dashboard-workshop-card h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  color: #111827;
+}
+
+.admin-dashboard-workshop-card p {
+  margin: 0;
+  color: #9b304a;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.admin-dashboard-submissions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-dashboard-submission-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.admin-dashboard-submission-toggle {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: none;
+  background: #fafafa;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.admin-dashboard-submission-toggle strong {
+  display: block;
+  color: #111827;
+  font-size: 15px;
+}
+
+.admin-dashboard-submission-toggle span {
+  display: block;
+  margin-top: 4px;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.admin-dashboard-answers {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.admin-dashboard-answer {
+  border-top: 1px solid #f1f5f9;
+  padding-top: 12px;
+}
+
+.admin-dashboard-answer:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.admin-dashboard-question {
+  margin: 0 0 8px;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.admin-dashboard-response {
+  margin: 0;
+  color: #4b5563;
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 900px) {
+  .admin-dashboard-content {
+    margin-left: 0;
+    padding: 80px 16px 32px;
+  }
+
+  .admin-dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .admin-dashboard-header h1 {
+    font-size: 30px;
+  }
+}

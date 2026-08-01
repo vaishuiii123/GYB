@@ -145,11 +145,12 @@
 ========================= */
 
 .primaryButton {
-  background: #2563eb;
+  background: #9b304a;
   color: #ffffff;
   border: none;
-  padding: 10px 24px;
-  border-radius: 6px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
@@ -157,7 +158,7 @@
 }
 
 .primaryButton:hover {
-  background: #1d4ed8;
+  background: #7e263c;
 }
 
 .primaryButton:disabled {
@@ -203,10 +204,11 @@
 }
 
 .deleteButton {
-  background: #ffffff;
-  color: #dc2626;
-  border: 1px solid #dc2626;
-  padding: 8px 16px;
+  background: #fee2e2;
+  color: #b91c1c;
+  border: none;
+  height: 32px;
+  padding: 0 12px;
   border-radius: 6px;
   cursor: pointer;
   font-size: 13px;
@@ -224,10 +226,11 @@
 }
 
 .viewButton {
-  background: #ffffff;
-  color: #2563eb;
-  border: 1px solid #2563eb;
-  padding: 8px 16px;
+  background: #eef2ff;
+  color: #3730a3;
+  border: none;
+  height: 32px;
+  padding: 0 12px;
   border-radius: 6px;
   cursor: pointer;
   font-size: 13px;
@@ -236,12 +239,36 @@
 }
 
 .viewButton:hover:not(:disabled) {
-  background: #eff6ff;
+  background: #e0e7ff;
 }
 
 .viewButton:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.editButton {
+  background: #fff7ed;
+  color: #c2410c;
+  border: none;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: 0.2s;
+}
+
+.editButton:hover {
+  background: #ffedd5;
+}
+
+.fieldHint {
+  margin: 6px 0 0;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .actionGroup {

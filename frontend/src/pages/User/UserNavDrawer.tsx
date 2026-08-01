@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { workshopNavItems } from "./userMenuItems";
 import {
   fetchParticipantWorkshops,
+  getFeedbackAccessStatus,
   getPreOdAccessStatus,
 } from "../../utils/workshopCache";
 import {
@@ -20,6 +21,7 @@ export default function UserNavDrawer({ open, onClose }: UserNavDrawerProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [preOdEnabled, setPreOdEnabled] = useState(false);
+  const [feedbackEnabled, setFeedbackEnabled] = useState(false);
 
   useEffect(() => {
     const participant = getParticipantFromStorage();
@@ -27,11 +29,20 @@ export default function UserNavDrawer({ open, onClose }: UserNavDrawerProps) {
 
     if (!participant?.id || !selectedWorkshop?.id) {
       setPreOdEnabled(false);
+      setFeedbackEnabled(false);
       return;
     }
 
-    const applyStatus = (workshop?: { preOdQuestionCount?: number; startDate?: string } | null) => {
-      setPreOdEnabled(getPreOdAccessStatus(workshop || selectedWorkshop).enabled);
+    const applyStatus = (
+      workshop?: {
+        preOdQuestionCount?: number;
+        startDate?: string;
+        endDate?: string;
+      } | null
+    ) => {
+      const source = workshop || selectedWorkshop;
+      setPreOdEnabled(getPreOdAccessStatus(source).enabled);
+      setFeedbackEnabled(getFeedbackAccessStatus(source).enabled);
     };
 
     applyStatus(selectedWorkshop);
@@ -48,8 +59,9 @@ export default function UserNavDrawer({ open, onClose }: UserNavDrawerProps) {
         }
 
         const matched =
-          data.workshops?.find((workshop) => workshop.id === selectedWorkshop.id) ||
-          data.workshop;
+          data.workshops?.find(
+            (workshop) => workshop.id === selectedWorkshop.id
+          ) || data.workshop;
 
         applyStatus(matched);
       } catch {
@@ -57,7 +69,9 @@ export default function UserNavDrawer({ open, onClose }: UserNavDrawerProps) {
       }
     };
 
-    refreshWorkshop();
+    if (open) {
+      refreshWorkshop();
+    }
   }, [open]);
 
   const handleNavigate = (path: string | null) => {
@@ -82,8 +96,17 @@ export default function UserNavDrawer({ open, onClose }: UserNavDrawerProps) {
           {workshopNavItems.map((item, index) => {
             const isActive = item.match?.(location.pathname) ?? false;
             const isPreOdItem = item.path === "/pre-od-workshop";
-            const path =
-              isPreOdItem && !preOdEnabled ? null : item.path;
+            const isFeedbackItem = item.path === "/workshop-feedback";
+            let path = item.path;
+
+            if (isPreOdItem && !preOdEnabled) {
+              path = null;
+            }
+
+            if (isFeedbackItem && !feedbackEnabled) {
+              path = null;
+            }
+
             const disabled = !path;
 
             return (
@@ -109,6 +132,14 @@ export default function UserNavDrawer({ open, onClose }: UserNavDrawerProps) {
             );
           })}
         </nav>
+
+        <button
+          type="button"
+          className="user-nav-back"
+          onClick={() => handleNavigate("/select-workshop")}
+        >
+          ← Back
+        </button>
       </aside>
     </>
   );

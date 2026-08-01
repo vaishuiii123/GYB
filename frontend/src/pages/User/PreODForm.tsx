@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import UserLayout from "./UserLayout";
 import WorkshopEditBanner from "../../components/WorkshopEditBanner";
 import {
@@ -29,6 +30,7 @@ type PreOdFormData = {
 };
 
 export default function PreODForm() {
+  const navigate = useNavigate();
   const participant = getParticipantFromStorage();
   const selectedWorkshop = getSelectedWorkshop();
 
@@ -142,15 +144,8 @@ export default function PreODForm() {
       }
 
       setSuccessMessage("Pre OD submitted successfully.");
-      setFormData((current) =>
-        current
-          ? {
-              ...current,
-              answers: data.data?.answers || answers,
-              submittedDate: data.data?.submittedDate || new Date().toISOString(),
-            }
-          : current
-      );
+      navigate("/userdashboard", { replace: true });
+      return;
     } catch (error) {
       console.error(error);
       setErrorMessage("Failed to submit Pre OD.");
@@ -194,9 +189,6 @@ export default function PreODForm() {
           <>
             <div className="pre-od-form-workshop-card">
               <h2>{formData.workshop.workshopName}</h2>
-              {formData.workshop.organizationName ? (
-                <p>{formData.workshop.organizationName}</p>
-              ) : null}
               {formData.submittedDate ? (
                 <p className="pre-od-form-submitted">
                   Last submitted:{" "}
@@ -238,7 +230,7 @@ export default function PreODForm() {
               {canFill ? (
                 <button
                   type="submit"
-                  className="pre-od-form-submit"
+                  className="user-btn-primary pre-od-form-submit"
                   disabled={saving}
                 >
                   {saving ? "Submitting..." : "Submit Pre OD"}

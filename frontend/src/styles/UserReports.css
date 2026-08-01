@@ -1,0 +1,68 @@
+.user-reports-page {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.user-reports-header h1 {
+  margin: 0 0 8px;
+  color: #111827;
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.user-reports-header p {
+  margin: 0 0 24px;
+  color: #6b7280;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.user-reports-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.user-reports-card {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  text-align: left;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 18px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.user-reports-card:hover {
+  border-color: #c4a0aa;
+  box-shadow: 0 4px 14px rgba(123, 15, 44, 0.08);
+}
+
+.user-reports-card-icon {
+  color: #7b0f2c;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.user-reports-card h2 {
+  margin: 0 0 6px;
+  color: #7b0f2c;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.user-reports-card p {
+  margin: 0;
+  color: #4b5563;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+@media (max-width: 700px) {
+  .user-reports-grid {
+    grid-template-columns: 1fr;
+  }
+}

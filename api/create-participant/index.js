@@ -1,8 +1,5 @@
 const { TableClient } = require("@azure/data-tables");
-
-function normalize(value) {
-  return String(value || "").trim().toLowerCase();
-}
+const { isValidEmail, isValidPhone } = require("../shared/validation");
 
 module.exports = async function (context, req) {
   try {
@@ -13,17 +10,51 @@ module.exports = async function (context, req) {
       email,
       phoneNo,
       password,
-      organisation,
       createdBy,
     } = req.body;
 
-    if (!firstName || !lastName || !email || !password || !organisation) {
+    const trimmedFirst = String(firstName || "").trim();
+    const trimmedMiddle = String(middleName || "").trim();
+    const trimmedLast = String(lastName || "").trim();
+    const trimmedEmail = String(email || "").trim();
+    const trimmedPhone = String(phoneNo || "").trim();
+    const trimmedPassword = String(password || "").trim();
+
+    if (
+      !trimmedFirst ||
+      !trimmedLast ||
+      !trimmedEmail ||
+      !trimmedPhone ||
+      !trimmedPassword
+    ) {
       context.res = {
         status: 400,
         body: {
           success: false,
           message:
-            "First name, last name, email, password, and organisation are required.",
+            "First name, last name, email, phone number, and password are required. Middle name is optional.",
+        },
+      };
+      return;
+    }
+
+    if (!isValidEmail(trimmedEmail)) {
+      context.res = {
+        status: 400,
+        body: {
+          success: false,
+          message: "Enter a valid email address.",
+        },
+      };
+      return;
+    }
+
+    if (!isValidPhone(trimmedPhone)) {
+      context.res = {
+        status: 400,
+        body: {
+          success: false,
+          message: "Enter a valid phone number.",
         },
       };
       return;
@@ -40,49 +71,16 @@ module.exports = async function (context, req) {
     await client.createEntity({
       partitionKey: "Participant",
       rowKey: participantId,
-      First_Name: firstName,
-      Middle_Name: middleName || "",
-      Last_Name: lastName,
-      Email: email.trim(),
-      Phone_No: phoneNo || "",
-      Password: password,
-      Organisation: organisation.trim(),
+      First_Name: trimmedFirst,
+      Middle_Name: trimmedMiddle,
+      Last_Name: trimmedLast,
+      Email: trimmedEmail,
+      Phone_No: trimmedPhone,
+      Password: trimmedPassword,
+      Organisation: "",
       Role: "Participant",
       Created_By: createdBy || "",
     });
-
-    const orgClient = TableClient.fromConnectionString(
-      connectionString,
-      "Organization"
-    );
-
-    let organizationId = null;
-    for await (const entity of orgClient.listEntities()) {
-      if (normalize(entity.Organization_Name) === normalize(organisation)) {
-        organizationId = entity.rowKey;
-        break;
-      }
-    }
-
-    if (organizationId) {
-      const linkClient = TableClient.fromConnectionString(
-        connectionString,
-        "OrganizationParticipants"
-      );
-
-      try {
-        await linkClient.createEntity({
-          partitionKey: organizationId,
-          rowKey: participantId,
-          OrganizationId: organizationId,
-          ParticipantId: participantId,
-          CreatedBy: createdBy || "",
-          CreatedDate: new Date().toISOString(),
-        });
-      } catch (linkError) {
-        context.log("OrganizationParticipants link skipped:", linkError.message);
-      }
-    }
 
     context.res = {
       status: 200,
