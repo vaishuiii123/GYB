@@ -1,5 +1,6 @@
 const { TableClient } = require("@azure/data-tables");
 const { PRE_OD_QUESTIONS } = require("../shared/preOdQuestions");
+const { canEditPreOd } = require("../shared/workshopAccess");
 
 module.exports = async function (context, req) {
   try {
@@ -64,6 +65,18 @@ module.exports = async function (context, req) {
         body: {
           success: false,
           message: "Workshop not found.",
+        },
+      };
+      return;
+    }
+
+    if (!canEditPreOd({ startDate: workshop.StartDate })) {
+      context.res = {
+        status: 403,
+        body: {
+          success: false,
+          message:
+            "This workshop has started. Pre OD can no longer be created or edited.",
         },
       };
       return;

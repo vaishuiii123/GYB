@@ -73,6 +73,44 @@ export function getWorkshopEditStatus(workshop?: WorkshopRecord | null) {
   };
 }
 
+type PreOdWorkshop = Pick<
+  WorkshopRecord,
+  "preOdQuestionCount" | "startDate"
+>;
+
+export function getPreOdAccessStatus(workshop?: PreOdWorkshop | null) {
+  const questionCount = Number(workshop?.preOdQuestionCount || 0);
+
+  if (questionCount <= 0) {
+    return {
+      available: false,
+      canFill: false,
+      enabled: false,
+      message: "Pre OD has not been assigned for this workshop yet.",
+    };
+  }
+
+  const startDate = workshop?.startDate;
+  if (startDate) {
+    const startMs = new Date(startDate).getTime();
+    if (!Number.isNaN(startMs) && Date.now() >= startMs) {
+      return {
+        available: true,
+        canFill: false,
+        enabled: false,
+        message: "The workshop has started. Pre OD is now closed.",
+      };
+    }
+  }
+
+  return {
+    available: true,
+    canFill: true,
+    enabled: true,
+    message: "",
+  };
+}
+
 type CacheEntry<T> = {
   savedAt: number;
   data: T;

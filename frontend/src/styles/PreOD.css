@@ -205,6 +205,257 @@
   margin-bottom: 10px;
 }
 
+.pre-od-error {
+  color: #b91c1c;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 12px 0 0;
+}
+
+.pre-od-create-btn {
+  min-width: 160px;
+}
+
+.pre-od-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.pre-od-empty,
+.pre-od-empty-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 28px;
+  color: #6b7280;
+  text-align: center;
+}
+
+.pre-od-empty-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.pre-od-workshop-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  max-width: 360px;
+}
+
+.pre-od-workshop-name {
+  margin: 0 0 4px;
+  font-size: 18px;
+  color: #111827;
+}
+
+.pre-od-workshop-org {
+  margin: 0 0 8px;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.pre-od-assigned-label {
+  margin: 0 0 10px;
+  color: #9b304a;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.pre-od-edit-btn {
+  height: 36px;
+  border: 1px solid #9b304a;
+  border-radius: 8px;
+  padding: 0 14px;
+  background: #ffffff;
+  color: #9b304a;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pre-od-locked-label {
+  margin: 0;
+  color: #6b7280;
+  font-size: 13px;
+  font-style: italic;
+}
+
+.pre-od-workshop-select:disabled {
+  background: #f3f4f6;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+
+.pre-od-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.pre-od-tab {
+  height: 40px;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  padding: 0 16px;
+  background: #ffffff;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pre-od-tab.active {
+  background: #9b304a;
+  border-color: #9b304a;
+  color: #ffffff;
+}
+
+.pre-od-submission-count {
+  margin: 0 0 10px;
+  color: #166534;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pre-od-responses-panel {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.pre-od-responses-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.pre-od-responses-header h2 {
+  margin: 0 0 6px;
+  font-size: 24px;
+  color: #111827;
+}
+
+.pre-od-submissions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pre-od-submission-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.pre-od-submission-toggle {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: none;
+  background: #fafafa;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.pre-od-submission-toggle strong {
+  display: block;
+  color: #111827;
+  font-size: 15px;
+}
+
+.pre-od-submission-date {
+  display: block;
+  margin-top: 4px;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.pre-od-submission-answers {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pre-od-submission-answer {
+  border-top: 1px solid #f1f5f9;
+  padding-top: 12px;
+}
+
+.pre-od-submission-answer:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.pre-od-submission-question {
+  margin: 0 0 8px;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.pre-od-submission-response {
+  margin: 0;
+  color: #4b5563;
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.pre-od-create-panel {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.pre-od-create-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.pre-od-create-panel-header h2 {
+  margin: 0;
+  font-size: 24px;
+  color: #111827;
+}
+
+.pre-od-cancel-btn {
+  height: 42px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 0 16px;
+  background: #ffffff;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pre-od-cancel-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 @media (max-width: 900px) {
   .pre-od-content {
     margin-left: 0;

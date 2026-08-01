@@ -1,0 +1,147 @@
+.pre-od-form-layout {
+  background: #f3f4f6;
+}
+
+.pre-od-form-page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 20px 40px;
+}
+
+.pre-od-form-header h1 {
+  margin: 0 0 8px;
+  font-size: 32px;
+  color: #111827;
+}
+
+.pre-od-form-header p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 15px;
+}
+
+.pre-od-form-workshop-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin: 20px 0;
+}
+
+.pre-od-form-workshop-card h2 {
+  margin: 0 0 6px;
+  font-size: 22px;
+  color: #111827;
+}
+
+.pre-od-form-workshop-card p {
+  margin: 0;
+  color: #6b7280;
+}
+
+.pre-od-form-submitted {
+  margin-top: 8px !important;
+  font-size: 13px;
+  color: #166534 !important;
+}
+
+.pre-od-form-section {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin-bottom: 16px;
+}
+
+.pre-od-form-section h3 {
+  margin: 0 0 16px;
+  color: #9b304a;
+  font-size: 18px;
+}
+
+.pre-od-form-field {
+  display: block;
+  margin-bottom: 16px;
+}
+
+.pre-od-form-label {
+  display: block;
+  margin-bottom: 8px;
+  color: #111827;
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 600;
+}
+
+.pre-od-form-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 96px;
+}
+
+.pre-od-form-field textarea:disabled {
+  background: #f9fafb;
+  color: #4b5563;
+}
+
+.pre-od-form-submit {
+  height: 44px;
+  border: none;
+  border-radius: 10px;
+  padding: 0 22px;
+  background: #9b304a;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pre-od-form-submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.pre-od-form-error,
+.pre-od-form-success,
+.pre-od-form-empty,
+.pre-od-form-status,
+.pre-od-form-readonly-note {
+  margin-top: 16px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+.pre-od-form-error {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.pre-od-form-success {
+  background: #ecfdf5;
+  color: #166534;
+}
+
+.pre-od-form-empty,
+.pre-od-form-status,
+.pre-od-form-readonly-note {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  color: #6b7280;
+}
+
+@media (max-width: 768px) {
+  .pre-od-form-page {
+    padding: 16px 14px 32px;
+  }
+
+  .pre-od-form-header h1 {
+    font-size: 26px;
+  }
+}

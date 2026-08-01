@@ -6,6 +6,11 @@ export type UserMenuItem = {
 
 export const workshopNavItems: UserMenuItem[] = [
   {
+    label: "Pre OD",
+    path: "/pre-od-workshop",
+    match: (pathname) => pathname.startsWith("/pre-od-workshop"),
+  },
+  {
     label: "Vision And Mission Statement",
     path: "/vision-mission",
     match: (pathname) => pathname.startsWith("/vision-mission"),
@@ -37,7 +42,7 @@ export const dashboardCards: DashboardCard[] = [
     title: "Pre-Organization Development Workshop",
     description:
       "Setting context before the Organization Development Workshop.",
-    path: null,
+    path: "/pre-od-workshop",
   },
   {
     title: "Vision & Mission",

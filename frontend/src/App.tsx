@@ -30,6 +30,7 @@ import CategoryQuestions from "./pages/Admin/CategoryQuestions";
 import TagManagement from "./pages/Admin/TagManagement";
 import QuestionManagement from "./pages/Admin/QuestionManagement";
 import PreOD from "./pages/Admin/PreOD";
+import PreODForm from "./pages/User/PreODForm";
 
 function App() {
 
@@ -81,6 +82,11 @@ function App() {
         <Route
           path="/od-chart/questions"
           element={<ODChartQuestions />}
+        />
+
+        <Route
+          path="/pre-od-workshop"
+          element={<PreODForm />}
         />
 
         <Route
