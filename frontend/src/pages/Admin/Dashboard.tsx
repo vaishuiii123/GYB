@@ -276,13 +276,6 @@ export default function Dashboard({ user }: PageProps) {
       <div className="admin-dashboard-content">
         <div className="admin-dashboard-header">
           <h1>Dashboard</h1>
-          <button
-            type="button"
-            className="admin-dashboard-link-btn"
-            onClick={() => navigate("/pre-od")}
-          >
-            Manage Pre OD
-          </button>
         </div>
 
         {renderSection(
