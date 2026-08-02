@@ -8,6 +8,7 @@ import {
 } from "../../components/AdminActionIcons";
 import { getEmailError, isValidEmail } from "../../utils/validation";
 import "../../styles/Organization.css";
+import { appAlert, appConfirm } from "../../utils/appDialog";
 
 type PageProps = {
   user?: any;
@@ -34,7 +35,6 @@ export default function Organization({ user }: PageProps) {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
 
-  const [successMessage, setSuccessMessage] = useState("");
   const [selectedOrganization, setSelectedOrganization] = useState<any>(null);
 
   const [allParticipants, setAllParticipants] = useState<any[]>([]);
@@ -65,8 +65,7 @@ export default function Organization({ user }: PageProps) {
   };
 
   const showToast = (message: string) => {
-    setSuccessMessage(message);
-    setTimeout(() => setSuccessMessage(""), 3000);
+    appAlert(message);
   };
 
   const fetchOrganizations = async () => {
@@ -201,7 +200,11 @@ export default function Organization({ user }: PageProps) {
   };
 
   const handleDelete = async (org: any) => {
-    if (!window.confirm(`Delete ${org.organizationName}?`)) return;
+    if (!(await appConfirm(`Delete ${org.organizationName}?`, {
+      title: "Delete organization",
+      confirmLabel: "Delete",
+      variant: "error",
+    }))) return;
 
     try {
       const response = await fetch("/api/delete-organization", {
@@ -226,7 +229,11 @@ export default function Organization({ user }: PageProps) {
 
   const handleDeleteFromModal = async () => {
     if (!selectedOrganization) return;
-    if (!window.confirm(`Delete ${selectedOrganization.organizationName}?`)) return;
+    if (!(await appConfirm(`Delete ${selectedOrganization.organizationName}?`, {
+      title: "Delete organization",
+      confirmLabel: "Delete",
+      variant: "error",
+    }))) return;
 
     try {
       const response = await fetch("/api/delete-organization", {
@@ -320,7 +327,11 @@ export default function Organization({ user }: PageProps) {
   };
 
   const deleteParticipant = async (participantId: string) => {
-    if (!window.confirm("Remove this participant from the organization?")) return;
+    if (!(await appConfirm("Remove this participant from the organization?", {
+      title: "Remove participant",
+      confirmLabel: "Remove",
+      variant: "warning",
+    }))) return;
 
     try {
       const response = await fetch("/api/delete-organization-participants", {
@@ -779,7 +790,6 @@ export default function Organization({ user }: PageProps) {
         </div>
       )}
 
-      {successMessage && <div className="org-toast">{successMessage}</div>}
     </>
   );
 }

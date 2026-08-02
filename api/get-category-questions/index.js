@@ -1,11 +1,10 @@
 const {
   getTableClient,
-  listPartition,
+  escapeODataValue,
   getEntitiesByKeys,
   groupOptionsByQuestionIds,
   listAnswersForWorkshop,
 } = require("../shared/tableHelper");
-const { getWorkshopById } = require("../shared/workshopAccess");
 
 function parseQuestionIds(questionIdField) {
   if (!questionIdField) {
@@ -16,6 +15,37 @@ function parseQuestionIds(questionIdField) {
     .split(",")
     .map((id) => id.trim())
     .filter(Boolean);
+}
+
+async function listOptionsForQuestionIds(optionTable, questionIds) {
+  const uniqueIds = [...new Set(questionIds.filter(Boolean))];
+  if (uniqueIds.length === 0) {
+    return [];
+  }
+
+  const optionGroups = await Promise.all(
+    uniqueIds.map(async (questionId) => {
+      const options = [];
+
+      try {
+        for await (const entity of optionTable.listEntities({
+          queryOptions: {
+            filter: `PartitionKey eq 'QuestionOption' and QuestionId eq '${escapeODataValue(
+              questionId
+            )}'`,
+          },
+        })) {
+          options.push(entity);
+        }
+      } catch {
+        // ignore missing options
+      }
+
+      return options;
+    })
+  );
+
+  return optionGroups.flat();
 }
 
 module.exports = async function (context, req) {
@@ -43,13 +73,7 @@ module.exports = async function (context, req) {
 
     const category = await categoryTable.getEntity("Category", categoryId);
     let questionIds = parseQuestionIds(category.QuestionId);
-
-    let resolvedTemplateId = templateId || "";
-
-    if (!resolvedTemplateId && workshopId) {
-      const workshop = await getWorkshopById(workshopId);
-      resolvedTemplateId = workshop?.templateId || "";
-    }
+    const resolvedTemplateId = templateId || "";
 
     if (workshopId || templateId) {
       if (!resolvedTemplateId) {
@@ -74,25 +98,29 @@ module.exports = async function (context, req) {
       }
     }
 
-    const [questionEntities, tags] = await Promise.all([
-      getEntitiesByKeys(questionTable, "Question", questionIds),
-      listPartition(tagTable, "Tag"),
-    ]);
+    const questionEntities = await getEntitiesByKeys(
+      questionTable,
+      "Question",
+      questionIds
+    );
 
-    const tagColorById = new Map(
-      tags.map((tag) => [tag.rowKey, tag.TagColor || "#9B304A"])
-    );
-    const tagNameById = new Map(
-      tags.map((tag) => [tag.rowKey, tag.TagName || ""])
-    );
+    const tagIds = [
+      ...new Set(
+        [
+          category.TagId,
+          ...questionEntities.map((question) => question.TagId),
+        ].filter(Boolean)
+      ),
+    ];
 
     const needsOptions = questionEntities.some(
       (question) => String(question.QuestionType || "Text") !== "Text"
     );
 
-    const [allOptions, answerPayload] = await Promise.all([
+    const [tagEntities, allOptions, answerPayload] = await Promise.all([
+      getEntitiesByKeys(tagTable, "Tag", tagIds),
       needsOptions
-        ? listPartition(optionTable, "QuestionOption")
+        ? listOptionsForQuestionIds(optionTable, questionIds)
         : Promise.resolve([]),
       participantId && workshopId
         ? listAnswersForWorkshop(
@@ -103,6 +131,12 @@ module.exports = async function (context, req) {
         : Promise.resolve(null),
     ]);
 
+    const tagColorById = new Map(
+      tagEntities.map((tag) => [tag.rowKey, tag.TagColor || "#9B304A"])
+    );
+    const tagNameById = new Map(
+      tagEntities.map((tag) => [tag.rowKey, tag.TagName || ""])
+    );
     const questionMap = new Map(
       questionEntities.map((item) => [item.rowKey, item])
     );

@@ -6,6 +6,11 @@ import {
   getParticipantFromStorage,
   getSelectedWorkshop,
 } from "../../utils/selectedWorkshop";
+import {
+  clearCachedPageData,
+  getCachedPageData,
+  setCachedPageData,
+} from "../../utils/workshopCache";
 import "../../styles/PreODForm.css";
 
 type PreOdQuestion = {
@@ -71,8 +76,17 @@ export default function PreODForm() {
       }
 
       try {
-        setLoading(true);
         setErrorMessage("");
+        const cacheKey = `pre-od:${participant.id}:${selectedWorkshop.id}`;
+        const cached = getCachedPageData<PreOdFormData>(cacheKey);
+
+        if (cached) {
+          setFormData(cached);
+          setAnswers(cached.answers || {});
+          setLoading(false);
+        } else {
+          setLoading(true);
+        }
 
         const params = new URLSearchParams({
           participantId: participant.id,
@@ -89,12 +103,15 @@ export default function PreODForm() {
         const data = await response.json();
 
         if (!response.ok || !data.success) {
-          setErrorMessage(data.message || "Unable to load Pre OD form.");
+          if (!cached) {
+            setErrorMessage(data.message || "Unable to load Pre OD form.");
+          }
           return;
         }
 
         setFormData(data);
         setAnswers(data.answers || {});
+        setCachedPageData(cacheKey, data);
       } catch (error) {
         console.error(error);
         setErrorMessage("Unable to load Pre OD form.");
@@ -143,6 +160,7 @@ export default function PreODForm() {
         return;
       }
 
+      clearCachedPageData(`pre-od:${participant.id}:${formData.workshop.id}`);
       setSuccessMessage("Pre OD submitted successfully.");
       navigate("/userdashboard", { replace: true });
       return;

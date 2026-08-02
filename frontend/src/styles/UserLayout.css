@@ -22,7 +22,12 @@
 }
 
 .user-layout-main-od {
-  padding: 24px 32px 40px;
+  padding: 8px 10px 8px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: calc(100vh - 44px);
+  box-sizing: border-box;
 }
 
 @media (max-width: 768px) {

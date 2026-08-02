@@ -1,4 +1,5 @@
 const { TableClient } = require("@azure/data-tables");
+const { readWorkshopDate } = require("../shared/workshopDates");
 
 module.exports = async function (context, req) {
   try {
@@ -20,8 +21,11 @@ module.exports = async function (context, req) {
       workshops.push({
         id: entity.rowKey,
         workshopName: entity.WorkshopName,
-        startDate: entity.StartDate,
-        endDate: entity.EndDate,
+        preOdStartDate: readWorkshopDate(
+          entity.PreOdStartDate || entity.preOdStartDate
+        ),
+        startDate: readWorkshopDate(entity.StartDate || entity.startDate),
+        endDate: readWorkshopDate(entity.EndDate || entity.endDate),
         templateId: entity.TemplateId,
         templateName: entity.TemplateName,
         preOdTemplateId: entity.PreOdTemplateId || "",

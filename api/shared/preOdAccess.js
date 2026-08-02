@@ -1,52 +1,7 @@
-function parseWorkshopStartMs(startDate) {
-  if (!startDate) {
-    return null;
-  }
-
-  const date = new Date(startDate);
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-
-  return date.getTime();
-}
-
-function canFillPreOd(workshop, nowMs = Date.now()) {
-  const startMs = parseWorkshopStartMs(
-    workshop?.startDate || workshop?.StartDate
-  );
-
-  if (startMs === null) {
-    return true;
-  }
-
-  return nowMs < startMs;
-}
+const { getPreOdFillStatus: getSharedPreOdFillStatus } = require("./workshopAccess");
 
 function getPreOdFillStatus(workshop, nowMs = Date.now()) {
-  const questionCount = Number(workshop?.preOdQuestionCount || 0);
-
-  if (questionCount <= 0) {
-    return {
-      available: false,
-      canFill: false,
-      message: "Pre OD has not been assigned for this workshop yet.",
-    };
-  }
-
-  if (!canFillPreOd(workshop, nowMs)) {
-    return {
-      available: true,
-      canFill: false,
-      message: "The workshop has started. Pre OD is now closed.",
-    };
-  }
-
-  return {
-    available: true,
-    canFill: true,
-    message: "",
-  };
+  return getSharedPreOdFillStatus(workshop, nowMs);
 }
 
 async function assertPreOdFillable({

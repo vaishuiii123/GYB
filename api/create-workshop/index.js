@@ -1,14 +1,14 @@
-const { TableClient } =
-  require("@azure/data-tables");
+const { TableClient } = require("@azure/data-tables");
+const { validateWorkshopDateOrder } = require("../shared/workshopDates");
 
-module.exports = async function (
-  context,
-  req
-) {
+module.exports = async function (context, req) {
   try {
+    const body =
+      typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
 
     const {
       workshopName,
+      preOdStartDate,
       startDate,
       endDate,
       templateId,
@@ -18,119 +18,89 @@ module.exports = async function (
       organizationId,
       organizationName,
       participantCount,
-      createdBy
-    } = req.body;
+      createdBy,
+    } = body;
 
-    if (
-      !workshopName ||
-      !startDate ||
-      !endDate ||
-      !templateId ||
-      !organizationId
-    ) {
-
+    if (!workshopName || !templateId || !organizationId) {
       context.res = {
         status: 400,
         body: {
           success: false,
-          message:
-            "Required fields missing"
-        }
+          message: "Required fields missing",
+        },
       };
-
       return;
     }
 
-    const client =
-      TableClient.fromConnectionString(
-        process.env
-          .AZURE_STORAGE_CONNECTION_STRING,
-        "Workshop"
-      );
+    const dates = validateWorkshopDateOrder({
+      preOdStartDate,
+      startDate,
+      endDate,
+    });
 
-    // Create table if not exists
+    if (!dates.ok) {
+      context.res = {
+        status: 400,
+        body: {
+          success: false,
+          message: dates.message,
+        },
+      };
+      return;
+    }
+
+    const client = TableClient.fromConnectionString(
+      process.env.AZURE_STORAGE_CONNECTION_STRING,
+      "Workshop"
+    );
+
     try {
-
       await client.createTable();
-
     } catch (error) {
-
-      if (
-        !error.message?.includes(
-          "TableAlreadyExists"
-        )
-      ) {
+      if (!error.message?.includes("TableAlreadyExists")) {
         throw error;
       }
     }
 
-    const workshopId =
-      Date.now().toString();
+    const workshopId = Date.now().toString();
 
     await client.createEntity({
-
-      partitionKey:
-        "Workshop",
-
-      rowKey:
-        workshopId,
-
-      WorkshopName:
-        workshopName,
-
-      StartDate:
-        startDate,
-
-      EndDate:
-        endDate,
-
-      TemplateId:
-        templateId,
-
-      TemplateName:
-        templateName || "",
-
-      PreOdTemplateId:
-        preOdTemplateId || "",
-
-      PreOdTemplateName:
-        preOdTemplateName || "",
-
-      OrganizationId:
-        organizationId,
-
-      OrganizationName:
-        organizationName || "",
-
-      ParticipantCount:
-        participantCount || 0,
-
-      CreatedBy:
-        createdBy || "",
-
-      CreatedDate:
-        new Date().toISOString()
+      partitionKey: "Workshop",
+      rowKey: workshopId,
+      WorkshopName: String(workshopName).trim(),
+      PreOdStartDate: dates.preOdStartDate,
+      StartDate: dates.startDate,
+      EndDate: dates.endDate,
+      TemplateId: templateId,
+      TemplateName: templateName || "",
+      PreOdTemplateId: preOdTemplateId || "",
+      PreOdTemplateName: preOdTemplateName || "",
+      OrganizationId: organizationId,
+      OrganizationName: organizationName || "",
+      ParticipantCount: participantCount || 0,
+      CreatedBy: createdBy || "",
+      CreatedDate: new Date().toISOString(),
     });
 
     context.res = {
       status: 200,
       body: {
         success: true,
-        workshopId
-      }
+        workshopId,
+        preOdStartDate: dates.preOdStartDate,
+        startDate: dates.startDate,
+        endDate: dates.endDate,
+      },
     };
-
   } catch (error) {
-
     context.log(error);
 
     context.res = {
       status: 500,
       body: {
         success: false,
-        error:
-          error.message
-      }
+        error: error.message,
+      },
     };
   }
 };

@@ -156,7 +156,26 @@ async function listVisionMissionForParticipants(participantIds, workshopId) {
       }
 
       if (!entity) {
-        entity = await tableClient.getEntity("Participant", participantId);
+        try {
+          const legacy = await tableClient.getEntity(
+            "Participant",
+            participantId
+          );
+          // Only use legacy row when it belongs to this workshop.
+          if (
+            !workshopId ||
+            (legacy.WorkshopId &&
+              String(legacy.WorkshopId) === String(workshopId))
+          ) {
+            entity = legacy;
+          }
+        } catch {
+          entity = null;
+        }
+      }
+
+      if (!entity) {
+        continue;
       }
 
       if (

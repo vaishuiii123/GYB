@@ -1,15 +1,11 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { workshopNavItems } from "./userMenuItems";
 import {
-  fetchParticipantWorkshops,
   getFeedbackAccessStatus,
   getPreOdAccessStatus,
 } from "../../utils/workshopCache";
-import {
-  getParticipantFromStorage,
-  getSelectedWorkshop,
-} from "../../utils/selectedWorkshop";
+import { getSelectedWorkshop } from "../../utils/selectedWorkshop";
 import "../../styles/UserNavDrawer.css";
 
 type UserNavDrawerProps = {
@@ -20,59 +16,13 @@ type UserNavDrawerProps = {
 export default function UserNavDrawer({ open, onClose }: UserNavDrawerProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [preOdEnabled, setPreOdEnabled] = useState(false);
-  const [feedbackEnabled, setFeedbackEnabled] = useState(false);
-
-  useEffect(() => {
-    const participant = getParticipantFromStorage();
-    const selectedWorkshop = getSelectedWorkshop();
-
-    if (!participant?.id || !selectedWorkshop?.id) {
-      setPreOdEnabled(false);
-      setFeedbackEnabled(false);
-      return;
-    }
-
-    const applyStatus = (
-      workshop?: {
-        preOdQuestionCount?: number;
-        startDate?: string;
-        endDate?: string;
-      } | null
-    ) => {
-      const source = workshop || selectedWorkshop;
-      setPreOdEnabled(getPreOdAccessStatus(source).enabled);
-      setFeedbackEnabled(getFeedbackAccessStatus(source).enabled);
-    };
-
-    applyStatus(selectedWorkshop);
-
-    const refreshWorkshop = async () => {
-      try {
-        const data = await fetchParticipantWorkshops(
-          participant.id,
-          participant.organizationId || ""
-        );
-
-        if (!data.success) {
-          return;
-        }
-
-        const matched =
-          data.workshops?.find(
-            (workshop) => workshop.id === selectedWorkshop.id
-          ) || data.workshop;
-
-        applyStatus(matched);
-      } catch {
-        // keep selected-workshop status
-      }
-    };
-
-    if (open) {
-      refreshWorkshop();
-    }
-  }, [open]);
+  const selectedWorkshop = getSelectedWorkshop();
+  const [preOdEnabled] = useState(() =>
+    getPreOdAccessStatus(selectedWorkshop).enabled
+  );
+  const [feedbackEnabled] = useState(() =>
+    getFeedbackAccessStatus(selectedWorkshop).enabled
+  );
 
   const handleNavigate = (path: string | null) => {
     if (!path) return;

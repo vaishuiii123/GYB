@@ -26,15 +26,22 @@ module.exports = async function (context, req) {
 
     if (participantId) {
       const participantWorkshops = await listWorkshopsForParticipant(
-        participantId
+        participantId,
+        organizationId || ""
       );
       workshops = participantWorkshops.workshops;
       organizationIds = participantWorkshops.organizationIds;
     }
 
+    // Fallback when participant links are missing but client still has an org id.
     if (workshops.length === 0 && organizationId) {
-      workshops = await listWorkshopsForOrganization(organizationId);
-      organizationIds = organizationId ? [organizationId] : [];
+      const orgWorkshops = await listWorkshopsForOrganization(organizationId);
+      if (orgWorkshops.length > 0) {
+        workshops = orgWorkshops;
+        organizationIds = [
+          ...new Set([organizationId, ...(organizationIds || [])].filter(Boolean)),
+        ];
+      }
     }
 
     const activeWorkshop = pickWorkshopForOrganization(workshops);

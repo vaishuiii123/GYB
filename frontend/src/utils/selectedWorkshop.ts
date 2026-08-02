@@ -7,6 +7,7 @@ export type SelectedWorkshop = {
   organizationId?: string;
   templateId?: string;
   templateName?: string;
+  preOdStartDate?: string;
   startDate?: string;
   endDate?: string;
   preOdQuestionCount?: number;

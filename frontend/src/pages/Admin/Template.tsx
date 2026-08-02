@@ -8,6 +8,7 @@ import {
   ViewIconBtn,
 } from "../../components/AdminActionIcons";
 import "../../styles/Template.css";
+import { appConfirm } from "../../utils/appDialog";
 
 type PageProps = {
   user?: any;
@@ -60,7 +61,7 @@ export default function Template({ user }: PageProps) {
   );
 
   const deleteTemplate = async (templateId: string) => {
-    const confirmed = window.confirm(
+    const confirmed = await appConfirm(
       "Are you sure you want to delete this template?"
     );
     if (!confirmed) return;

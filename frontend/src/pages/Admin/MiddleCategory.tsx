@@ -8,6 +8,7 @@ import {
 import "../../styles/CategoryManagement.css";
 import { useState, useEffect } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
+import { appConfirm } from "../../utils/appDialog";
 
 type PageProps = {
     user?: any;
@@ -256,7 +257,7 @@ export default function MiddleCategory({ user }: PageProps) {
     const handleDeleteMiddleCategory = async(id:string)=>{
 
 
-        const confirmDelete = window.confirm(
+        const confirmDelete = await appConfirm(
             "Are you sure you want to delete this Middle Category?"
         );
 

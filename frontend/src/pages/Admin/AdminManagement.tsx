@@ -4,6 +4,7 @@ import Sidebar from "../../components/Sidebar";
 import { DeleteIconBtn } from "../../components/AdminActionIcons";
 import { getEmailError, isValidEmail } from "../../utils/validation";
 import "../../styles/Organization.css";
+import { appAlert, appConfirm } from "../../utils/appDialog";
 
 type PageProps = {
   user?: {
@@ -43,8 +44,6 @@ export default function AdminManagement({ user }: PageProps) {
   const [form, setForm] = useState<AdminForm>(emptyForm);
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
-
   const currentUser = (() => {
     if (user?.email) return user;
     try {
@@ -100,8 +99,7 @@ export default function AdminManagement({ user }: PageProps) {
   }, [admins, tableSearch]);
 
   const showToast = (message: string) => {
-    setSuccessMessage(message);
-    setTimeout(() => setSuccessMessage(""), 3000);
+    appAlert(message);
   };
 
   const openCreateModal = () => {
@@ -170,9 +168,14 @@ export default function AdminManagement({ user }: PageProps) {
     }
 
     if (
-      !window.confirm(
-        `Remove admin access for ${admin.name || admin.email}?`
-      )
+      !(await appConfirm(
+        `Remove admin access for ${admin.name || admin.email}?`,
+        {
+          title: "Remove admin",
+          confirmLabel: "Remove",
+          variant: "error",
+        }
+      ))
     ) {
       return;
     }
@@ -231,12 +234,6 @@ export default function AdminManagement({ user }: PageProps) {
               + Add Admin
             </button>
           </div>
-
-          {successMessage ? (
-            <div className="org-fetch-error" style={{ background: "#ecfdf5", color: "#166534", border: "1px solid #bbf7d0" }}>
-              {successMessage}
-            </div>
-          ) : null}
 
           <div className="org-card">
             <input

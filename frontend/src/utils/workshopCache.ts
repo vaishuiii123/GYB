@@ -1,8 +1,17 @@
-import { getSelectedWorkshop } from "./selectedWorkshop";
+import {
+  getParticipantFromStorage,
+  getSelectedWorkshop,
+  type SelectedWorkshop,
+} from "./selectedWorkshop";
 
 const WORKSHOP_CACHE_KEY = "gyb-workshop-cache";
-const OD_CHART_CACHE_KEY = "gyb-od-chart-cache-v3";
-const CACHE_TTL_MS = 5 * 60 * 1000;
+const PARTICIPANT_WORKSHOP_CACHE_KEY = "gyb-participant-workshops-cache";
+const OD_CHART_CACHE_KEY = "gyb-od-chart-cache-v4";
+const OD_LEAVES_CACHE_KEY = "gyb-od-leaves-cache-v1";
+const PAGE_DATA_CACHE_KEY = "gyb-page-data-cache";
+const CACHE_TTL_MS = 10 * 60 * 1000;
+/** OD chart structure rarely changes — keep longer for faster revisits. */
+const OD_CHART_TTL_MS = 60 * 60 * 1000;
 
 export type WorkshopRecord = {
   id: string;
@@ -11,6 +20,7 @@ export type WorkshopRecord = {
   templateName?: string;
   organizationName?: string;
   organizationId?: string;
+  preOdStartDate?: string;
   startDate?: string;
   endDate?: string;
   participantCount?: number;
@@ -75,7 +85,7 @@ export function getWorkshopEditStatus(workshop?: WorkshopRecord | null) {
 
 type PreOdWorkshop = Pick<
   WorkshopRecord,
-  "preOdQuestionCount" | "startDate"
+  "preOdQuestionCount" | "preOdStartDate" | "startDate"
 >;
 
 export function getFeedbackAccessStatus(workshop?: {
@@ -123,6 +133,20 @@ export function getPreOdAccessStatus(workshop?: PreOdWorkshop | null) {
         canFill: false,
         enabled: false,
         message: "The workshop has started. Pre OD is now closed.",
+      };
+    }
+  }
+
+  const preOdStartDate = workshop?.preOdStartDate;
+  if (preOdStartDate) {
+    const preOdStartMs = new Date(preOdStartDate).getTime();
+    if (!Number.isNaN(preOdStartMs) && Date.now() < preOdStartMs) {
+      return {
+        available: true,
+        canFill: false,
+        enabled: false,
+        message:
+          "Pre OD is not open yet. Please check back at the Pre OD start time.",
       };
     }
   }
@@ -175,8 +199,70 @@ export function setCachedWorkshop(organizationId: string, data: WorkshopResponse
   writeCache(`${WORKSHOP_CACHE_KEY}:${organizationId}`, data);
 }
 
+function participantWorkshopsCacheKey(
+  participantId: string,
+  organizationId?: string
+) {
+  return `${PARTICIPANT_WORKSHOP_CACHE_KEY}:${participantId}:${
+    organizationId || ""
+  }`;
+}
+
+export function getCachedParticipantWorkshops(
+  participantId: string,
+  organizationId?: string
+) {
+  return readCache<WorkshopResponse>(
+    participantWorkshopsCacheKey(participantId, organizationId)
+  );
+}
+
+export function setCachedParticipantWorkshops(
+  participantId: string,
+  organizationId: string | undefined,
+  data: WorkshopResponse
+) {
+  writeCache(participantWorkshopsCacheKey(participantId, organizationId), data);
+
+  if (organizationId) {
+    setCachedWorkshop(organizationId, data);
+  }
+}
+
+export function clearCachedParticipantWorkshops(
+  participantId: string,
+  organizationId?: string
+) {
+  try {
+    sessionStorage.removeItem(
+      participantWorkshopsCacheKey(participantId, organizationId)
+    );
+  } catch {
+    // ignore
+  }
+}
+
+function readOdChartCache<T>(key: string): T | null {
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) {
+      return null;
+    }
+
+    const entry = JSON.parse(raw) as CacheEntry<T>;
+    if (Date.now() - entry.savedAt > OD_CHART_TTL_MS) {
+      sessionStorage.removeItem(key);
+      return null;
+    }
+
+    return entry.data;
+  } catch {
+    return null;
+  }
+}
+
 export function getCachedOdChart(templateId: string) {
-  return readCache<{ success: boolean; tops: unknown[] }>(
+  return readOdChartCache<{ success: boolean; tops: unknown[] }>(
     `${OD_CHART_CACHE_KEY}:${templateId}`
   );
 }
@@ -186,6 +272,55 @@ export function setCachedOdChart(
   data: { success: boolean; tops: unknown[] }
 ) {
   writeCache(`${OD_CHART_CACHE_KEY}:${templateId}`, data);
+}
+
+export function getCachedPageData<T>(key: string) {
+  return readCache<T>(`${PAGE_DATA_CACHE_KEY}:${key}`);
+}
+
+export function setCachedPageData<T>(key: string, data: T) {
+  writeCache(`${PAGE_DATA_CACHE_KEY}:${key}`, data);
+}
+
+export function clearCachedPageData(key: string) {
+  try {
+    sessionStorage.removeItem(`${PAGE_DATA_CACHE_KEY}:${key}`);
+  } catch {
+    // ignore
+  }
+}
+
+export function workshopFromSelected(
+  selected: SelectedWorkshop
+): WorkshopRecord {
+  return {
+    id: selected.id,
+    workshopName: selected.workshopName,
+    organizationName: selected.organizationName,
+    organizationId: selected.organizationId,
+    templateId: selected.templateId,
+    templateName: selected.templateName,
+    preOdStartDate: selected.preOdStartDate,
+    startDate: selected.startDate,
+    endDate: selected.endDate,
+    preOdQuestionCount: selected.preOdQuestionCount,
+  };
+}
+
+/** Prefer selected workshop so pages can render without waiting on network. */
+export function getActiveWorkshopContext() {
+  const selected = getSelectedWorkshop();
+  const participant = getParticipantFromStorage();
+  const workshop = selected ? workshopFromSelected(selected) : null;
+  const editStatus = getWorkshopEditStatus(workshop);
+
+  return {
+    participant,
+    selected,
+    workshop,
+    canEdit: editStatus.canEdit,
+    editMessage: editStatus.editMessage,
+  };
 }
 
 function applySelectedWorkshop(data: WorkshopResponse): WorkshopResponse {
@@ -204,6 +339,7 @@ function applySelectedWorkshop(data: WorkshopResponse): WorkshopResponse {
       organizationId: selected.organizationId,
       templateId: selected.templateId,
       templateName: selected.templateName,
+      preOdStartDate: selected.preOdStartDate,
       startDate: selected.startDate,
       endDate: selected.endDate,
       preOdQuestionCount: selected.preOdQuestionCount,
@@ -221,8 +357,35 @@ function applySelectedWorkshop(data: WorkshopResponse): WorkshopResponse {
 
 export async function fetchParticipantWorkshops(
   participantId: string,
-  organizationId?: string
+  organizationId?: string,
+  options?: { forceRefresh?: boolean }
 ) {
+  if (!options?.forceRefresh) {
+    const cached = getCachedParticipantWorkshops(
+      participantId,
+      organizationId
+    );
+
+    // Only reuse cache when it actually has workshops. An empty success
+    // response is often a transient miss and should not block refetch.
+    if (cached?.success && (cached.workshops || []).length > 0) {
+      return applySelectedWorkshop({
+        ...cached,
+        canEdit:
+          typeof cached.canEdit === "boolean"
+            ? cached.canEdit
+            : getWorkshopEditStatus(cached.workshop).canEdit,
+        editMessage:
+          cached.editMessage ||
+          getWorkshopEditStatus(cached.workshop).editMessage,
+      });
+    }
+  }
+
+  if (options?.forceRefresh) {
+    clearCachedParticipantWorkshops(participantId, organizationId);
+  }
+
   const params = new URLSearchParams({
     participantId,
   });
@@ -261,11 +424,9 @@ export async function fetchParticipantWorkshops(
     };
   }
 
-  if (organizationId) {
-    setCachedWorkshop(organizationId, data);
-  }
-
-  return applySelectedWorkshop(data);
+  const resolved = applySelectedWorkshop(data);
+  setCachedParticipantWorkshops(participantId, organizationId, resolved);
+  return resolved;
 }
 
 export async function fetchWorkshopByOrganization(organizationId: string) {
@@ -299,12 +460,7 @@ export async function fetchWorkshopByOrganization(organizationId: string) {
   return data;
 }
 
-export async function fetchOdChart(templateId: string) {
-  const cached = getCachedOdChart(templateId);
-  if (cached) {
-    return cached;
-  }
-
+async function requestOdChart(templateId: string) {
   const response = await fetch(
     `/api/get-od-chart?templateId=${encodeURIComponent(
       templateId
@@ -319,6 +475,30 @@ export async function fetchOdChart(templateId: string) {
   return data;
 }
 
+/** Prefetch OD chart into session cache (e.g. from dashboard). */
+export function prefetchOdChart(templateId?: string | null) {
+  if (!templateId) {
+    return;
+  }
+
+  if (getCachedOdChart(templateId)) {
+    return;
+  }
+
+  void requestOdChart(templateId).catch(() => {
+    // ignore prefetch errors
+  });
+}
+
+export async function fetchOdChart(templateId: string) {
+  const cached = getCachedOdChart(templateId);
+  if (cached) {
+    return cached;
+  }
+
+  return requestOdChart(templateId);
+}
+
 export function flattenOdChartLeaves(
   tops: Array<{
     name: string;
@@ -329,8 +509,19 @@ export function flattenOdChartLeaves(
         leaves: Array<{ id: string; name: string; fullPath?: string }>;
       }>;
     }>;
-  }>
+  }>,
+  templateId?: string
 ) {
+  if (templateId) {
+    const cached = readCache<
+      Array<{ id: string; name: string; fullPath: string }>
+    >(`${OD_LEAVES_CACHE_KEY}:${templateId}`);
+
+    if (cached) {
+      return cached;
+    }
+  }
+
   const leaves: Array<{ id: string; name: string; fullPath: string }> = [];
 
   for (const top of tops) {
@@ -352,5 +543,10 @@ export function flattenOdChartLeaves(
   }
 
   leaves.sort((a, b) => a.name.localeCompare(b.name));
+
+  if (templateId) {
+    writeCache(`${OD_LEAVES_CACHE_KEY}:${templateId}`, leaves);
+  }
+
   return leaves;
 }

@@ -2,7 +2,15 @@ import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useMsal } from "@azure/msal-react";
 import { InteractionStatus } from "@azure/msal-browser";
-import { Globe } from "lucide-react";
+import {
+  Lock,
+  Phone,
+  Send,
+  Target,
+  TrendingUp,
+  Users,
+  UserRound,
+} from "lucide-react";
 
 import myImage from "../../images/KNAV logo.png";
 import { MSAL_LOGIN_TARGET_KEY } from "../../authConfig";
@@ -44,7 +52,7 @@ export default function UserLogin() {
         break;
       case "Participant":
         clearSelectedWorkshop();
-        navigate("/about-us");
+        navigate("/select-workshop");
         break;
       default:
         alert("No role has been assigned to this user.");
@@ -145,28 +153,22 @@ export default function UserLogin() {
 
       const response = await fetch("/api/send-login-otp", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phoneNo: digits }),
       });
 
       const data = await response.json();
 
-      if (!response.ok || !data.success) {
-        setErrorMessage(data.message || "Failed to send OTP.");
+      if (!data.success) {
+        setErrorMessage(data.message || "Unable to send OTP.");
         return;
       }
 
       setStep("otp");
-      setOtp("");
-      setInfoMessage(
-        data.message ||
-          `OTP sent to ${digits}. Valid for ${data.expiresInMinutes || 30} minutes.`
-      );
+      setInfoMessage(data.message || "OTP sent successfully.");
     } catch (error) {
       console.error(error);
-      setErrorMessage("Failed to send OTP. Please try again.");
+      setErrorMessage("Unable to send OTP.");
     } finally {
       setLoading(false);
     }
@@ -178,21 +180,18 @@ export default function UserLogin() {
       return;
     }
 
-    if (!otp.trim()) {
-      setErrorMessage("Please enter the OTP sent to your phone.");
+    if (!otp || otp.length < 4) {
+      setErrorMessage("Enter the OTP sent to your phone.");
       return;
     }
 
     try {
       setLoading(true);
       setErrorMessage("");
-      setInfoMessage("");
 
       const response = await fetch("/api/user-login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           phoneNo: digits,
           otp: otp.trim(),
@@ -201,7 +200,7 @@ export default function UserLogin() {
 
       const data = await response.json();
 
-      if (!response.ok || !data.success) {
+      if (!data.success) {
         setErrorMessage(data.message || "Invalid OTP.");
         return;
       }
@@ -210,7 +209,7 @@ export default function UserLogin() {
       redirectUser(data.user.role || "Participant");
     } catch (error) {
       console.error(error);
-      setErrorMessage("Login failed. Please try again.");
+      setErrorMessage("Unable to verify OTP.");
     } finally {
       setLoading(false);
     }
@@ -224,7 +223,7 @@ export default function UserLogin() {
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Enter" && !loading) {
+    if (event.key === "Enter") {
       if (step === "phone") {
         handleSendOtp();
       } else {
@@ -235,66 +234,127 @@ export default function UserLogin() {
 
   return (
     <div className="user-login-page">
-      <img src={myImage} alt="KNAV" className="user-login-logo" />
-      <div className="user-login-shape" aria-hidden="true" />
+      <aside className="user-login-brand">
+        <img src={myImage} alt="KNAV" className="user-login-logo" />
 
-      <div className="user-login-toplinks">
-        <a
-          href="https://in.knavcpa.com/"
-          className="user-login-about"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          About KNAV
-        </a>
-        <button type="button" className="user-login-icon-btn" aria-label="Language">
-          <Globe size={20} strokeWidth={2} />
-        </button>
-        <button type="button" className="user-login-icon-btn" aria-label="LinkedIn">
-          <LinkedInIcon />
-        </button>
-      </div>
+        <div className="user-login-brand-copy">
+          <h1>GROW YOUR BUSINESS</h1>
+          <p className="user-login-brand-subtitle">
+            Organisation Development Workshop
+          </p>
 
-      <div className="user-login-center">
-        <h1 className="user-login-title">GROW YOUR BUSINESS</h1>
-        <p className="user-login-subtitle">Organisation Development Workshop</p>
+          <ul className="user-login-features">
+            <li>
+              <span className="user-login-feature-icon" aria-hidden>
+                <TrendingUp size={16} strokeWidth={2.2} />
+              </span>
+              <div>
+                <strong>Strategic Growth</strong>
+                <span>Unlock your potential and drive sustainable growth</span>
+              </div>
+            </li>
+            <li>
+              <span className="user-login-feature-icon" aria-hidden>
+                <Users size={16} strokeWidth={2.2} />
+              </span>
+              <div>
+                <strong>People Excellence</strong>
+                <span>Build high-performing teams and strong culture</span>
+              </div>
+            </li>
+            <li>
+              <span className="user-login-feature-icon" aria-hidden>
+                <Target size={16} strokeWidth={2.2} />
+              </span>
+              <div>
+                <strong>Business Impact</strong>
+                <span>Deliver measurable results and long-term value</span>
+              </div>
+            </li>
+          </ul>
+        </div>
 
-        <div className="user-login-form">
-          <input
-            type="tel"
-            className="user-login-input"
-            value={phoneNo}
-            onChange={(e) =>
-              setPhoneNo(e.target.value.replace(/\D/g, "").slice(0, 10))
-            }
-            onKeyDown={handleKeyDown}
-            placeholder="Phone number"
-            inputMode="numeric"
-            maxLength={10}
-            disabled={step === "otp"}
-          />
+        <div className="user-login-brand-art" aria-hidden />
+      </aside>
 
-          {step === "otp" && (
+      <section className="user-login-panel">
+        <div className="user-login-toplinks">
+          <a
+            href="https://in.knavcpa.com/"
+            className="user-login-about"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            About KNAV
+          </a>
+          <a
+            href="https://www.linkedin.com/company/knav/"
+            className="user-login-icon-btn"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="LinkedIn"
+          >
+            <LinkedInIcon />
+          </a>
+        </div>
+
+        <div className="user-login-card">
+          <div className="user-login-card-header">
+            <span className="user-login-card-avatar" aria-hidden>
+              <UserRound size={22} strokeWidth={2} />
+            </span>
+            <div>
+              <h2>Welcome to GYB</h2>
+              <p>Organisation Development Workshop</p>
+            </div>
+          </div>
+
+          <label className="user-login-label" htmlFor="user-phone">
+            Phone Number
+          </label>
+          <div className="user-login-input-wrap">
+            <Phone size={16} strokeWidth={2} aria-hidden />
             <input
-              type="text"
+              id="user-phone"
+              type="tel"
               className="user-login-input"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              value={phoneNo}
+              onChange={(e) =>
+                setPhoneNo(e.target.value.replace(/\D/g, "").slice(0, 10))
+              }
               onKeyDown={handleKeyDown}
-              placeholder="Enter OTP"
+              placeholder="Enter your phone number"
               inputMode="numeric"
-              maxLength={6}
-              autoFocus
+              maxLength={10}
+              disabled={step === "otp"}
             />
-          )}
+          </div>
 
-          {infoMessage && (
+          {step === "otp" ? (
+            <div className="user-login-input-wrap">
+              <Lock size={16} strokeWidth={2} aria-hidden />
+              <input
+                type="text"
+                className="user-login-input"
+                value={otp}
+                onChange={(e) =>
+                  setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+                }
+                onKeyDown={handleKeyDown}
+                placeholder="Enter OTP"
+                inputMode="numeric"
+                maxLength={6}
+                autoFocus
+              />
+            </div>
+          ) : null}
+
+          {infoMessage ? (
             <div className="user-login-info">{infoMessage}</div>
-          )}
-
-          {errorMessage && (
+          ) : null}
+          {errorMessage ? (
             <div className="user-login-error">{errorMessage}</div>
-          )}
+          ) : null}
 
           {step === "phone" ? (
             <button
@@ -303,6 +363,7 @@ export default function UserLogin() {
               onClick={handleSendOtp}
               disabled={loading}
             >
+              <Send size={16} strokeWidth={2.2} />
               {loading ? "Checking..." : "Send OTP"}
             </button>
           ) : (
@@ -313,6 +374,7 @@ export default function UserLogin() {
                 onClick={handleVerifyOtp}
                 disabled={loading}
               >
+                <Lock size={16} strokeWidth={2.2} />
                 {loading ? "Verifying..." : "Verify OTP"}
               </button>
               <button
@@ -333,12 +395,19 @@ export default function UserLogin() {
               </button>
             </>
           )}
+
+          <div className="user-login-divider">
+            <span>OR</span>
+          </div>
+
+          <Link to="/adminlogin" className="user-login-btn user-login-btn-outline">
+            <Lock size={16} strokeWidth={2.2} />
+            Admin Login
+          </Link>
         </div>
 
-        <div className="user-login-admin-link">
-          <Link to="/adminlogin">Admin Login</Link>
-        </div>
-      </div>
+        <p className="user-login-footer">© 2026 KNAV. All rights reserved.</p>
+      </section>
     </div>
   );
 }

@@ -2,12 +2,62 @@ import UserLayout from "./UserLayout";
 import WorkshopEditBanner from "../../components/WorkshopEditBanner";
 import { useEffect, useState } from "react";
 import {
-  fetchWorkshopByOrganization,
-  getWorkshopEditStatus,
+  Crosshair,
+  Eye,
+  Plus,
+  Save,
+  Sparkles,
+  Target,
+  TrendingUp,
+  X,
+} from "lucide-react";
+import {
+  clearCachedPageData,
+  getActiveWorkshopContext,
+  getCachedPageData,
+  setCachedPageData,
 } from "../../utils/workshopCache";
 import "../../styles/VisionMission.css";
 
 type DropZone = "vision" | "mission";
+
+const DEFAULT_KEYWORDS = [
+  "Integrity",
+  "Innovation",
+  "Customer Focus",
+  "Excellence",
+  "Trust",
+  "Growth",
+  "Leadership",
+  "Passion",
+  "Commitment",
+  "Collaboration",
+  "Empowerment",
+  "Quality",
+  "People First",
+  "Value Creation",
+  "Purpose",
+  "Sustainability",
+  "Agility",
+  "Creativity",
+  "Reliability",
+  "Transparency",
+  "Accountability",
+  "Respect",
+  "Diversity",
+  "Inclusion",
+  "Forward Thinking",
+  "Efficiency",
+  "Ethics",
+  "Service Excellence",
+  "Teamwork",
+  "Continuous Learning",
+  "Adaptability",
+  "Market Leadership",
+  "Social Responsibility",
+  "Profitability",
+  "Customer Centricity",
+];
 
 function buildKeywordList(savedKeywords: string[], savedText: string) {
   if (savedKeywords.length > 0) {
@@ -18,12 +68,12 @@ function buildKeywordList(savedKeywords: string[], savedText: string) {
 }
 
 export default function VisionMission() {
-  const [keywords, setKeywords] = useState<string[]>([]);
+  const [keywords, setKeywords] = useState<string[]>(DEFAULT_KEYWORDS);
   const [visionKeywords, setVisionKeywords] = useState<string[]>([]);
   const [missionKeywords, setMissionKeywords] = useState<string[]>([]);
   const [visionInput, setVisionInput] = useState("");
   const [missionInput, setMissionInput] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -33,79 +83,88 @@ export default function VisionMission() {
   const [editMessage, setEditMessage] = useState("");
   const [workshopId, setWorkshopId] = useState("");
 
-  const participant = (() => {
-    try {
-      return JSON.parse(localStorage.getItem("participant") || "{}");
-    } catch {
-      return {};
-    }
-  })();
+  const {
+    participant,
+    workshop: selectedWorkshop,
+    canEdit: initialCanEdit,
+    editMessage: initialEditMessage,
+  } = getActiveWorkshopContext();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const requests: Promise<unknown>[] = [fetch("/api/get-vision-mission")];
+        const activeWorkshopId = selectedWorkshop?.id || "";
+        setWorkshopId(activeWorkshopId);
+        setCanEdit(initialCanEdit);
+        setEditMessage(initialEditMessage);
+        setErrorMessage("");
+        // Clear previous workshop answers immediately while loading.
+        setVisionKeywords([]);
+        setMissionKeywords([]);
 
-        if (participant.organizationId) {
-          requests.push(fetchWorkshopByOrganization(participant.organizationId));
-        }
+        const cacheKey = `vision-mission:${participant?.id || ""}:${activeWorkshopId}`;
+        const cached = getCachedPageData<{
+          keywords: string[];
+          visionKeywords: string[];
+          missionKeywords: string[];
+        }>(cacheKey);
 
-        if (participant.id) {
-          requests.push(
-            fetch(
-              `/api/get-vision-mission-response?participantId=${participant.id}`
-            )
+        if (cached) {
+          setKeywords(
+            cached.keywords.length ? cached.keywords : DEFAULT_KEYWORDS
           );
+          setVisionKeywords(cached.visionKeywords);
+          setMissionKeywords(cached.missionKeywords);
         }
 
-        const results = await Promise.all(requests);
-        const keywordsRes = results[0] as Response;
-        let resultIndex = 1;
-
-        if (participant.organizationId) {
-          const workshopData = results[resultIndex] as Awaited<
-            ReturnType<typeof fetchWorkshopByOrganization>
-          >;
-          resultIndex += 1;
-
-          if (workshopData.success && workshopData.workshop) {
-            setWorkshopId(workshopData.workshop.id || "");
-          }
-
-          const editStatus =
-            typeof workshopData.canEdit === "boolean"
-              ? {
-                  canEdit: workshopData.canEdit,
-                  editMessage: workshopData.editMessage || "",
-                }
-              : getWorkshopEditStatus(workshopData.workshop);
-
-          setCanEdit(editStatus.canEdit);
-          setEditMessage(editStatus.editMessage);
+        const responseParams = new URLSearchParams({
+          participantId: participant?.id || "",
+        });
+        if (activeWorkshopId) {
+          responseParams.set("workshopId", activeWorkshopId);
         }
+
+        const [keywordsRes, responseRes] = await Promise.all([
+          fetch("/api/get-vision-mission"),
+          participant?.id
+            ? fetch(
+                `/api/get-vision-mission-response?${responseParams.toString()}`
+              )
+            : Promise.resolve(null),
+        ]);
 
         const keywordsData = await keywordsRes.json();
+        let nextKeywords = DEFAULT_KEYWORDS;
+        let nextVision: string[] = [];
+        let nextMission: string[] = [];
+
         if (keywordsData.success) {
-          setKeywords(keywordsData.data.keywords || []);
+          nextKeywords = keywordsData.data.keywords || DEFAULT_KEYWORDS;
+          setKeywords(nextKeywords);
         }
 
-        if (participant.id) {
-          const responseRes = results[resultIndex] as Response;
+        if (responseRes) {
           const responseData = await responseRes.json();
           if (responseData.success) {
-            setVisionKeywords(
-              buildKeywordList(
-                responseData.data.visionKeywords || [],
-                responseData.data.visionText || ""
-              )
+            nextVision = buildKeywordList(
+              responseData.data.visionKeywords || [],
+              responseData.data.visionText || ""
             );
-            setMissionKeywords(
-              buildKeywordList(
-                responseData.data.missionKeywords || [],
-                responseData.data.missionText || ""
-              )
+            nextMission = buildKeywordList(
+              responseData.data.missionKeywords || [],
+              responseData.data.missionText || ""
             );
+            setVisionKeywords(nextVision);
+            setMissionKeywords(nextMission);
           }
+        }
+
+        if (activeWorkshopId) {
+          setCachedPageData(cacheKey, {
+            keywords: nextKeywords,
+            visionKeywords: nextVision,
+            missionKeywords: nextMission,
+          });
         }
       } catch (error) {
         console.error("Error fetching vision/mission:", error);
@@ -116,7 +175,12 @@ export default function VisionMission() {
     };
 
     fetchData();
-  }, [participant.id, participant.organizationId]);
+  }, [
+    participant?.id,
+    selectedWorkshop?.id,
+    initialCanEdit,
+    initialEditMessage,
+  ]);
 
   const addKeywordToZone = (zone: DropZone, keyword: string) => {
     if (!canEdit) {
@@ -145,6 +209,10 @@ export default function VisionMission() {
   };
 
   const removeKeywordFromZone = (zone: DropZone, keyword: string) => {
+    if (!canEdit) {
+      return;
+    }
+
     if (zone === "vision") {
       setVisionKeywords((prev) => prev.filter((item) => item !== keyword));
       return;
@@ -220,6 +288,9 @@ export default function VisionMission() {
         return;
       }
 
+      clearCachedPageData(
+        `vision-mission:${participant?.id || ""}:${selectedWorkshop?.id || ""}`
+      );
       setMessage("Vision & Mission saved successfully.");
     } catch (error) {
       console.error(error);
@@ -235,78 +306,102 @@ export default function VisionMission() {
     selectedKeywords: string[],
     inputValue: string,
     onInputChange: (value: string) => void
-  ) => (
-    <div className="statement-section">
-      <h2>{title}</h2>
-      <p className="statement-help">
-        Drag keywords here, click a keyword below, or type and press Enter to
-        add.
-      </p>
+  ) => {
+    const ZoneIcon = zone === "vision" ? Eye : Target;
 
-      <div
-        className={`drop-zone ${draggingKeyword ? "drop-zone-active" : ""}`}
+    return (
+      <section
+        className={`vm-statement-card ${
+          draggingKeyword ? "is-drop-ready" : ""
+        }`}
         onDragOver={(event) => event.preventDefault()}
         onDrop={(event) => handleDrop(zone, event)}
       >
-        <div className="selected-keywords">
-          {selectedKeywords.map((keyword) => (
-            <div key={keyword} className="keyword-chip selected">
-              <span>{keyword}</span>
-              <button
-                type="button"
-                onClick={() => removeKeywordFromZone(zone, keyword)}
-                aria-label={`Remove ${keyword}`}
-                disabled={!canEdit}
-              >
-                ×
-              </button>
-            </div>
-          ))}
+        <header className="vm-statement-header">
+          <span className="vm-statement-icon" aria-hidden>
+            <ZoneIcon size={18} strokeWidth={2.2} />
+          </span>
+          <div>
+            <h2>{title}</h2>
+            <p>Drag keywords here, click below, or type your own.</p>
+          </div>
+        </header>
 
-          <input
-            type="text"
-            className="drop-zone-input"
-            value={inputValue}
-            onChange={(event) => onInputChange(event.target.value)}
-            onKeyDown={(event) => handleInputKeyDown(zone, event)}
-            disabled={!canEdit}
-            placeholder={
-              selectedKeywords.length === 0
-                ? "Drop keywords here or type and press Enter"
-                : "Type and press Enter"
-            }
-          />
+        <div className="vm-drop-zone">
+          <div className="vm-selected-keywords">
+            {selectedKeywords.map((keyword) => (
+              <div key={keyword} className="vm-chip is-selected">
+                <span>{keyword}</span>
+                <button
+                  type="button"
+                  onClick={() => removeKeywordFromZone(zone, keyword)}
+                  aria-label={`Remove ${keyword}`}
+                  disabled={!canEdit}
+                >
+                  <X size={14} strokeWidth={2.4} />
+                </button>
+              </div>
+            ))}
+
+            <input
+              type="text"
+              className="vm-drop-input"
+              value={inputValue}
+              onChange={(event) => onInputChange(event.target.value)}
+              onKeyDown={(event) => handleInputKeyDown(zone, event)}
+              disabled={!canEdit}
+              placeholder={
+                selectedKeywords.length === 0
+                  ? "Drop keywords here or type and press Enter"
+                  : "Type and press Enter"
+              }
+            />
+          </div>
         </div>
-      </div>
-    </div>
-  );
+      </section>
+    );
+  };
 
   return (
     <UserLayout contentClassName="user-layout-main-vision">
-      <div className="user-vision-card">
-          <h1>Vision & Mission Statement</h1>
-          <p className="page-intro">
-            Select keywords that best represent your organization&apos;s vision
-            and mission. Drag them into the sections below, click to add them,
-            or type your own and press Enter.
-          </p>
+      <div className="vm-page">
+        <section className="vm-hero">
+          <div className="vm-hero-copy">
+            <h1>Vision & Mission Statement</h1>
+            <p>
+              Select keywords that best represent your organization&apos;s
+              vision and mission. Drag them into the sections below, click to
+              add them, or type your own and press Enter.
+            </p>
+          </div>
+          <div className="vm-hero-art" aria-hidden>
+            <span className="vm-hero-art-icon">
+              <Crosshair size={42} strokeWidth={1.7} />
+            </span>
+          </div>
+        </section>
 
-          {loading ? (
-            <p>Loading...</p>
-          ) : (
-            <>
-              {!canEdit && <WorkshopEditBanner message={editMessage} />}
+        {loading ? (
+          <p className="vm-status">Loading...</p>
+        ) : (
+          <>
+            {!canEdit && <WorkshopEditBanner message={editMessage} />}
 
-              <div className={canEdit ? "" : "readonly-panel"}>
-              <div className="keyword-bank">
-                <div className="keyword-bank-header">
-                  <h3>Suggested Keywords</h3>
-                  <div className="zone-toggle">
+            <div className={canEdit ? "" : "vm-readonly"}>
+              <section className="vm-keyword-bank">
+                <div className="vm-keyword-bank-header">
+                  <h3>
+                    <Sparkles size={18} strokeWidth={2.2} />
+                    Suggested Keywords
+                  </h3>
+                  <div className="vm-zone-toggle">
                     <span>Add clicks to:</span>
                     <button
                       type="button"
                       className={
-                        activeZone === "vision" ? "zone-btn active" : "zone-btn"
+                        activeZone === "vision"
+                          ? "vm-zone-btn is-active"
+                          : "vm-zone-btn"
                       }
                       onClick={() => setActiveZone("vision")}
                     >
@@ -315,7 +410,9 @@ export default function VisionMission() {
                     <button
                       type="button"
                       className={
-                        activeZone === "mission" ? "zone-btn active" : "zone-btn"
+                        activeZone === "mission"
+                          ? "vm-zone-btn is-active"
+                          : "vm-zone-btn"
                       }
                       onClick={() => setActiveZone("mission")}
                     >
@@ -323,70 +420,88 @@ export default function VisionMission() {
                     </button>
                   </div>
                 </div>
-                <div className="keyword-grid">
+
+                <div className="vm-keyword-grid">
                   {keywords.map((keyword) => (
                     <button
                       key={keyword}
                       type="button"
-                      className="keyword-chip bank"
-                      draggable
+                      className="vm-chip is-bank"
+                      draggable={canEdit}
+                      disabled={!canEdit}
                       onDragStart={(event) => {
                         event.dataTransfer.setData("text/plain", keyword);
                         setDraggingKeyword(keyword);
                       }}
                       onDragEnd={() => setDraggingKeyword(null)}
                       onClick={() => addKeywordToZone(activeZone, keyword)}
-                      title={`Click to add to ${activeZone === "vision" ? "Vision" : "Mission"}. Drag to drop into a section.`}
+                      title={`Click to add to ${
+                        activeZone === "vision" ? "Vision" : "Mission"
+                      }. Drag to drop into a section.`}
                     >
-                      {keyword}
+                      <Sparkles size={13} strokeWidth={2} />
+                      <span>{keyword}</span>
+                      <Plus size={14} strokeWidth={2.4} />
                     </button>
                   ))}
                 </div>
-                <p className="keyword-tip">
+
+                <p className="vm-keyword-tip">
                   Click a keyword to add it to the selected section, or drag and
                   drop it into Vision or Mission.
                 </p>
+              </section>
+
+              <div className="vm-statements">
+                {renderDropZone(
+                  "vision",
+                  "Vision Statement",
+                  visionKeywords,
+                  visionInput,
+                  setVisionInput
+                )}
+
+                {renderDropZone(
+                  "mission",
+                  "Mission Statement",
+                  missionKeywords,
+                  missionInput,
+                  setMissionInput
+                )}
               </div>
+            </div>
 
-              {renderDropZone(
-                "vision",
-                "Vision Statement",
-                visionKeywords,
-                visionInput,
-                setVisionInput
-              )}
+            {errorMessage ? (
+              <div className="vm-error">{errorMessage}</div>
+            ) : null}
+            {message ? <div className="vm-success">{message}</div> : null}
 
-              {renderDropZone(
-                "mission",
-                "Mission Statement",
-                missionKeywords,
-                missionInput,
-                setMissionInput
-              )}
-              </div>
+            <div className="vm-actions">
+              <button
+                type="button"
+                className="vm-save-btn"
+                onClick={handleSave}
+                disabled={saving || !canEdit}
+              >
+                <Save size={16} strokeWidth={2.2} />
+                {saving ? "Saving..." : "Save & Submit"}
+              </button>
+            </div>
+          </>
+        )}
 
-              {errorMessage && (
-                <div className="vision-error">{errorMessage}</div>
-              )}
-
-              {message && <div className="vision-success">{message}</div>}
-
-              <div className="vision-actions user-actions">
-                <button
-                  type="button"
-                  className="user-btn-primary save-btn"
-                  onClick={handleSave}
-                  disabled={saving || !canEdit}
-                >
-                  {saving ? "Saving..." : "Save & Submit"}
-                </button>
-              </div>
-            </>
-          )}
-      </div>
-
-      <div className="user-vision-footer">
-        Grow Your Business: Organization Development Workshop
+        <footer className="vm-footer-banner">
+          <div className="vm-footer-copy">
+            <span className="vm-footer-icon" aria-hidden>
+              <TrendingUp size={20} strokeWidth={2.1} />
+            </span>
+            <div>
+              <strong>Grow Your Business</strong>
+              <span>Organization Development Workshop</span>
+            </div>
+          </div>
+          <div className="vm-footer-art" aria-hidden />
+        </footer>
       </div>
     </UserLayout>
   );

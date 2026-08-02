@@ -1,22 +1,21 @@
 import { useNavigate } from "react-router-dom";
 import logo from "../images/knav_white.png";
+import { appConfirm } from "../utils/appDialog";
 
 export default function Header({ user }: any) {
 
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-
-    const confirmLogout =
-      window.confirm(
-        "Do you really want to logout?"
-      );
+  const handleLogout = async () => {
+    const confirmLogout = await appConfirm("Do you really want to logout?", {
+      title: "Logout",
+      confirmLabel: "Logout",
+      variant: "warning",
+    });
 
     if (confirmLogout) {
-
       localStorage.clear();
       sessionStorage.clear();
-
       navigate("/");
     }
   };

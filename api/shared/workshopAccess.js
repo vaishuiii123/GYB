@@ -1,4 +1,5 @@
 const { getTableClient, escapeODataValue } = require("./tableHelper");
+const { readWorkshopDate } = require("./workshopDates");
 
 function parseWorkshopEndMs(endDate) {
   if (!endDate) {
@@ -37,6 +38,7 @@ function parseWorkshopStartMs(startDate) {
 }
 
 function canEditPreOd(workshop, nowMs = Date.now()) {
+  // Admin may assign/edit Pre OD until the workshop starts.
   const startMs = parseWorkshopStartMs(
     workshop?.startDate || workshop?.StartDate
   );
@@ -46,6 +48,34 @@ function canEditPreOd(workshop, nowMs = Date.now()) {
   }
 
   return nowMs < startMs;
+}
+
+function canFillPreOdWindow(workshop, nowMs = Date.now()) {
+  const workshopStartMs = parseWorkshopStartMs(
+    workshop?.startDate || workshop?.StartDate
+  );
+  const preOdStartMs = parseWorkshopStartMs(
+    workshop?.preOdStartDate || workshop?.PreOdStartDate
+  );
+
+  if (workshopStartMs !== null && nowMs >= workshopStartMs) {
+    return {
+      canFill: false,
+      message: "The workshop has started. Pre OD is now closed.",
+    };
+  }
+
+  if (preOdStartMs !== null && nowMs < preOdStartMs) {
+    return {
+      canFill: false,
+      message: "Pre OD is not open yet. Please check back at the Pre OD start time.",
+    };
+  }
+
+  return {
+    canFill: true,
+    message: "",
+  };
 }
 
 function getWorkshopEditStatus(workshop, nowMs = Date.now()) {
@@ -132,46 +162,91 @@ async function listOrganizationIdsForParticipant(participantId) {
   return [...organizationIds];
 }
 
-async function listWorkshopsForOrganization(organizationId) {
-  const client = getTableClient("Workshop");
-  const workshops = [];
-  const normalizedOrganizationId = normalizeId(organizationId);
+function mapWorkshopEntity(entity) {
+  return {
+    id: entity.rowKey,
+    workshopName: entity.WorkshopName || "",
+    preOdStartDate: readWorkshopDate(
+      entity.PreOdStartDate || entity.preOdStartDate
+    ),
+    startDate: readWorkshopDate(entity.StartDate || entity.startDate),
+    endDate: readWorkshopDate(entity.EndDate || entity.endDate),
+    templateId: entity.TemplateId || "",
+    templateName: entity.TemplateName || "",
+    preOdTemplateId: entity.PreOdTemplateId || "",
+    preOdTemplateName: entity.PreOdTemplateName || "",
+    preOdQuestionSrNos: entity.PreOdQuestionSrNos || "",
+    preOdCustomQuestions: entity.PreOdCustomQuestions || "[]",
+    preOdQuestionCount: entity.PreOdQuestionCount || 0,
+    organizationId: normalizeId(entity.OrganizationId),
+    organizationName: entity.OrganizationName || "",
+    participantCount: entity.ParticipantCount || 0,
+    createdDate: entity.CreatedDate || "",
+  };
+}
 
-  for await (const entity of client.listEntities({
-    queryOptions: { filter: "PartitionKey eq 'Workshop'" },
-  })) {
-    const entityOrganizationId = normalizeId(entity.OrganizationId);
-
-    if (entityOrganizationId !== normalizedOrganizationId) {
-      continue;
-    }
-
-    workshops.push({
-      id: entity.rowKey,
-      workshopName: entity.WorkshopName || "",
-      startDate: entity.StartDate || "",
-      endDate: entity.EndDate || "",
-      templateId: entity.TemplateId || "",
-      templateName: entity.TemplateName || "",
-      preOdTemplateId: entity.PreOdTemplateId || "",
-      preOdTemplateName: entity.PreOdTemplateName || "",
-      preOdQuestionSrNos: entity.PreOdQuestionSrNos || "",
-      preOdCustomQuestions: entity.PreOdCustomQuestions || "[]",
-      preOdQuestionCount: entity.PreOdQuestionCount || 0,
-      organizationId: entityOrganizationId,
-      organizationName: entity.OrganizationName || "",
-      participantCount: entity.ParticipantCount || 0,
-      createdDate: entity.CreatedDate || "",
-    });
-  }
-
+function sortWorkshopsNewestFirst(workshops) {
   workshops.sort(
     (a, b) =>
       new Date(b.createdDate || 0).getTime() -
       new Date(a.createdDate || 0).getTime()
   );
-
   return workshops;
+}
+
+async function listWorkshopsByOrganizationIds(organizationIds) {
+  const orgSet = new Set(
+    (organizationIds || []).map(normalizeId).filter(Boolean)
+  );
+
+  if (orgSet.size === 0) {
+    return [];
+  }
+
+  const client = getTableClient("Workshop");
+  const workshops = [];
+
+  // Prefer a filtered query for a single org, but never trust an empty
+  // filter result — Azure Table filters on custom properties can miss rows
+  // that a partition scan still returns.
+  if (orgSet.size === 1) {
+    const organizationId = [...orgSet][0];
+
+    try {
+      for await (const entity of client.listEntities({
+        queryOptions: {
+          filter: `PartitionKey eq 'Workshop' and OrganizationId eq '${escapeODataValue(
+            organizationId
+          )}'`,
+        },
+      })) {
+        workshops.push(mapWorkshopEntity(entity));
+      }
+
+      if (workshops.length > 0) {
+        return sortWorkshopsNewestFirst(workshops);
+      }
+    } catch {
+      // fall through to partition scan
+    }
+  }
+
+  // Partition scan with in-memory org filter (reliable fallback).
+  for await (const entity of client.listEntities({
+    queryOptions: { filter: "PartitionKey eq 'Workshop'" },
+  })) {
+    if (!orgSet.has(normalizeId(entity.OrganizationId))) {
+      continue;
+    }
+
+    workshops.push(mapWorkshopEntity(entity));
+  }
+
+  return sortWorkshopsNewestFirst(workshops);
+}
+
+async function listWorkshopsForOrganization(organizationId) {
+  return listWorkshopsByOrganizationIds([organizationId]);
 }
 
 async function listWorkshopsForOrganizationName(organizationName) {
@@ -190,32 +265,10 @@ async function listWorkshopsForOrganizationName(organizationName) {
       continue;
     }
 
-    workshops.push({
-      id: entity.rowKey,
-      workshopName: entity.WorkshopName || "",
-      startDate: entity.StartDate || "",
-      endDate: entity.EndDate || "",
-      templateId: entity.TemplateId || "",
-      templateName: entity.TemplateName || "",
-      preOdTemplateId: entity.PreOdTemplateId || "",
-      preOdTemplateName: entity.PreOdTemplateName || "",
-      preOdQuestionSrNos: entity.PreOdQuestionSrNos || "",
-      preOdCustomQuestions: entity.PreOdCustomQuestions || "[]",
-      preOdQuestionCount: entity.PreOdQuestionCount || 0,
-      organizationId: normalizeId(entity.OrganizationId),
-      organizationName: entity.OrganizationName || "",
-      participantCount: entity.ParticipantCount || 0,
-      createdDate: entity.CreatedDate || "",
-    });
+    workshops.push(mapWorkshopEntity(entity));
   }
 
-  workshops.sort(
-    (a, b) =>
-      new Date(b.createdDate || 0).getTime() -
-      new Date(a.createdDate || 0).getTime()
-  );
-
-  return workshops;
+  return sortWorkshopsNewestFirst(workshops);
 }
 
 async function isParticipantInOrganization(participantId, organizationId) {
@@ -236,119 +289,88 @@ async function isParticipantInOrganization(participantId, organizationId) {
 }
 
 async function listWorkshopsLinkedToParticipant(participantId) {
-  const client = getTableClient("Workshop");
-  const workshops = [];
-
-  for await (const entity of client.listEntities({
-    queryOptions: { filter: "PartitionKey eq 'Workshop'" },
-  })) {
-    const organizationId = normalizeId(entity.OrganizationId);
-    const linked = await isParticipantInOrganization(
-      participantId,
-      organizationId
-    );
-
-    if (!linked) {
-      continue;
-    }
-
-    workshops.push({
-      id: entity.rowKey,
-      workshopName: entity.WorkshopName || "",
-      startDate: entity.StartDate || "",
-      endDate: entity.EndDate || "",
-      templateId: entity.TemplateId || "",
-      templateName: entity.TemplateName || "",
-      preOdTemplateId: entity.PreOdTemplateId || "",
-      preOdTemplateName: entity.PreOdTemplateName || "",
-      preOdQuestionSrNos: entity.PreOdQuestionSrNos || "",
-      preOdCustomQuestions: entity.PreOdCustomQuestions || "[]",
-      preOdQuestionCount: entity.PreOdQuestionCount || 0,
-      organizationId,
-      organizationName: entity.OrganizationName || "",
-      participantCount: entity.ParticipantCount || 0,
-      createdDate: entity.CreatedDate || "",
-    });
-  }
-
-  workshops.sort(
-    (a, b) =>
-      new Date(b.createdDate || 0).getTime() -
-      new Date(a.createdDate || 0).getTime()
-  );
-
-  return workshops;
+  // Resolve org links once, then load workshops in a single query path.
+  const organizationIds = await listOrganizationIdsForParticipant(participantId);
+  return listWorkshopsByOrganizationIds(organizationIds);
 }
 
-async function listWorkshopsForParticipant(participantId) {
-  const participantClient = getTableClient("Participants");
-  let participant = null;
+async function listWorkshopsForParticipant(
+  participantId,
+  preferredOrganizationId = ""
+) {
+  const normalizedPreferredOrgId = normalizeId(preferredOrganizationId);
 
-  try {
-    participant = await participantClient.getEntity("Participant", participantId);
-  } catch {
-    participant = null;
-  }
+  // Always resolve every organization the participant is assigned to.
+  // Preferring only the client org hid workshops under other linked orgs.
+  let organizationIds = await listOrganizationIdsForParticipant(participantId);
 
-  const organizationIds = await listOrganizationIdsForParticipant(participantId);
-  const workshops = [];
-  const seenWorkshopIds = new Set();
-
-  for (const organizationId of organizationIds) {
-    const organizationWorkshops = await listWorkshopsForOrganization(
-      organizationId
+  if (normalizedPreferredOrgId) {
+    const alreadyLinked = organizationIds.some(
+      (id) => normalizeId(id) === normalizedPreferredOrgId
     );
+    const membershipOk =
+      alreadyLinked ||
+      (await isParticipantInOrganization(
+        participantId,
+        normalizedPreferredOrgId
+      ));
 
-    for (const workshop of organizationWorkshops) {
-      if (seenWorkshopIds.has(workshop.id)) {
-        continue;
-      }
-
-      seenWorkshopIds.add(workshop.id);
-      workshops.push(workshop);
+    if (membershipOk) {
+      organizationIds = [
+        normalizedPreferredOrgId,
+        ...organizationIds.filter(
+          (id) => normalizeId(id) !== normalizedPreferredOrgId
+        ),
+      ];
     }
   }
 
+  let workshops = await listWorkshopsByOrganizationIds(organizationIds);
+
+  // Fallback: match by participant organisation name when org-id links miss.
   if (workshops.length === 0) {
-    const linkedWorkshops = await listWorkshopsLinkedToParticipant(
-      participantId
-    );
+    const participantClient = getTableClient("Participants");
+    let participant = null;
 
-    for (const workshop of linkedWorkshops) {
-      if (seenWorkshopIds.has(workshop.id)) {
-        continue;
+    try {
+      participant = await participantClient.getEntity(
+        "Participant",
+        participantId
+      );
+    } catch {
+      participant = null;
+    }
+
+    const organisationName =
+      participant?.Organisation || participant?.Organization || "";
+
+    if (organisationName) {
+      workshops = await listWorkshopsForOrganizationName(organisationName);
+
+      for (const workshop of workshops) {
+        if (workshop.organizationId) {
+          organizationIds.push(workshop.organizationId);
+        }
       }
-
-      seenWorkshopIds.add(workshop.id);
-      organizationIds.push(workshop.organizationId);
-      workshops.push(workshop);
     }
   }
 
-  if (workshops.length === 0 && participant?.Organisation) {
-    const namedWorkshops = await listWorkshopsForOrganizationName(
-      participant.Organisation
-    );
-
-    for (const workshop of namedWorkshops) {
-      if (seenWorkshopIds.has(workshop.id)) {
-        continue;
-      }
-
-      seenWorkshopIds.add(workshop.id);
-      workshops.push(workshop);
+  // Last resort: if a preferred org id was supplied, still try that org's
+  // workshops (covers stale client org id after a new assignment).
+  if (workshops.length === 0 && normalizedPreferredOrgId) {
+    workshops = await listWorkshopsByOrganizationIds([
+      normalizedPreferredOrgId,
+    ]);
+    if (workshops.length > 0) {
+      organizationIds = [normalizedPreferredOrgId, ...organizationIds];
     }
   }
-
-  workshops.sort(
-    (a, b) =>
-      new Date(b.createdDate || 0).getTime() -
-      new Date(a.createdDate || 0).getTime()
-  );
 
   return {
-    organizationIds: [...new Set(organizationIds.filter(Boolean))],
-    workshops,
+    organizationIds: [
+      ...new Set(organizationIds.map(normalizeId).filter(Boolean)),
+    ],
+    workshops: sortWorkshopsNewestFirst(workshops),
   };
 }
 
@@ -389,8 +411,11 @@ async function getWorkshopById(workshopId) {
     return {
       id: entity.rowKey,
       workshopName: entity.WorkshopName || "",
-      startDate: entity.StartDate || "",
-      endDate: entity.EndDate || "",
+      preOdStartDate: readWorkshopDate(
+        entity.PreOdStartDate || entity.preOdStartDate
+      ),
+      startDate: readWorkshopDate(entity.StartDate || entity.startDate),
+      endDate: readWorkshopDate(entity.EndDate || entity.endDate),
       templateId: entity.TemplateId || "",
       templateName: entity.TemplateName || "",
       preOdTemplateId: entity.PreOdTemplateId || "",
@@ -422,11 +447,12 @@ function getPreOdFillStatus(workshop, nowMs = Date.now()) {
     };
   }
 
-  if (!canEditPreOd(workshop, nowMs)) {
+  const windowStatus = canFillPreOdWindow(workshop, nowMs);
+  if (!windowStatus.canFill) {
     return {
       available: true,
       canFill: false,
-      message: "The workshop has started. Pre OD is now closed.",
+      message: windowStatus.message,
     };
   }
 
@@ -511,6 +537,7 @@ module.exports = {
   parseWorkshopEndMs,
   parseWorkshopStartMs,
   canEditPreOd,
+  canFillPreOdWindow,
   getPreOdFillStatus,
   getWorkshopEditStatus,
   normalizeId,

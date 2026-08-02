@@ -6,6 +6,7 @@ import {
   DeleteIconBtn,
   EditIconBtn,
 } from "../../components/AdminActionIcons";
+import { appConfirm } from "../../utils/appDialog";
 
 
 type PageProps = {
@@ -243,7 +244,7 @@ export default function TagManagement({ user }: PageProps) {
 
 
         const confirmDelete =
-            window.confirm(
+            await appConfirm(
                 "Are you sure you want to delete this tag?"
             );
 

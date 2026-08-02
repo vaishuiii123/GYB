@@ -4,6 +4,7 @@ import { DeleteIconBtn } from "../../components/AdminActionIcons";
 import "../../styles/CategoryManagement.css";
 import { useState, useEffect } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
+import { appConfirm } from "../../utils/appDialog";
 
 type PageProps = {
     user?: any;
@@ -128,7 +129,7 @@ export default function CategoryQuestions({ user }: PageProps) {
     };
 
     const handleRemoveQuestion = async (questionId: string) => {
-        const confirmRemove = window.confirm(
+        const confirmRemove = await appConfirm(
             "Remove this question from category?"
         );
         if (!confirmRemove || !categoryId) return;

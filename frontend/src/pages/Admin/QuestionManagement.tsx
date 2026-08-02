@@ -6,6 +6,7 @@ import {
   DeleteIconBtn,
   EditIconBtn,
 } from "../../components/AdminActionIcons";
+import { appConfirm } from "../../utils/appDialog";
 
 type PageProps = {
     user?: any;
@@ -128,7 +129,7 @@ export default function QuestionManagement({ user }: PageProps) {
     };
 
     const handleDeleteQuestion = async (id: string) => {
-        const confirmDelete = window.confirm(
+        const confirmDelete = await appConfirm(
             "Are you sure you want to delete this question?"
         );
         if (!confirmDelete) return;

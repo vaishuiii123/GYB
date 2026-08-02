@@ -1,9 +1,18 @@
 import { useEffect, useState } from "react";
-import { Plus } from "lucide-react";
 import {
-  fetchWorkshopByOrganization,
+  CalendarDays,
+  ClipboardCheck,
+  MessageSquare,
+  Plus,
+  Save,
+  Trash2,
+  TrendingUp,
+  UserRound,
+} from "lucide-react";
+import {
   fetchOdChart,
   flattenOdChartLeaves,
+  getActiveWorkshopContext,
   getWorkshopEditStatus,
 } from "../../utils/workshopCache";
 import UserLayout from "./UserLayout";
@@ -33,6 +42,8 @@ type FormEntry = {
   comments: string;
 };
 
+const DESCRIPTION_MAX = 500;
+
 function createEmptyForm(): FormEntry {
   return {
     key: crypto.randomUUID(),
@@ -55,67 +66,51 @@ export default function ActionableForm() {
   const [canEdit, setCanEdit] = useState(true);
   const [editMessage, setEditMessage] = useState("");
 
-  const participant = (() => {
-    try {
-      return JSON.parse(localStorage.getItem("participant") || "{}");
-    } catch {
-      return {};
-    }
-  })();
+  const {
+    participant,
+    workshop: selectedWorkshop,
+    canEdit: initialCanEdit,
+    editMessage: initialEditMessage,
+  } = getActiveWorkshopContext();
 
   useEffect(() => {
     const loadFormData = async () => {
-      if (!participant.id) {
+      if (!participant?.id) {
         setErrorMessage("Please log in again.");
         setLoading(false);
         return;
       }
 
       try {
-        if (!participant.organizationId) {
-          setErrorMessage("Organization not found.");
-          setLoading(false);
-          return;
-        }
-
-        const workshopData = await fetchWorkshopByOrganization(
-          participant.organizationId
-        );
-
-        if (!workshopData.success || !workshopData.workshop?.templateId) {
+        if (!selectedWorkshop?.id || !selectedWorkshop.templateId) {
           setErrorMessage("No workshop template found for your organization.");
           setLoading(false);
           return;
         }
 
-        const activeWorkshop = workshopData.workshop;
         setWorkshop({
-          id: activeWorkshop.id,
-          templateId: activeWorkshop.templateId,
-          workshopName: activeWorkshop.workshopName || "",
-          organizationName: activeWorkshop.organizationName || "",
+          id: selectedWorkshop.id,
+          templateId: selectedWorkshop.templateId,
+          workshopName: selectedWorkshop.workshopName || "",
+          organizationName: selectedWorkshop.organizationName || "",
         });
-
-        const editStatus =
-          typeof workshopData.canEdit === "boolean"
-            ? {
-                canEdit: workshopData.canEdit,
-                editMessage: workshopData.editMessage || "",
-              }
-            : getWorkshopEditStatus(activeWorkshop);
-
-        setCanEdit(editStatus.canEdit);
-        setEditMessage(editStatus.editMessage);
+        setCanEdit(initialCanEdit);
+        setEditMessage(initialEditMessage);
 
         const [chartData, actionablesData] = await Promise.all([
-          fetchOdChart(activeWorkshop.templateId),
+          fetchOdChart(selectedWorkshop.templateId),
           fetch(
-            `/api/get-actionables?participantId=${participant.id}&workshopId=${activeWorkshop.id}`
+            `/api/get-actionables?participantId=${participant.id}&workshopId=${selectedWorkshop.id}`
           ).then((response) => response.json()),
         ]);
 
         if (chartData.success) {
-          setCategories(flattenOdChartLeaves(chartData.tops || []));
+          setCategories(
+            flattenOdChartLeaves(
+              chartData.tops || [],
+              selectedWorkshop.templateId
+            )
+          );
         }
 
         if (actionablesData.success && actionablesData.data?.length > 0) {
@@ -142,6 +137,10 @@ export default function ActionableForm() {
         } else {
           setForms([createEmptyForm()]);
         }
+
+        const editStatus = getWorkshopEditStatus(selectedWorkshop);
+        setCanEdit(editStatus.canEdit);
+        setEditMessage(editStatus.editMessage);
       } catch (error) {
         console.error(error);
         setErrorMessage("Unable to load form.");
@@ -151,7 +150,13 @@ export default function ActionableForm() {
     };
 
     loadFormData();
-  }, [participant.id, participant.organizationId]);
+  }, [
+    participant?.id,
+    selectedWorkshop?.id,
+    selectedWorkshop?.templateId,
+    initialCanEdit,
+    initialEditMessage,
+  ]);
 
   const updateForm = (
     key: string,
@@ -263,7 +268,9 @@ export default function ActionableForm() {
       setSuccessMessage("");
 
       for (const form of formsToSave) {
-        const category = categories.find((item) => item.id === form.categoryId)!;
+        const category = categories.find(
+          (item) => item.id === form.categoryId
+        )!;
 
         const response = await fetch("/api/save-actionable", {
           method: "POST",
@@ -294,7 +301,9 @@ export default function ActionableForm() {
       setSuccessMessage("Actionables saved successfully.");
 
       const refreshRes = await fetch(
-        `/api/get-actionables?participantId=${participant.id}&workshopId=${workshop?.id || ""}`
+        `/api/get-actionables?participantId=${participant.id}&workshopId=${
+          workshop?.id || ""
+        }`
       );
       const refreshData = await refreshRes.json();
 
@@ -330,199 +339,221 @@ export default function ActionableForm() {
 
   return (
     <UserLayout contentClassName="user-layout-main-actionables">
-      <div className="actionables-page-wrap">
-        <div className="actionables-panel">
-          <div className="actionables-panel-header">
-            <h1 className="actionables-title">Actionable Items</h1>
-            <p className="actionables-intro">
-              Record key priorities and takeaways from the workshop. Select a
-              category, fill in the details, and save your actionables.
-            </p>
-          </div>
+      <div className="act-page">
+        <div className="act-panel">
+          <section className="act-hero">
+            <div className="act-hero-copy">
+              <span className="act-hero-icon" aria-hidden>
+                <ClipboardCheck size={22} strokeWidth={2.1} />
+              </span>
+              <div>
+                <h1>Actionable Items</h1>
+                <p>
+                  Add key priorities and initiatives from the workshop. Select a
+                  category, fill in the details, and save your actionable items.
+                </p>
+              </div>
+            </div>
+            <div className="act-hero-art" aria-hidden />
+          </section>
 
           {loading ? (
-            <p className="actionables-empty">Loading form...</p>
+            <p className="act-empty">Loading form...</p>
           ) : categories.length === 0 ? (
-            <p className="actionables-empty">
+            <p className="act-empty">
               No categories are assigned to your workshop yet.
             </p>
           ) : (
             <>
               {!canEdit && <WorkshopEditBanner message={editMessage} />}
 
-              {errorMessage && (
-                <div className="actionables-alert actionables-alert-error">
-                  {errorMessage}
-                </div>
-              )}
+              {errorMessage ? (
+                <div className="act-alert act-alert-error">{errorMessage}</div>
+              ) : null}
 
-              {successMessage && (
-                <div className="actionables-alert actionables-alert-success">
+              {successMessage ? (
+                <div className="act-alert act-alert-success">
                   {successMessage}
                 </div>
-              )}
+              ) : null}
 
-              <div className="actionables-form-list">
+              <div className="act-form-list">
                 {forms.map((form, index) => {
-              const availableCategories = getAvailableCategories(form.key);
-              const selectedCategory = categories.find(
-                (item) => item.id === form.categoryId
-              );
-              const dropdownCategories = selectedCategory
-                ? [selectedCategory, ...availableCategories].sort((a, b) =>
-                    a.name.localeCompare(b.name)
-                  )
-                : availableCategories;
+                  const availableCategories = getAvailableCategories(form.key);
+                  const selectedCategory = categories.find(
+                    (item) => item.id === form.categoryId
+                  );
+                  const dropdownCategories = selectedCategory
+                    ? [selectedCategory, ...availableCategories].sort((a, b) =>
+                        a.name.localeCompare(b.name)
+                      )
+                    : availableCategories;
 
-              return (
-                <div key={form.key} className="actionables-form-block">
-                  {forms.length > 1 && (
-                    <div className="actionables-form-block-header">
-                      <span className="actionables-form-block-title">
-                        Actionable {index + 1}
-                      </span>
-                      <button
-                        type="button"
-                        className="actionables-remove-btn"
-                        onClick={() => removeForm(form.key)}
-                        disabled={!canEdit}
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  )}
+                  return (
+                    <article key={form.key} className="act-item">
+                      <header className="act-item-header">
+                        <div className="act-item-title">
+                          <span className="act-item-number" aria-hidden>
+                            {index + 1}
+                          </span>
+                          <h2>Actionable Item {index + 1}</h2>
+                        </div>
+                        <button
+                          type="button"
+                          className="act-remove-btn"
+                          onClick={() => removeForm(form.key)}
+                          disabled={!canEdit}
+                        >
+                          <Trash2 size={15} strokeWidth={2.2} />
+                          Remove
+                        </button>
+                      </header>
 
-                  <div className="actionables-field">
-                    <label
-                      className="actionables-label"
-                      htmlFor={`category-${form.key}`}
-                    >
-                      Category
-                    </label>
-                    <select
-                      id={`category-${form.key}`}
-                      className="actionables-select"
-                      value={form.categoryId}
-                      onChange={(event) =>
-                        updateForm(form.key, "categoryId", event.target.value)
-                      }
-                      disabled={!canEdit}
-                    >
-                      <option value="">Select category</option>
-                      {dropdownCategories.map((category) => (
-                        <option key={category.id} value={category.id}>
-                          {category.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                      <div className="act-grid-top">
+                        <div className="act-field">
+                          <label htmlFor={`category-${form.key}`}>
+                            Category
+                          </label>
+                          <select
+                            id={`category-${form.key}`}
+                            value={form.categoryId}
+                            onChange={(event) =>
+                              updateForm(
+                                form.key,
+                                "categoryId",
+                                event.target.value
+                              )
+                            }
+                            disabled={!canEdit}
+                          >
+                            <option value="">Select category</option>
+                            {dropdownCategories.map((category) => (
+                              <option key={category.id} value={category.id}>
+                                {category.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
 
-                  <div className="actionables-field">
-                    <label
-                      className="actionables-label"
-                      htmlFor={`description-${form.key}`}
-                    >
-                      Description*
-                    </label>
-                    <textarea
-                      id={`description-${form.key}`}
-                      className="actionables-textarea"
-                      placeholder="Describe the actionable item"
-                      value={form.description}
-                      onChange={(event) =>
-                        updateForm(form.key, "description", event.target.value)
-                      }
-                      rows={3}
-                      disabled={!canEdit}
-                    />
-                  </div>
+                        <div className="act-field">
+                          <div className="act-label-row">
+                            <label htmlFor={`description-${form.key}`}>
+                              Description<span>*</span>
+                            </label>
+                            <small>
+                              {form.description.length}/{DESCRIPTION_MAX}
+                            </small>
+                          </div>
+                          <textarea
+                            id={`description-${form.key}`}
+                            placeholder="Describe the actionable item"
+                            value={form.description}
+                            maxLength={DESCRIPTION_MAX}
+                            onChange={(event) =>
+                              updateForm(
+                                form.key,
+                                "description",
+                                event.target.value
+                              )
+                            }
+                            rows={3}
+                            disabled={!canEdit}
+                          />
+                        </div>
+                      </div>
 
-                  <div className="actionables-field-row">
-                    <div className="actionables-field">
-                      <label
-                        className="actionables-label"
-                        htmlFor={`timeline-${form.key}`}
-                      >
-                        Timeline*
-                      </label>
-                      <input
-                        id={`timeline-${form.key}`}
-                        type="date"
-                        className="actionables-input"
-                        value={form.timeline}
-                        onChange={(event) =>
-                          updateForm(form.key, "timeline", event.target.value)
-                        }
-                        disabled={!canEdit}
-                      />
-                    </div>
+                      <div className="act-grid-bottom">
+                        <div className="act-field">
+                          <label htmlFor={`timeline-${form.key}`}>
+                            Timeline<span>*</span>
+                          </label>
+                          <div className="act-input-wrap">
+                            <CalendarDays size={16} strokeWidth={2} />
+                            <input
+                              id={`timeline-${form.key}`}
+                              type="date"
+                              value={form.timeline}
+                              onChange={(event) =>
+                                updateForm(
+                                  form.key,
+                                  "timeline",
+                                  event.target.value
+                                )
+                              }
+                              disabled={!canEdit}
+                            />
+                          </div>
+                        </div>
 
-                    <div className="actionables-field">
-                      <label
-                        className="actionables-label"
-                        htmlFor={`responsible-${form.key}`}
-                      >
-                        Person/s responsible*
-                      </label>
-                      <input
-                        id={`responsible-${form.key}`}
-                        type="text"
-                        className="actionables-input"
-                        placeholder="Name or role"
-                        value={form.responsiblePersons}
-                        onChange={(event) =>
-                          updateForm(
-                            form.key,
-                            "responsiblePersons",
-                            event.target.value
-                          )
-                        }
-                        disabled={!canEdit}
-                      />
-                    </div>
-                  </div>
+                        <div className="act-field">
+                          <label htmlFor={`responsible-${form.key}`}>
+                            Person(s) responsible<span>*</span>
+                          </label>
+                          <div className="act-input-wrap">
+                            <UserRound size={16} strokeWidth={2} />
+                            <input
+                              id={`responsible-${form.key}`}
+                              type="text"
+                              placeholder="Name or role"
+                              value={form.responsiblePersons}
+                              onChange={(event) =>
+                                updateForm(
+                                  form.key,
+                                  "responsiblePersons",
+                                  event.target.value
+                                )
+                              }
+                              disabled={!canEdit}
+                            />
+                          </div>
+                        </div>
 
-                  <div className="actionables-field">
-                    <label
-                      className="actionables-label"
-                      htmlFor={`comments-${form.key}`}
-                    >
-                      Comments (if any)
-                    </label>
-                    <textarea
-                      id={`comments-${form.key}`}
-                      className="actionables-textarea"
-                      placeholder="Additional notes"
-                      value={form.comments}
-                      onChange={(event) =>
-                        updateForm(form.key, "comments", event.target.value)
-                      }
-                      rows={2}
-                      disabled={!canEdit}
-                    />
-                  </div>
-                </div>
-              );
-            })}
+                        <div className="act-field">
+                          <label htmlFor={`comments-${form.key}`}>
+                            Comments (if any)
+                          </label>
+                          <div className="act-input-wrap">
+                            <MessageSquare size={16} strokeWidth={2} />
+                            <input
+                              id={`comments-${form.key}`}
+                              type="text"
+                              placeholder="Additional notes"
+                              value={form.comments}
+                              onChange={(event) =>
+                                updateForm(
+                                  form.key,
+                                  "comments",
+                                  event.target.value
+                                )
+                              }
+                              disabled={!canEdit}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
 
-              <div className="actionables-actions">
+              <div className="act-actions">
                 <button
                   type="button"
-                  className="user-btn-secondary actionables-add-btn"
+                  className="act-add-btn"
                   onClick={addAnotherForm}
                   disabled={!canEdit || forms.length >= categories.length}
                 >
-                  <Plus size={18} strokeWidth={2} />
-                  Add actionable items
+                  <Plus size={18} strokeWidth={2.2} />
+                  Add Actionable Item
                 </button>
 
                 <button
                   type="button"
-                  className="user-btn-primary actionables-save-btn"
+                  className="act-save-btn"
                   onClick={handleSubmit}
                   disabled={saving || loading || !canEdit}
                 >
+                  <Save size={16} strokeWidth={2.2} />
                   {saving ? "Saving..." : "Save & Submit"}
                 </button>
               </div>
@@ -530,9 +561,17 @@ export default function ActionableForm() {
           )}
         </div>
 
-        <div className="actionables-footer">
-          Grow Your Business: Organization Development Workshop
-        </div>
+        <footer className="act-footer-banner">
+          <div className="act-footer-copy">
+            <span className="act-footer-icon" aria-hidden>
+              <TrendingUp size={18} strokeWidth={2.1} />
+            </span>
+            <div>
+              <strong>Grow Your Business</strong>
+              <span>Organization Development Workshop</span>
+            </div>
+          </div>
+        </footer>
       </div>
     </UserLayout>
   );

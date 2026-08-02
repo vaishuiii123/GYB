@@ -12,6 +12,7 @@ import {
   isValidPhone,
 } from "../../utils/validation";
 import "../../styles/Organization.css";
+import { appConfirm } from "../../utils/appDialog";
 
 type PageProps = {
   user?: any;
@@ -201,7 +202,11 @@ export default function Participants({ user }: PageProps) {
   };
 
   const handleDeleteParticipant = async (p: any) => {
-    if (!window.confirm(`Delete ${formatParticipantName(p)}?`)) return;
+    if (!(await appConfirm(`Delete ${formatParticipantName(p)}?`, {
+      title: "Delete participant",
+      confirmLabel: "Delete",
+      variant: "error",
+    }))) return;
 
     await fetch("/api/delete-participant", {
       method: "POST",

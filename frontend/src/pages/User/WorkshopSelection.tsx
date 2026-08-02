@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown } from "lucide-react";
+import {
+  ArrowRight,
+  CalendarDays,
+  ChevronDown,
+  FileText,
+  LayoutDashboard,
+  Users,
+} from "lucide-react";
 import {
   clearSelectedWorkshop,
   getParticipantDisplayName,
@@ -8,8 +15,12 @@ import {
   setSelectedWorkshop,
   type SelectedWorkshop,
 } from "../../utils/selectedWorkshop";
-import { fetchParticipantWorkshops } from "../../utils/workshopCache";
+import {
+  fetchParticipantWorkshops,
+  getCachedParticipantWorkshops,
+} from "../../utils/workshopCache";
 import "../../styles/WorkshopSelection.css";
+import { appConfirm } from "../../utils/appDialog";
 
 type WorkshopOption = SelectedWorkshop & {
   participantCount?: number;
@@ -55,6 +66,12 @@ export default function WorkshopSelection() {
   const [errorMessage, setErrorMessage] = useState("");
 
   const participantName = getParticipantDisplayName(participant);
+  const initials = participantName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || "")
+    .join("");
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
@@ -84,41 +101,74 @@ export default function WorkshopSelection() {
       return;
     }
 
+    const mapWorkshops = (
+      source: Array<{
+        id: string;
+        workshopName?: string;
+        organizationName?: string;
+        organizationId?: string;
+        templateId?: string;
+        templateName?: string;
+        preOdStartDate?: string;
+        startDate?: string;
+        endDate?: string;
+        preOdQuestionCount?: number;
+        participantCount?: number;
+      }>
+    ): WorkshopOption[] =>
+      source.map((workshop) => ({
+        id: workshop.id,
+        workshopName: workshop.workshopName || "Workshop",
+        organizationName: workshop.organizationName || "",
+        organizationId: workshop.organizationId || participant.organizationId,
+        templateId: workshop.templateId,
+        templateName: workshop.templateName,
+        preOdStartDate: workshop.preOdStartDate,
+        startDate: workshop.startDate,
+        endDate: workshop.endDate,
+        preOdQuestionCount: workshop.preOdQuestionCount,
+        participantCount: workshop.participantCount,
+      }));
+
+    const cached = getCachedParticipantWorkshops(
+      participant.id,
+      participant.organizationId || ""
+    );
+
+    if (cached?.success && (cached.workshops || []).length > 0) {
+      setWorkshops(mapWorkshops(cached.workshops || []));
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
     const loadWorkshops = async () => {
       try {
-        setLoading(true);
         setErrorMessage("");
 
+        // Always refresh so newly assigned workshops appear immediately.
         const data = await fetchParticipantWorkshops(
           participant.id,
-          participant.organizationId || ""
+          participant.organizationId || "",
+          { forceRefresh: true }
         );
 
         if (!data.success) {
-          setErrorMessage(
-            data.editMessage ||
-              "Failed to load workshops. Restart the API and try again."
-          );
+          if (!cached?.success) {
+            setErrorMessage(
+              data.editMessage ||
+                "Failed to load workshops. Restart the API and try again."
+            );
+          }
           return;
         }
 
-        const items = (data.workshops || []).map((workshop) => ({
-          id: workshop.id,
-          workshopName: workshop.workshopName || "Workshop",
-          organizationName: workshop.organizationName || "",
-          organizationId: workshop.organizationId || participant.organizationId,
-          templateId: workshop.templateId,
-          templateName: workshop.templateName,
-          startDate: workshop.startDate,
-          endDate: workshop.endDate,
-          preOdQuestionCount: workshop.preOdQuestionCount,
-          participantCount: workshop.participantCount,
-        }));
-
-        setWorkshops(items);
+        setWorkshops(mapWorkshops(data.workshops || []));
       } catch (error) {
         console.error(error);
-        setErrorMessage("Failed to load workshops.");
+        if (!cached?.success) {
+          setErrorMessage("Failed to load workshops.");
+        }
       } finally {
         setLoading(false);
       }
@@ -132,8 +182,14 @@ export default function WorkshopSelection() {
     navigate("/userdashboard", { replace: true });
   };
 
-  const handleLogout = () => {
-    if (window.confirm("Do you really want to logout?")) {
+  const handleLogout = async () => {
+    const confirmed = await appConfirm("Do you really want to logout?", {
+      title: "Logout",
+      confirmLabel: "Logout",
+      variant: "warning",
+    });
+
+    if (confirmed) {
       clearSelectedWorkshop();
       localStorage.removeItem("participant");
       navigate("/", { replace: true });
@@ -154,6 +210,9 @@ export default function WorkshopSelection() {
               aria-expanded={menuOpen}
               aria-haspopup="menu"
             >
+              <span className="workshop-selection-avatar" aria-hidden>
+                {initials || "U"}
+              </span>
               <span className="workshop-selection-name">{participantName}</span>
               <ChevronDown size={18} strokeWidth={2} />
             </button>
@@ -188,10 +247,15 @@ export default function WorkshopSelection() {
 
       <main className="workshop-selection-main">
         <div className="workshop-selection-intro">
-          <h1>Dashboard</h1>
-          <p className="workshop-selection-subtitle">
-            Choose the workshop assigned to you to continue.
-          </p>
+          <div className="workshop-selection-intro-icon" aria-hidden>
+            <LayoutDashboard size={22} strokeWidth={2.2} />
+          </div>
+          <div>
+            <h1>Dashboard</h1>
+            <p className="workshop-selection-subtitle">
+              Choose the workshop assigned to you to continue.
+            </p>
+          </div>
         </div>
 
         {loading ? (
@@ -206,43 +270,66 @@ export default function WorkshopSelection() {
           </p>
         ) : (
           <div className="workshop-selection-grid">
-            {workshops.map((workshop) => (
-              <button
-                key={workshop.id}
-                type="button"
-                className="workshop-selection-card"
-                onClick={() => handleSelectWorkshop(workshop)}
-              >
-                <span
-                  className="workshop-selection-card-icon"
-                  aria-hidden="true"
+            {workshops.map((workshop) => {
+              const dates = formatWorkshopDates(
+                workshop.startDate,
+                workshop.endDate
+              );
+
+              return (
+                <button
+                  key={workshop.id}
+                  type="button"
+                  className="workshop-selection-card"
+                  onClick={() => handleSelectWorkshop(workshop)}
                 >
-                  ❖
-                </span>
-                <div className="workshop-selection-card-body">
-                  <h2>{workshop.workshopName}</h2>
-                  {formatWorkshopDates(workshop.startDate, workshop.endDate) && (
-                    <p className="workshop-selection-card-dates">
-                      {formatWorkshopDates(
-                        workshop.startDate,
-                        workshop.endDate
-                      )}
-                    </p>
-                  )}
-                  {workshop.preOdQuestionCount ? (
+                  <div className="workshop-selection-card-top">
+                    <span
+                      className="workshop-selection-card-icon"
+                      aria-hidden
+                    >
+                      <LayoutDashboard size={20} strokeWidth={2.1} />
+                    </span>
+                    <div className="workshop-selection-card-body">
+                      <h2>{workshop.workshopName}</h2>
+                      {dates ? (
+                        <p className="workshop-selection-card-dates">
+                          <CalendarDays size={14} strokeWidth={2} />
+                          <span>{dates}</span>
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="workshop-selection-card-divider" />
+
+                  <div className="workshop-selection-card-bottom">
                     <p className="workshop-selection-card-meta">
-                      {workshop.preOdQuestionCount} Pre OD questions assigned
+                      <FileText size={14} strokeWidth={2} />
+                      <span>
+                        {workshop.preOdQuestionCount
+                          ? `${workshop.preOdQuestionCount} Pre OD questions assigned`
+                          : "No Pre OD questions assigned"}
+                      </span>
                     </p>
-                  ) : null}
-                </div>
-              </button>
-            ))}
+                    <span className="workshop-selection-card-arrow" aria-hidden>
+                      <ArrowRight size={16} strokeWidth={2.4} />
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         )}
       </main>
 
       <footer className="workshop-selection-footer">
-        Grow Your Business: Organization Development Workshop
+        <div className="workshop-selection-footer-badge" aria-hidden>
+          <Users size={28} strokeWidth={1.8} />
+        </div>
+        <h3>Grow Your Business</h3>
+        <p>Organization Development Workshop</p>
+        <span className="workshop-selection-footer-rule" aria-hidden />
       </footer>
     </div>
   );

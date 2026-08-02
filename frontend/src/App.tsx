@@ -6,6 +6,7 @@ import {
   Navigate,
 } from "react-router-dom";
 
+import AppDialogHost from "./components/AppDialogHost";
 import Dashboard from "./pages/Admin/Dashboard";
 import AdminLogin from "./pages/auth/AdminLogin";
 import Organization from "./pages/Admin/Organization";
@@ -53,6 +54,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <AppDialogHost />
      <Routes>
         <Route
           path="/"

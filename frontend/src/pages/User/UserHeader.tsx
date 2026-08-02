@@ -8,6 +8,7 @@ import {
   getParticipantFromStorage,
 } from "../../utils/selectedWorkshop";
 import "../../styles/UserHeader.css";
+import { appConfirm } from "../../utils/appDialog";
 
 export default function UserHeader() {
   const navigate = useNavigate();
@@ -17,6 +18,12 @@ export default function UserHeader() {
 
   const participant = getParticipantFromStorage();
   const participantName = getParticipantDisplayName(participant);
+  const initials = participantName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || "")
+    .join("");
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -32,8 +39,14 @@ export default function UserHeader() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleLogout = () => {
-    if (window.confirm("Do you really want to logout?")) {
+  const handleLogout = async () => {
+    const confirmed = await appConfirm("Do you really want to logout?", {
+      title: "Logout",
+      confirmLabel: "Logout",
+      variant: "warning",
+    });
+
+    if (confirmed) {
       clearSelectedWorkshop();
       localStorage.removeItem("participant");
       navigate("/");
@@ -64,6 +77,9 @@ export default function UserHeader() {
                 aria-expanded={menuOpen}
                 aria-haspopup="menu"
               >
+                <span className="user-header-avatar" aria-hidden>
+                  {initials || "U"}
+                </span>
                 <span className="user-header-participant-name">
                   {participantName}
                 </span>

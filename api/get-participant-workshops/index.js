@@ -7,6 +7,7 @@ const {
 module.exports = async function (context, req) {
   try {
     const participantId = req.query.participantId;
+    const organizationId = req.query.organizationId || "";
 
     if (!participantId) {
       context.res = {
@@ -20,7 +21,8 @@ module.exports = async function (context, req) {
     }
 
     const { organizationIds, workshops } = await listWorkshopsForParticipant(
-      participantId
+      participantId,
+      organizationId
     );
     const activeWorkshop = pickWorkshopForOrganization(workshops);
     const editStatus = getWorkshopEditStatus(activeWorkshop);

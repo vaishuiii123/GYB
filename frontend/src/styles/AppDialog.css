@@ -1,0 +1,253 @@
+.app-toast-stack {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 10050;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(380px, calc(100vw - 28px));
+  pointer-events: none;
+}
+
+.app-toast {
+  pointer-events: auto;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: start;
+  padding: 13px 14px;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1px solid #e8eaee;
+  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.14);
+  animation: app-toast-in 0.28s ease;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.app-toast-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.app-toast-message {
+  margin: 0;
+  padding-top: 5px;
+  color: #1f2937;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.app-toast-close {
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.app-toast-close:hover {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.app-toast-success {
+  border-color: #b7ebc8;
+}
+
+.app-toast-success .app-toast-icon {
+  background: #ecfdf5;
+  color: #15803d;
+}
+
+.app-toast-error {
+  border-color: #fecaca;
+}
+
+.app-toast-error .app-toast-icon {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.app-toast-warning {
+  border-color: #fde68a;
+}
+
+.app-toast-warning .app-toast-icon {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.app-toast-info {
+  border-color: #f0d4dc;
+}
+
+.app-toast-info .app-toast-icon {
+  background: #fdf2f4;
+  color: #7b0f2c;
+}
+
+.app-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10060;
+  background: rgba(17, 24, 39, 0.45);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: app-fade-in 0.18s ease;
+}
+
+.app-confirm-card {
+  width: min(420px, 100%);
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 24px 22px 18px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+  text-align: center;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  animation: app-confirm-in 0.22s ease;
+  border: 1px solid #eceff3;
+}
+
+.app-confirm-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 12px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fdf2f4;
+  color: #7b0f2c;
+}
+
+.app-confirm-warning .app-confirm-icon,
+.app-confirm-error .app-confirm-icon {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.app-confirm-card h3 {
+  margin: 0 0 8px;
+  color: #111827;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.app-confirm-card p {
+  margin: 0 0 20px;
+  color: #4b5563;
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+
+.app-confirm-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.app-confirm-cancel,
+.app-confirm-ok {
+  min-width: 110px;
+  height: 40px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  border: 1px solid transparent;
+}
+
+.app-confirm-cancel {
+  background: #f3f4f6;
+  color: #374151;
+  border-color: #e5e7eb;
+}
+
+.app-confirm-cancel:hover {
+  background: #e5e7eb;
+}
+
+.app-confirm-ok {
+  background: #7b0f2c;
+  color: #ffffff;
+  box-shadow: 0 8px 18px rgba(123, 15, 44, 0.22);
+}
+
+.app-confirm-ok:hover {
+  background: #651028;
+}
+
+.app-confirm-error .app-confirm-ok {
+  background: #b91c1c;
+  box-shadow: 0 8px 18px rgba(185, 28, 28, 0.2);
+}
+
+.app-confirm-error .app-confirm-ok:hover {
+  background: #991b1b;
+}
+
+@keyframes app-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes app-confirm-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes app-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-toast-stack {
+    top: 12px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+  }
+
+  .app-confirm-actions {
+    flex-direction: column-reverse;
+  }
+
+  .app-confirm-cancel,
+  .app-confirm-ok {
+    width: 100%;
+  }
+}

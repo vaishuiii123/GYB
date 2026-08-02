@@ -8,6 +8,7 @@ import {
 import "../../styles/CategoryManagement.css";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { appConfirm } from "../../utils/appDialog";
 
 type PageProps = {
   user?: any;
@@ -115,7 +116,7 @@ export default function CategoryManagement({ user }: PageProps) {
 
   // DELETE TOP CATEGORY
   const handleDeleteCategory = async (id:string) => {
-    const confirmDelete = window.confirm(
+    const confirmDelete = await appConfirm(
       "Are you sure you want to delete this category?"
     );
     if (!confirmDelete) {

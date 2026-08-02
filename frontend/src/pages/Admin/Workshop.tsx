@@ -7,6 +7,7 @@ import {
   ViewIconBtn,
 } from "../../components/AdminActionIcons";
 import styles from "../../styles/Workshop.module.css";
+import { appConfirm } from "../../utils/appDialog";
 
 type PageProps = {
   user?: any;
@@ -28,6 +29,7 @@ export default function Workshop({ user }: PageProps) {
 
   const [formData, setFormData] = useState({
     workshopName: "",
+    preOdStartDate: "",
     startDate: "",
     endDate: "",
     templateId: "",
@@ -38,6 +40,7 @@ export default function Workshop({ user }: PageProps) {
 
   const emptyForm = {
     workshopName: "",
+    preOdStartDate: "",
     startDate: "",
     endDate: "",
     templateId: "",
@@ -60,6 +63,7 @@ export default function Workshop({ user }: PageProps) {
     )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
   };
 
+  /** Admin can edit workshop details until the workshop start time. */
   const canEditWorkshop = (workshop: any) => {
     if (!workshop?.startDate) {
       return true;
@@ -71,6 +75,19 @@ export default function Workshop({ user }: PageProps) {
     }
 
     return Date.now() < startMs;
+  };
+
+  const formatDateTime = (value?: string) => {
+    if (!value) {
+      return "-";
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+
+    return date.toLocaleString();
   };
 
   const resetForm = () => {
@@ -213,6 +230,7 @@ export default function Workshop({ user }: PageProps) {
     setEditingWorkshopId(workshop.id);
     setFormData({
       workshopName: workshop.workshopName || "",
+      preOdStartDate: toDateTimeLocal(workshop.preOdStartDate),
       startDate: toDateTimeLocal(workshop.startDate),
       endDate: toDateTimeLocal(workshop.endDate),
       templateId: workshop.templateId || "",
@@ -232,12 +250,29 @@ export default function Workshop({ user }: PageProps) {
   const handleSaveWorkshop = async () => {
     if (
       !formData.workshopName ||
+      !formData.preOdStartDate ||
       !formData.startDate ||
       !formData.endDate ||
       !formData.templateId ||
       !formData.organizationId
     ) {
       alert("Please fill all required fields");
+      return;
+    }
+
+    const preOdStartMs = new Date(formData.preOdStartDate).getTime();
+    const startMs = new Date(formData.startDate).getTime();
+    const endMs = new Date(formData.endDate).getTime();
+
+    if (
+      Number.isNaN(preOdStartMs) ||
+      Number.isNaN(startMs) ||
+      Number.isNaN(endMs) ||
+      !(preOdStartMs < startMs && startMs < endMs)
+    ) {
+      alert(
+        "Dates must be in order: Pre OD Start < Workshop Start < Workshop End."
+      );
       return;
     }
 
@@ -254,8 +289,9 @@ export default function Workshop({ user }: PageProps) {
 
       const payload = {
         workshopName: formData.workshopName,
-        startDate: formData.startDate,
-        endDate: formData.endDate,
+        preOdStartDate: new Date(formData.preOdStartDate).toISOString(),
+        startDate: new Date(formData.startDate).toISOString(),
+        endDate: new Date(formData.endDate).toISOString(),
         templateId: selectedTemplate?.id,
         templateName: selectedTemplate?.templateName,
         organizationId: selectedOrganization?.id,
@@ -318,8 +354,13 @@ export default function Workshop({ user }: PageProps) {
 };
 
   const handleDeleteWorkshop = async (workshop: any) => {
-    const confirmed = window.confirm(
-      `Delete workshop "${workshop.workshopName}"?`
+    const confirmed = await appConfirm(
+      `Delete workshop "${workshop.workshopName}"?`,
+      {
+        title: "Delete workshop",
+        confirmLabel: "Delete",
+        variant: "error",
+      }
     );
 
     if (!confirmed) return;
@@ -379,7 +420,7 @@ export default function Workshop({ user }: PageProps) {
                   </h3>
                 </div>
 
-                <div className={styles.formGridThree}>
+                <div className={styles.formGridTwo}>
                   <div className={styles.formGroup}>
                     <label className={styles.label}>
                       Workshop Name *
@@ -398,10 +439,33 @@ export default function Workshop({ user }: PageProps) {
                       }
                     />
                   </div>
+                </div>
+
+                <div className={styles.formGridThree}>
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>
+                      Pre OD Start Date-Time *
+                    </label>
+
+                    <input
+                      className={styles.input}
+                      type="datetime-local"
+                      value={formData.preOdStartDate}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          preOdStartDate: e.target.value,
+                        })
+                      }
+                    />
+                    <p className={styles.fieldHint}>
+                      Participants can fill Pre OD from this time.
+                    </p>
+                  </div>
 
                   <div className={styles.formGroup}>
                     <label className={styles.label}>
-                      Pre OD / Workshop Start Date-Time *
+                      Workshop Start Date-Time *
                     </label>
 
                     <input
@@ -416,13 +480,13 @@ export default function Workshop({ user }: PageProps) {
                       }
                     />
                     <p className={styles.fieldHint}>
-                      Pre OD closes when this start time is reached.
+                      Pre OD closes and admin editing locks at this time.
                     </p>
                   </div>
 
                   <div className={styles.formGroup}>
                     <label className={styles.label}>
-                      End Date - Time *
+                      Workshop End Date-Time *
                     </label>
 
                     <input
@@ -436,8 +500,10 @@ export default function Workshop({ user }: PageProps) {
                         })
                       }
                     />
+                    <p className={styles.fieldHint}>
+                      Participant responses lock after this time.
+                    </p>
                   </div>
-
                 </div>
 
                 <div className={styles.formGridTwo}>
@@ -587,8 +653,9 @@ export default function Workshop({ user }: PageProps) {
         <th className={styles.th}>OD Template</th>
         <th className={styles.th}>Pre OD Questions</th>
         <th className={styles.th}>Organization</th>
-        <th className={styles.th}>Pre OD / Start</th>
-        <th className={styles.th}>End Date</th>
+        <th className={styles.th}>Pre OD Start</th>
+        <th className={styles.th}>Workshop Start</th>
+        <th className={styles.th}>Workshop End</th>
         <th className={styles.th}>Participants</th>
         <th className={styles.th}>Actions</th>
       </tr>
@@ -608,10 +675,13 @@ export default function Workshop({ user }: PageProps) {
             </td>
             <td className={styles.td}>{workshop.organizationName}</td>
             <td className={styles.td}>
-              {new Date(workshop.startDate).toLocaleString()}
+              {formatDateTime(workshop.preOdStartDate)}
             </td>
             <td className={styles.td}>
-              {new Date(workshop.endDate).toLocaleString()}
+              {formatDateTime(workshop.startDate)}
+            </td>
+            <td className={styles.td}>
+              {formatDateTime(workshop.endDate)}
             </td>
             <td className={styles.td}>{workshop.participantCount}</td>
             <td className={styles.td}>
@@ -621,8 +691,18 @@ export default function Workshop({ user }: PageProps) {
                   disabled={loadingOrgView}
                 />
                 {canEditWorkshop(workshop) ? (
-                  <EditIconBtn onClick={() => openEditPopup(workshop)} />
-                ) : null}
+                  <EditIconBtn
+                    onClick={() => openEditPopup(workshop)}
+                    title="Edit workshop (available before workshop start)"
+                  />
+                ) : (
+                  <span
+                    className={styles.fieldHint}
+                    title="Editing locks when the workshop starts"
+                  >
+                    Locked
+                  </span>
+                )}
                 <DeleteIconBtn
                   onClick={() => handleDeleteWorkshop(workshop)}
                   disabled={deletingWorkshopId === workshop.id}
@@ -638,7 +718,7 @@ export default function Workshop({ user }: PageProps) {
         ))
       ) : (
         <tr>
-          <td className={styles.td} colSpan={9}>
+          <td className={styles.td} colSpan={10}>
             No workshops scheduled.
           </td>
         </tr>
@@ -680,6 +760,24 @@ export default function Workshop({ user }: PageProps) {
                         <span className={styles.infoLabel}>Template</span>
                         <p className={styles.infoValue}>
                           {viewWorkshopDetails.templateName || "-"}
+                        </p>
+                      </div>
+                      <div>
+                        <span className={styles.infoLabel}>Pre OD Start</span>
+                        <p className={styles.infoValue}>
+                          {formatDateTime(viewWorkshopDetails.preOdStartDate)}
+                        </p>
+                      </div>
+                      <div>
+                        <span className={styles.infoLabel}>Workshop Start</span>
+                        <p className={styles.infoValue}>
+                          {formatDateTime(viewWorkshopDetails.startDate)}
+                        </p>
+                      </div>
+                      <div>
+                        <span className={styles.infoLabel}>Workshop End</span>
+                        <p className={styles.infoValue}>
+                          {formatDateTime(viewWorkshopDetails.endDate)}
                         </p>
                       </div>
                     </>

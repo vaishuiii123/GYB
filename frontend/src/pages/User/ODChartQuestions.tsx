@@ -3,8 +3,11 @@ import { useLocation, useNavigate } from "react-router-dom";
 import WorkshopEditBanner from "../../components/WorkshopEditBanner";
 import ODChartShell from "./ODChartShell";
 import {
-  fetchWorkshopByOrganization,
+  clearCachedPageData,
+  getActiveWorkshopContext,
+  getCachedPageData,
   getWorkshopEditStatus,
+  setCachedPageData,
 } from "../../utils/workshopCache";
 import "../../styles/ODChart.css";
 import { OD_CHART_NAV_KEY } from "./ODChart";
@@ -16,7 +19,9 @@ const STATUS_OPTIONS = [
   { value: "Green", label: "Green", className: "status-green" },
 ];
 
-function loadNavState(location: ReturnType<typeof useLocation>): ODQuestionsNavState | null {
+function loadNavState(
+  location: ReturnType<typeof useLocation>
+): ODQuestionsNavState | null {
   const fromRoute = location.state as ODQuestionsNavState | null;
   if (fromRoute?.leaf && fromRoute?.workshop) {
     return fromRoute;
@@ -43,13 +48,7 @@ export default function ODChartQuestions() {
   const [canEdit, setCanEdit] = useState(true);
   const [editMessage, setEditMessage] = useState("");
 
-  const participant = (() => {
-    try {
-      return JSON.parse(localStorage.getItem("participant") || "{}");
-    } catch {
-      return {};
-    }
-  })();
+  const { participant } = getActiveWorkshopContext();
 
   useEffect(() => {
     const state = loadNavState(location);
@@ -59,6 +58,34 @@ export default function ODChartQuestions() {
     }
     setNavState(state);
 
+    const mapQuestions = (data: {
+      data?: Array<{
+        questionId: string;
+        questionText: string;
+        questionType: string;
+        tagId?: string;
+        tagName?: string;
+        tagColor?: string;
+        options: { optionText: string }[] | string[];
+      }>;
+      answers?: Record<string, string>;
+    }) => {
+      setQuestions(
+        (data.data || []).map((item) => ({
+          id: item.questionId,
+          question: item.questionText,
+          answerType: item.questionType,
+          tagId: item.tagId,
+          tagName: item.tagName,
+          tagColor: item.tagColor,
+          options: (item.options || []).map((option) =>
+            typeof option === "string" ? option : option.optionText
+          ),
+        }))
+      );
+      setAnswers(data.answers || {});
+    };
+
     const loadPageData = async () => {
       if (!participant.id || !state.workshop.id) {
         setLoading(false);
@@ -66,20 +93,28 @@ export default function ODChartQuestions() {
       }
 
       try {
-        if (participant.organizationId) {
-          const workshopData = await fetchWorkshopByOrganization(
-            participant.organizationId
-          );
-          const editStatus =
-            typeof workshopData.canEdit === "boolean"
-              ? {
-                  canEdit: workshopData.canEdit,
-                  editMessage: workshopData.editMessage || "",
-                }
-              : getWorkshopEditStatus(workshopData.workshop);
+        const editStatus = getWorkshopEditStatus(state.workshop);
+        setCanEdit(editStatus.canEdit);
+        setEditMessage(editStatus.editMessage);
 
-          setCanEdit(editStatus.canEdit);
-          setEditMessage(editStatus.editMessage);
+        const cacheKey = `od-questions:${state.workshop.id}:${state.leaf.id}:${participant.id}`;
+        const cached = getCachedPageData<{
+          success: boolean;
+          data?: Array<{
+            questionId: string;
+            questionText: string;
+            questionType: string;
+            tagId?: string;
+            tagName?: string;
+            tagColor?: string;
+            options: { optionText: string }[] | string[];
+          }>;
+          answers?: Record<string, string>;
+        }>(cacheKey);
+
+        if (cached?.success) {
+          mapQuestions(cached);
+          setLoading(false);
         }
 
         const query = new URLSearchParams({
@@ -95,30 +130,8 @@ export default function ODChartQuestions() {
         const questionsData = await questionsRes.json();
 
         if (questionsData.success) {
-          setQuestions(
-            (questionsData.data || []).map(
-              (item: {
-                questionId: string;
-                questionText: string;
-                questionType: string;
-                tagId?: string;
-                tagName?: string;
-                tagColor?: string;
-                options: { optionText: string }[] | string[];
-              }) => ({
-                id: item.questionId,
-                question: item.questionText,
-                answerType: item.questionType,
-                tagId: item.tagId,
-                tagName: item.tagName,
-                tagColor: item.tagColor,
-                options: (item.options || []).map((option) =>
-                  typeof option === "string" ? option : option.optionText
-                ),
-              })
-            )
-          );
-          setAnswers(questionsData.answers || {});
+          mapQuestions(questionsData);
+          setCachedPageData(cacheKey, questionsData);
         }
       } catch (error) {
         console.error(error);
@@ -158,19 +171,6 @@ export default function ODChartQuestions() {
       setErrorMessage("");
       setSuccessMessage("");
 
-      let mergedAnswers = { ...answers };
-
-      const existingRes = await fetch(
-        `/api/get-od-responses?participantId=${participant.id}&workshopId=${navState.workshop.id}`
-      );
-      const existingData = await existingRes.json();
-      if (existingData.success) {
-        mergedAnswers = {
-          ...(existingData.data.answers || {}),
-          ...answers,
-        };
-      }
-
       const response = await fetch("/api/save-od-responses", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -179,7 +179,7 @@ export default function ODChartQuestions() {
           workshopId: navState.workshop.id,
           organizationId: participant.organizationId || "",
           templateId: navState.workshop.templateId,
-          answers: mergedAnswers,
+          answers,
         }),
       });
 
@@ -188,6 +188,12 @@ export default function ODChartQuestions() {
       if (!response.ok || !result.success) {
         setErrorMessage(result.message || "Failed to save responses.");
         return;
+      }
+
+      if (navState) {
+        clearCachedPageData(
+          `od-questions:${navState.workshop.id}:${navState.leaf.id}:${participant.id}`
+        );
       }
 
       setSuccessMessage("Responses saved successfully.");
@@ -249,7 +255,7 @@ export default function ODChartQuestions() {
         value={currentValue}
         onChange={(event) => setAnswer(question.id, event.target.value)}
         placeholder="Enter your response"
-        rows={3}
+        rows={4}
         disabled={disabled}
       />
     );
@@ -260,10 +266,7 @@ export default function ODChartQuestions() {
   }
 
   return (
-    <ODChartShell
-      backLabel="Back to Chart"
-      backPath="/od-chart"
-    >
+    <ODChartShell backLabel="Back to Chart" backPath="/od-chart">
       <div className="od-questions-panel">
         <nav className="od-breadcrumb" aria-label="Category breadcrumb">
           {navState.breadcrumb.map((crumb, index) => (
@@ -323,9 +326,7 @@ export default function ODChartQuestions() {
           ))
         )}
 
-        {errorMessage && (
-          <div className="od-chart-error">{errorMessage}</div>
-        )}
+        {errorMessage && <div className="od-chart-error">{errorMessage}</div>}
 
         {successMessage && (
           <div className="od-chart-success">{successMessage}</div>

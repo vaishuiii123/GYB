@@ -6,10 +6,12 @@ import { MsalProvider } from "@azure/msal-react";
 
 import App from "./App";
 import { msalConfig } from "./authConfig";
+import { installAppDialogOverrides } from "./utils/appDialog";
 import "./styles/AdminButtons.css";
 import "./styles/UserButtons.css";
 
 const msalInstance = new PublicClientApplication(msalConfig);
+installAppDialogOverrides();
 
 async function bootstrap() {
   await msalInstance.initialize();

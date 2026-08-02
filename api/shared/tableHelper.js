@@ -30,12 +30,17 @@ async function ensureTableClient(tableName) {
   return TableClient.fromConnectionString(connectionString, tableName);
 }
 
-async function listPartition(tableClient, partitionKey) {
+async function listPartition(tableClient, partitionKey, select) {
   const items = [];
+  const queryOptions = {
+    filter: `PartitionKey eq '${escapeODataValue(partitionKey)}'`,
+  };
 
-  for await (const entity of tableClient.listEntities({
-    queryOptions: { filter: `PartitionKey eq '${escapeODataValue(partitionKey)}'` },
-  })) {
+  if (Array.isArray(select) && select.length > 0) {
+    queryOptions.select = select;
+  }
+
+  for await (const entity of tableClient.listEntities({ queryOptions })) {
     items.push(entity);
   }
 
