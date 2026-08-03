@@ -42,14 +42,6 @@ export default function Header({ user }: HeaderProps) {
     <header className="admin-shell-header">
       <div className="admin-shell-header-left">
         <img src={logo} alt="KNAV" className="admin-shell-logo" />
-        <button
-          type="button"
-          className="admin-shell-menu-btn"
-          onClick={toggleSidebar}
-          aria-label="Toggle sidebar"
-        >
-          <Menu size={22} strokeWidth={2.2} />
-        </button>
       </div>
 
       <div className="admin-shell-header-right">
