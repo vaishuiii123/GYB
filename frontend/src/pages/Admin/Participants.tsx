@@ -138,9 +138,19 @@ export default function Participants({ user }: PageProps) {
         }),
       });
 
-      const data = await response.json();
+      let data: { success?: boolean; message?: string; error?: string } = {};
+      try {
+        data = await response.json();
+      } catch {
+        setFormError(
+          response.ok
+            ? "Participant may have been created, but the server returned an invalid response. Please refresh the page."
+            : "Failed to create participant"
+        );
+        return;
+      }
 
-      if (data.success) {
+      if (response.ok && data.success) {
         setParticipantForm(emptyParticipantForm);
         setFormError("");
         setShowParticipantModal(false);

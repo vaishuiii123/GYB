@@ -94,7 +94,7 @@ export function getFeedbackAccessStatus(workshop?: {
   if (!workshop?.endDate) {
     return {
       enabled: false,
-      message: "Workshop feedback opens after the workshop has ended.",
+      message: "This window will start once the workshop is finished.",
     };
   }
 
@@ -102,7 +102,7 @@ export function getFeedbackAccessStatus(workshop?: {
   if (endMs === null || Date.now() <= endMs) {
     return {
       enabled: false,
-      message: "Workshop feedback opens after the workshop has ended.",
+      message: "This window will start once the workshop is finished.",
     };
   }
 
@@ -132,7 +132,8 @@ export function getPreOdAccessStatus(workshop?: PreOdWorkshop | null) {
         available: true,
         canFill: false,
         enabled: false,
-        message: "The workshop has started. Pre OD is now closed.",
+        message:
+          "This window has closed because the workshop has started.",
       };
     }
   }
