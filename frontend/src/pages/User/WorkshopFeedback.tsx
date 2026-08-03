@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   BarChart3,
@@ -21,8 +21,8 @@ import {
   getSelectedWorkshop,
 } from "../../utils/selectedWorkshop";
 import {
-  clearCachedPageData,
   getCachedPageData,
+  getFeedbackAccessStatus,
   setCachedPageData,
 } from "../../utils/workshopCache";
 import "../../styles/WorkshopFeedback.css";
@@ -32,6 +32,17 @@ type FeedbackQuestion = {
   type: "rating" | "yesno" | "text";
   label: string;
   required: boolean;
+};
+
+type FeedbackPageData = {
+  questions: FeedbackQuestion[];
+  answers: Record<string, string>;
+  available: boolean;
+  canSubmit: boolean;
+  submitted: boolean;
+  message: string;
+  workshopName: string;
+  submittedDate: string;
 };
 
 const QUESTION_ICONS: LucideIcon[] = [
@@ -61,6 +72,9 @@ export default function WorkshopFeedback() {
   const navigate = useNavigate();
   const participant = getParticipantFromStorage();
   const selectedWorkshop = getSelectedWorkshop();
+  const participantId = String(participant?.id || "").trim();
+  const workshopId = String(selectedWorkshop?.id || "").trim();
+  const workshopNameFromSelection = selectedWorkshop?.workshopName || "";
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -74,51 +88,56 @@ export default function WorkshopFeedback() {
   const [successMessage, setSuccessMessage] = useState("");
   const [workshopName, setWorkshopName] = useState("");
   const [submittedDate, setSubmittedDate] = useState("");
+  const requestIdRef = useRef(0);
+
+  const applyPageData = (next: FeedbackPageData) => {
+    setQuestions(next.questions || []);
+    setAnswers(next.answers || {});
+    setAvailable(Boolean(next.available));
+    setCanSubmit(Boolean(next.canSubmit));
+    setSubmitted(Boolean(next.submitted));
+    setMessage(next.message || "");
+    setWorkshopName(next.workshopName || "");
+    setSubmittedDate(next.submittedDate || "");
+  };
 
   useEffect(() => {
+    const workshop = getSelectedWorkshop();
+
+    if (!getFeedbackAccessStatus(workshop).enabled) {
+      navigate("/userdashboard", { replace: true });
+      return;
+    }
+
+    if (!participantId) {
+      setErrorMessage("Please log in again.");
+      setLoading(false);
+      return;
+    }
+
+    if (!workshopId) {
+      setErrorMessage("Please select a workshop first.");
+      setLoading(false);
+      return;
+    }
+
+    const cacheKey = `feedback:${participantId}:${workshopId}`;
+    const requestId = ++requestIdRef.current;
+    let cancelled = false;
+
     const load = async () => {
-      if (!participant?.id) {
-        setErrorMessage("Please log in again.");
-        setLoading(false);
-        return;
-      }
-
-      if (!selectedWorkshop?.id) {
-        setErrorMessage("Please select a workshop first.");
-        setLoading(false);
-        return;
-      }
-
       try {
-        const cacheKey = `feedback:${participant.id}:${selectedWorkshop.id}`;
-        const cached = getCachedPageData<{
-          questions: FeedbackQuestion[];
-          answers: Record<string, string>;
-          available: boolean;
-          canSubmit: boolean;
-          submitted: boolean;
-          message: string;
-          workshopName: string;
-          submittedDate: string;
-        }>(cacheKey);
-
-        if (cached) {
-          setQuestions(cached.questions);
-          setAnswers(cached.answers);
-          setAvailable(cached.available);
-          setCanSubmit(cached.canSubmit);
-          setSubmitted(cached.submitted);
-          setMessage(cached.message);
-          setWorkshopName(cached.workshopName);
-          setSubmittedDate(cached.submittedDate);
+        const cached = getCachedPageData<FeedbackPageData>(cacheKey);
+        if (cached && requestId === requestIdRef.current) {
+          applyPageData(cached);
           setLoading(false);
-        } else {
+        } else if (!cached) {
           setLoading(true);
         }
 
         const params = new URLSearchParams({
-          workshopId: selectedWorkshop.id,
-          participantId: participant.id,
+          workshopId,
+          participantId,
         });
 
         const response = await fetch(
@@ -126,14 +145,17 @@ export default function WorkshopFeedback() {
         );
         const data = await response.json();
 
-        if (!response.ok || !data.success) {
-          if (!cached) {
-            setErrorMessage(data.message || "Unable to load feedback form.");
-          }
+        if (cancelled || requestId !== requestIdRef.current) {
           return;
         }
 
-        const next = {
+        if (!response.ok || !data.success) {
+          setErrorMessage(data.message || "Unable to load feedback form.");
+          setCanSubmit(false);
+          return;
+        }
+
+        const next: FeedbackPageData = {
           questions: data.questions || [],
           answers: data.answers || {},
           available: Boolean(data.available),
@@ -141,36 +163,42 @@ export default function WorkshopFeedback() {
           submitted: Boolean(data.submitted),
           message: data.message || "",
           workshopName:
-            data.workshop?.workshopName || selectedWorkshop.workshopName,
+            data.workshop?.workshopName || workshopNameFromSelection || "",
           submittedDate: data.submittedDate || "",
         };
 
-        setQuestions(next.questions);
-        setAnswers(next.answers);
-        setAvailable(next.available);
-        setCanSubmit(next.canSubmit);
-        setSubmitted(next.submitted);
-        setMessage(next.message);
-        setWorkshopName(next.workshopName);
-        setSubmittedDate(next.submittedDate);
+        applyPageData(next);
         setCachedPageData(cacheKey, next);
+        setErrorMessage("");
       } catch (error) {
         console.error(error);
-        setErrorMessage("Unable to load feedback form.");
+        if (!cancelled && requestId === requestIdRef.current) {
+          setErrorMessage("Unable to load feedback form.");
+          setCanSubmit(false);
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled && requestId === requestIdRef.current) {
+          setLoading(false);
+        }
       }
     };
 
     load();
-  }, [participant?.id, selectedWorkshop?.id, selectedWorkshop?.workshopName]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [navigate, participantId, workshopId, workshopNameFromSelection]);
 
   const updateAnswer = (id: string, value: string) => {
+    if (!canSubmit || submitted) {
+      return;
+    }
     setAnswers((current) => ({ ...current, [id]: value }));
   };
 
   const handleSubmit = async () => {
-    if (!canSubmit || !selectedWorkshop?.id || !participant?.id) {
+    if (!canSubmit || submitted || !workshopId || !participantId) {
       return;
     }
 
@@ -183,9 +211,9 @@ export default function WorkshopFeedback() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          participantId: participant.id,
+          participantId,
           organizationId: participant.organizationId || "",
-          workshopId: selectedWorkshop.id,
+          workshopId,
           answers,
         }),
       });
@@ -197,12 +225,23 @@ export default function WorkshopFeedback() {
         return;
       }
 
-      clearCachedPageData(`feedback:${participant.id}:${selectedWorkshop.id}`);
+      const submittedAt =
+        data.data?.submittedDate || new Date().toISOString();
+      const savedAnswers = data.data?.answers || answers;
+      const next: FeedbackPageData = {
+        questions,
+        answers: savedAnswers,
+        available: true,
+        canSubmit: false,
+        submitted: true,
+        message: "You have already submitted feedback for this workshop.",
+        workshopName: workshopName || workshopNameFromSelection || "Workshop",
+        submittedDate: submittedAt,
+      };
+
+      applyPageData(next);
+      setCachedPageData(`feedback:${participantId}:${workshopId}`, next);
       setSuccessMessage("Feedback submitted successfully.");
-      setCanSubmit(false);
-      setSubmitted(true);
-      setSubmittedDate(data.data?.submittedDate || new Date().toISOString());
-      setMessage("You have already submitted feedback for this workshop.");
 
       setTimeout(() => {
         navigate("/userdashboard", { replace: true });
@@ -216,7 +255,12 @@ export default function WorkshopFeedback() {
   };
 
   const displayWorkshopName =
-    workshopName || selectedWorkshop?.workshopName || "Workshop";
+    workshopName || workshopNameFromSelection || "Workshop";
+  const readOnly = submitted || !canSubmit;
+  const showForm = !loading && (available || submitted) && questions.length > 0;
+  const hasAnswers = Object.keys(answers).some(
+    (key) => String(answers[key] || "").trim() !== ""
+  );
 
   return (
     <UserLayout contentClassName="feedback-layout">
@@ -288,19 +332,22 @@ export default function WorkshopFeedback() {
 
             {loading ? (
               <p className="fb-status">Loading feedback form...</p>
-            ) : !available && !submitted ? (
-              <div className="fb-empty">
-                {message ||
-                  "Workshop feedback will be available after the workshop has ended."}
-              </div>
-            ) : (
+            ) : showForm ? (
               <form
-                className="fb-form-card"
+                className={`fb-form-card ${readOnly ? "is-readonly" : ""}`}
                 onSubmit={(event) => {
                   event.preventDefault();
                   handleSubmit();
                 }}
               >
+                {submitted ? (
+                  <div className="fb-readonly-banner">
+                    {hasAnswers
+                      ? "Your submitted responses are shown below and cannot be edited."
+                      : "Feedback already submitted. Responses could not be loaded — please refresh."}
+                  </div>
+                ) : null}
+
                 {questions.map((question, index) => {
                   const Icon = questionIcon(index, question.type);
 
@@ -329,7 +376,7 @@ export default function WorkshopFeedback() {
                                     ? "is-active"
                                     : ""
                                 }`}
-                                disabled={!canSubmit || saving}
+                                disabled={readOnly || saving}
                                 onClick={() =>
                                   updateAnswer(question.id, String(value))
                                 }
@@ -351,7 +398,7 @@ export default function WorkshopFeedback() {
                                     ? "is-active"
                                     : ""
                                 }`}
-                                disabled={!canSubmit || saving}
+                                disabled={readOnly || saving}
                                 onClick={() =>
                                   updateAnswer(question.id, value)
                                 }
@@ -366,7 +413,7 @@ export default function WorkshopFeedback() {
                           <textarea
                             rows={3}
                             value={answers[question.id] || ""}
-                            disabled={!canSubmit || saving}
+                            disabled={readOnly || saving}
                             onChange={(event) =>
                               updateAnswer(question.id, event.target.value)
                             }
@@ -383,11 +430,17 @@ export default function WorkshopFeedback() {
                   Feedback is one time only and cannot be edited after submit.
                 </p>
               </form>
+            ) : (
+              <div className="fb-empty">
+                {message ||
+                  errorMessage ||
+                  "Workshop feedback will be available after the workshop has ended."}
+              </div>
             )}
           </section>
         </div>
 
-        {!loading && (available || submitted) ? (
+        {showForm && !submitted ? (
           <div className="fb-submit-bar">
             <button
               type="button"

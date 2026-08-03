@@ -7,6 +7,7 @@ import {
   getActiveWorkshopContext,
   getCachedPageData,
   getWorkshopEditStatus,
+  getWorkshopModuleAccessStatus,
   setCachedPageData,
 } from "../../utils/workshopCache";
 import "../../styles/ODChart.css";
@@ -51,6 +52,12 @@ export default function ODChartQuestions() {
   const { participant } = getActiveWorkshopContext();
 
   useEffect(() => {
+    const { workshop } = getActiveWorkshopContext();
+    if (!getWorkshopModuleAccessStatus(workshop).enabled) {
+      navigate("/userdashboard", { replace: true });
+      return;
+    }
+
     const state = loadNavState(location);
     if (!state) {
       navigate("/od-chart", { replace: true });

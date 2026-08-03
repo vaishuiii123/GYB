@@ -1,6 +1,7 @@
 .user-reports-page {
-  max-width: 960px;
-  margin: 0 auto;
+  max-width: none;
+  margin: 0;
+  width: 100%;
 }
 
 .user-reports-header h1 {
@@ -36,9 +37,22 @@
   font-family: inherit;
 }
 
-.user-reports-card:hover {
+.user-reports-card:hover:not(:disabled) {
   border-color: #c4a0aa;
   box-shadow: 0 4px 14px rgba(123, 15, 44, 0.08);
+}
+
+.user-reports-card.is-disabled,
+.user-reports-card:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.user-reports-card-note {
+  margin-top: 8px !important;
+  color: #9a3412 !important;
+  font-size: 13px !important;
 }
 
 .user-reports-card-icon {

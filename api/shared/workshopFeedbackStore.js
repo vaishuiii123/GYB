@@ -92,30 +92,68 @@ function validateAnswers(rawAnswers) {
   return { ok: true, answers };
 }
 
+function mapFeedbackEntity(entity, workshopId, participantId) {
+  let answers = {};
+  try {
+    answers = JSON.parse(entity.AnswersJson || "{}");
+  } catch {
+    answers = {};
+  }
+
+  return {
+    participantId: entity.ParticipantId || participantId,
+    participantName: entity.ParticipantName || "",
+    workshopId: entity.WorkshopId || workshopId,
+    organizationId: entity.OrganizationId || "",
+    answers,
+    submittedDate: entity.SubmittedDate || "",
+  };
+}
+
 async function getFeedback(workshopId, participantId) {
   if (!workshopId || !participantId) {
     return null;
   }
 
   const tableClient = await ensureTableClient("WorkshopFeedback");
+  const normalizedWorkshopId = String(workshopId).trim();
+  const normalizedParticipantId = String(participantId).trim();
 
   try {
     const entity = await tableClient.getEntity(
-      String(workshopId),
-      String(participantId)
+      normalizedWorkshopId,
+      normalizedParticipantId
     );
-
-    return {
-      participantId: entity.ParticipantId || participantId,
-      participantName: entity.ParticipantName || "",
-      workshopId: entity.WorkshopId || workshopId,
-      organizationId: entity.OrganizationId || "",
-      answers: JSON.parse(entity.AnswersJson || "{}"),
-      submittedDate: entity.SubmittedDate || "",
-    };
+    return mapFeedbackEntity(
+      entity,
+      normalizedWorkshopId,
+      normalizedParticipantId
+    );
   } catch {
-    return null;
+    // fall through to filtered lookup for legacy/mismatched keys
   }
+
+  try {
+    for await (const entity of tableClient.listEntities({
+      queryOptions: {
+        filter: `PartitionKey eq '${escapeODataValue(
+          normalizedWorkshopId
+        )}' and ParticipantId eq '${escapeODataValue(
+          normalizedParticipantId
+        )}'`,
+      },
+    })) {
+      return mapFeedbackEntity(
+        entity,
+        normalizedWorkshopId,
+        normalizedParticipantId
+      );
+    }
+  } catch {
+    // ignore and return null
+  }
+
+  return null;
 }
 
 async function saveFeedback({
@@ -128,24 +166,27 @@ async function saveFeedback({
 }) {
   const tableClient = await ensureTableClient("WorkshopFeedback");
   const submittedDate = new Date().toISOString();
+  const normalizedWorkshopId = String(workshopId).trim();
+  const normalizedParticipantId = String(participantId).trim();
 
   const entity = {
-    partitionKey: String(workshopId),
-    rowKey: String(participantId),
-    ParticipantId: String(participantId),
+    partitionKey: normalizedWorkshopId,
+    rowKey: normalizedParticipantId,
+    ParticipantId: normalizedParticipantId,
     ParticipantName: participantName || "",
-    WorkshopId: String(workshopId),
+    WorkshopId: normalizedWorkshopId,
     WorkshopName: workshopName || "",
     OrganizationId: organizationId || "",
-    AnswersJson: JSON.stringify(answers),
+    AnswersJson: JSON.stringify(answers || {}),
     SubmittedDate: submittedDate,
   };
 
-  await tableClient.createEntity(entity);
+  // upsert keeps answers recoverable if a prior create partially succeeded
+  await tableClient.upsertEntity(entity, "Replace");
 
   return {
-    participantId,
-    workshopId,
+    participantId: normalizedParticipantId,
+    workshopId: normalizedWorkshopId,
     answers,
     submittedDate,
   };

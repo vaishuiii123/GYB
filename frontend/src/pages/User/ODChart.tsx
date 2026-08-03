@@ -23,6 +23,7 @@ import {
   fetchOdChart,
   getActiveWorkshopContext,
   getCachedOdChart,
+  getWorkshopModuleAccessStatus,
 } from "../../utils/workshopCache";
 import ODChartShell from "./ODChartShell";
 import "../../styles/ODChart.css";
@@ -508,6 +509,11 @@ export default function ODChart() {
     const loadData = async () => {
       const { participant, workshop: selectedWorkshop, canEdit } =
         getActiveWorkshopContext();
+
+      if (!getWorkshopModuleAccessStatus(selectedWorkshop).enabled) {
+        navigate("/userdashboard", { replace: true });
+        return;
+      }
 
       if (!participant?.organizationId && !participant?.id) {
         if (!cancelled) {

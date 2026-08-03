@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import {
@@ -8,12 +9,21 @@ import {
 } from "../../components/AdminActionIcons";
 import styles from "../../styles/Workshop.module.css";
 import { appConfirm } from "../../utils/appDialog";
+import {
+  getWorkshopLifecycleStatus,
+  parseWorkshopStatusParam,
+  workshopStatusLabel,
+} from "../../utils/workshopLifecycle";
 
 type PageProps = {
   user?: any;
 };
 
 export default function Workshop({ user }: PageProps) {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const statusFilter = parseWorkshopStatusParam(searchParams.get("status"));
+
   const [templates, setTemplates] = useState<any[]>([]);
   const [organizations, setOrganizations] = useState<any[]>([]);
   const [participants, setParticipants] = useState<any[]>([]);
@@ -102,6 +112,19 @@ export default function Workshop({ user }: PageProps) {
     loadOrganizations();
     loadWorkshops();
   }, [user?.email, user?.role]);
+
+  const filteredWorkshops = useMemo(() => {
+    if (!statusFilter) {
+      return workshops;
+    }
+    return workshops.filter(
+      (workshop) => getWorkshopLifecycleStatus(workshop) === statusFilter
+    );
+  }, [workshops, statusFilter]);
+
+  const listTitle = statusFilter
+    ? workshopStatusLabel(statusFilter)
+    : "Scheduled Workshops";
 
   const getCurrentUser = () => {
     if (user?.email) return user;
@@ -401,14 +424,38 @@ export default function Workshop({ user }: PageProps) {
 
         <div className={styles.container}>
           <div className={styles.pageHeader}>
-            <h1 className={styles.title}>Workshops</h1>
+            <div>
+              <h1 className={styles.title}>
+                {statusFilter ? workshopStatusLabel(statusFilter) : "Workshops"}
+              </h1>
+              {statusFilter ? (
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  style={{ marginTop: 10 }}
+                  onClick={() => navigate("/dashboard")}
+                >
+                  ← Back to Dashboard
+                </button>
+              ) : null}
+            </div>
 
-            <button
-              className={styles.primaryButton}
-              onClick={openCreatePopup}
-            >
-              + Create Workshop
-            </button>
+            {!statusFilter ? (
+              <button
+                className={styles.primaryButton}
+                onClick={openCreatePopup}
+              >
+                + Create Workshop
+              </button>
+            ) : (
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() => navigate("/workshop")}
+              >
+                All Workshops
+              </button>
+            )}
           </div>
 
           {showCreatePopup && (
@@ -643,7 +690,7 @@ export default function Workshop({ user }: PageProps) {
           )}
 
           <div className={styles.tableCard}>
-            <h3 className={styles.tableTitle}>Scheduled Workshops</h3>
+            <h3 className={styles.tableTitle}>{listTitle}</h3>
 
   <table className={styles.table}>
     <thead>
@@ -662,8 +709,8 @@ export default function Workshop({ user }: PageProps) {
     </thead>
 
     <tbody>
-      {workshops.length > 0 ? (
-        workshops.map((workshop: any, index: number) => (
+      {filteredWorkshops.length > 0 ? (
+        filteredWorkshops.map((workshop: any, index: number) => (
           <tr key={workshop.id}>
             <td className={styles.td}>{index + 1}</td>
             <td className={styles.td}>{workshop.workshopName}</td>
@@ -719,7 +766,13 @@ export default function Workshop({ user }: PageProps) {
       ) : (
         <tr>
           <td className={styles.td} colSpan={10}>
-            No workshops scheduled.
+            {statusFilter === "upcoming"
+              ? "No upcoming workshops."
+              : statusFilter === "in-progress"
+                ? "No workshops in progress."
+                : statusFilter === "completed"
+                  ? "No completed workshops."
+                  : "No workshops scheduled."}
           </td>
         </tr>
       )}

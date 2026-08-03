@@ -1,7 +1,6 @@
 import { NavLink } from "react-router-dom";
 
 export default function Sidebar() {
-
   const menuItems = [
     { name: "Dashboard", path: "/dashboard", icon: "📊" },
     { name: "Organization", path: "/organization", icon: "🏢" },
@@ -20,21 +19,14 @@ export default function Sidebar() {
       style={{
         width: "220px",
         background: "#FFFFFF",
-
         position: "fixed",
         top: "60px",
         left: 0,
-
         height: "calc(100vh - 60px)",
-
         overflowY: "auto",
-
         borderRight: "1px solid #E5E7EB",
-
         zIndex: 999,
-
-        fontFamily:
-          '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
+        fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
       }}
     >
       <div
@@ -51,30 +43,15 @@ export default function Sidebar() {
             to={item.path}
             style={({ isActive }) => ({
               textDecoration: "none",
-
-              color: isActive
-                ? "#FFFFFF"
-                : "#374151",
-
-              background: isActive
-                ? "#9B304A"
-                : "transparent",
-
+              color: isActive ? "#FFFFFF" : "#374151",
+              background: isActive ? "#9B304A" : "transparent",
               padding: "14px 18px",
-
               borderRadius: "10px",
-
               display: "flex",
               alignItems: "center",
-
               gap: "12px",
-
               fontSize: "15px",
-
-              fontWeight: isActive
-                ? 600
-                : 500,
-
+              fontWeight: isActive ? 600 : 500,
               transition: "all 0.2s ease",
             })}
           >
@@ -87,7 +64,6 @@ export default function Sidebar() {
             >
               {item.icon}
             </span>
-
             <span>{item.name}</span>
           </NavLink>
         ))}

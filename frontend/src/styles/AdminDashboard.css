@@ -278,3 +278,252 @@
     font-size: 30px;
   }
 }
+
+/* ── Admin home dashboard (mock layout) ─────────────────────────── */
+
+.adh-page {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: #f5f6f8;
+}
+
+.adh-content {
+  padding-top: 84px;
+  padding-bottom: 48px;
+}
+
+.adh-title-row {
+  margin-bottom: 22px;
+}
+
+.adh-title-row h1 {
+  margin: 0;
+  font-size: 34px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.adh-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.adh-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.adh-stat-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.adh-stat-icon.is-completed {
+  background: #fce8ec;
+  color: #9b304a;
+}
+
+.adh-stat-icon.is-progress {
+  background: #fff4d8;
+  color: #b8840a;
+}
+
+.adh-stat-icon.is-upcoming {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.adh-stat-label {
+  margin: 0;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.adh-stat-value {
+  display: block;
+  margin-top: 2px;
+  color: #9b304a;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.adh-stat-hint {
+  display: block;
+  margin-top: 2px;
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.adh-section {
+  margin-bottom: 22px;
+}
+
+.adh-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.adh-section-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.adh-view-all {
+  border: none;
+  background: none;
+  color: #9b304a;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 0;
+}
+
+.adh-view-all:hover {
+  text-decoration: underline;
+}
+
+.adh-status,
+.adh-empty-panel {
+  margin: 0;
+  padding: 18px;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.adh-workshop-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.adh-workshop-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.adh-workshop-card:hover {
+  border-color: #d4a3af;
+  box-shadow: 0 6px 18px rgba(123, 15, 44, 0.08);
+}
+
+.adh-workshop-card-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.adh-workshop-card h3 {
+  margin: 0 0 4px;
+  color: #111827;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.adh-workshop-card p,
+.adh-workshop-org {
+  margin: 0;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.adh-workshop-org {
+  margin-bottom: 4px !important;
+}
+
+.adh-workshop-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.adh-workshop-badge.tone-pink {
+  background: #fce8ec;
+  color: #9b304a;
+}
+
+.adh-workshop-badge.tone-purple {
+  background: #efe9fb;
+  color: #6d28d9;
+}
+
+.adh-workshop-badge.tone-blue {
+  background: #e8f1fb;
+  color: #1d4f91;
+}
+
+.adh-workshop-badge.tone-yellow {
+  background: #fff4d8;
+  color: #9a6b00;
+}
+
+.adh-workshop-badge.tone-green {
+  background: #e7f6ea;
+  color: #1f6b3a;
+}
+
+.adh-participants {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px !important;
+  color: #6b7280 !important;
+  font-weight: 500 !important;
+}
+
+@media (max-width: 1100px) {
+  .adh-workshop-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .adh-stats,
+  .adh-workshop-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .adh-title-row h1 {
+    font-size: 28px;
+  }
+
+  .adh-stat-value {
+    font-size: 28px;
+  }
+}

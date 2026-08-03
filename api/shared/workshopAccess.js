@@ -86,6 +86,19 @@ function getWorkshopEditStatus(workshop, nowMs = Date.now()) {
     };
   }
 
+  const startMs = parseWorkshopStartMs(
+    workshop.startDate || workshop.StartDate
+  );
+
+  if (startMs !== null && nowMs < startMs) {
+    return {
+      canEdit: false,
+      message:
+        "Workshop modules open once the workshop starts. You can complete Pre OD until then.",
+      endDate: workshop.endDate || workshop.EndDate || "",
+    };
+  }
+
   const endMs = parseWorkshopEndMs(workshop.endDate || workshop.EndDate);
 
   if (endMs !== null && nowMs > endMs) {

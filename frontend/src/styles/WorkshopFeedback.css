@@ -20,9 +20,9 @@
   display: grid;
   grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
   gap: 22px;
-  max-width: 1180px;
+  max-width: none;
   width: 100%;
-  margin: 0 auto;
+  margin: 0;
   padding: 18px 20px 12px;
   box-sizing: border-box;
   align-items: start;
@@ -238,6 +238,20 @@
   box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
   padding: 4px 4px 16px;
   overflow: hidden;
+}
+
+.fb-form-card.is-readonly {
+  opacity: 0.98;
+}
+
+.fb-readonly-banner {
+  margin: 12px 14px 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f8e9ee;
+  color: #7b0f2c;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .fb-question-row {

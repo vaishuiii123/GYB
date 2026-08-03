@@ -1,0 +1,104 @@
+.admin-shell-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: #741d34;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  box-sizing: border-box;
+  z-index: 1000;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+}
+
+.admin-shell-header-left,
+.admin-shell-header-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.admin-shell-logo {
+  height: 38px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
+
+.admin-shell-menu-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.admin-shell-menu-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.admin-shell-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.admin-shell-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: #fcecef;
+  color: #741d34;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.admin-shell-user-name {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-shell-logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+
+.admin-shell-logout:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+body.admin-sidebar-collapsed .admin-dashboard-content {
+  margin-left: 0;
+}
+
+@media (max-width: 900px) {
+  .admin-shell-user-name {
+    display: none;
+  }
+}

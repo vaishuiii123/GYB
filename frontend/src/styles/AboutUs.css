@@ -85,14 +85,14 @@
 .about-main {
   flex: 1;
   display: flex;
-  justify-content: center;
-  align-items: center;
+  justify-content: flex-start;
+  align-items: stretch;
   padding: 40px 48px;
 }
 
 .about-card {
   width: 100%;
-  max-width: 1180px;
+  max-width: none;
   background: #ffffff;
   border-radius: 18px;
   padding: 48px 56px;

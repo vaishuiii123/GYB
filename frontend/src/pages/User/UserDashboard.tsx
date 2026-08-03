@@ -14,7 +14,9 @@ import {
   fetchParticipantWorkshops,
   getFeedbackAccessStatus,
   getPreOdAccessStatus,
+  getWorkshopModuleAccessStatus,
   prefetchOdChart,
+  workshopFromSelected,
 } from "../../utils/workshopCache";
 import {
   getParticipantDisplayName,
@@ -134,6 +136,9 @@ export default function UserDashboard() {
 
   const preOdStatus = getPreOdAccessStatus(workshop);
   const feedbackStatus = getFeedbackAccessStatus(workshop);
+  const moduleStatus = getWorkshopModuleAccessStatus(
+    workshop ? workshopFromSelected(workshop) : null
+  );
 
   useEffect(() => {
     if (!participant?.id) {
@@ -181,11 +186,15 @@ export default function UserDashboard() {
   const cards = useMemo(() => {
     return MODULE_CARDS.map((card) => {
       if (card.access === "preOd") {
+        const viewOnly =
+          preOdStatus.enabled && !preOdStatus.canFill && preOdStatus.message;
         return {
           ...card,
           enabled: preOdStatus.enabled,
           note: preOdStatus.enabled
-            ? ""
+            ? viewOnly
+              ? preOdStatus.message || PRE_OD_CLOSED_NOTE
+              : ""
             : preOdStatus.message || PRE_OD_CLOSED_NOTE,
         };
       }
@@ -202,11 +211,19 @@ export default function UserDashboard() {
 
       return {
         ...card,
-        enabled: true,
-        note: "",
+        enabled: moduleStatus.enabled,
+        note: moduleStatus.enabled ? "" : moduleStatus.message,
       };
     });
-  }, [preOdStatus.enabled, preOdStatus.message, feedbackStatus.enabled, feedbackStatus.message]);
+  }, [
+    preOdStatus.enabled,
+    preOdStatus.canFill,
+    preOdStatus.message,
+    feedbackStatus.enabled,
+    feedbackStatus.message,
+    moduleStatus.enabled,
+    moduleStatus.message,
+  ]);
 
   return (
     <div className="ws-dash">
@@ -257,7 +274,11 @@ export default function UserDashboard() {
                   <div className="ws-dash-module-footer">
                     <div className="ws-dash-module-status">
                       <span>
-                        {disabled && card.note ? card.note : "Open module"}
+                        {card.note
+                          ? card.note
+                          : disabled
+                            ? "Locked"
+                            : "Open module"}
                       </span>
                     </div>
                     <span className="ws-dash-module-arrow" aria-hidden>

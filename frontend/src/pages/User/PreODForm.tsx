@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import UserLayout from "./UserLayout";
 import WorkshopEditBanner from "../../components/WorkshopEditBanner";
@@ -9,6 +9,7 @@ import {
 import {
   clearCachedPageData,
   getCachedPageData,
+  getPreOdAccessStatus,
   setCachedPageData,
 } from "../../utils/workshopCache";
 import "../../styles/PreODForm.css";
@@ -38,6 +39,9 @@ export default function PreODForm() {
   const navigate = useNavigate();
   const participant = getParticipantFromStorage();
   const selectedWorkshop = getSelectedWorkshop();
+  const participantId = String(participant?.id || "").trim();
+  const organizationId = String(participant?.organizationId || "").trim();
+  const workshopId = String(selectedWorkshop?.id || "").trim();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -45,6 +49,7 @@ export default function PreODForm() {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const requestIdRef = useRef(0);
 
   const canFill = formData?.canFill ?? false;
 
@@ -58,49 +63,76 @@ export default function PreODForm() {
       groups.get(question.category)?.push(question);
     }
 
-    return Array.from(groups.entries());
+    return Array.from(groups.entries()).map(([category, items]) => [
+      category,
+      [...items].sort((a, b) => Number(a.srNo) - Number(b.srNo)),
+    ]) as Array<[string, PreOdQuestion[]]>;
   }, [formData?.questions]);
 
+  const displayQuestions = useMemo(() => {
+    let displayNo = 0;
+    return groupedQuestions.map(([category, items]) => ({
+      category,
+      items: items.map((item) => {
+        displayNo += 1;
+        return { ...item, displayNo };
+      }),
+    }));
+  }, [groupedQuestions]);
+
   useEffect(() => {
+    const workshop = getSelectedWorkshop();
+
+    if (!getPreOdAccessStatus(workshop).enabled) {
+      navigate("/userdashboard", { replace: true });
+      return;
+    }
+
+    if (!participantId) {
+      setErrorMessage("Please log in again.");
+      setLoading(false);
+      return;
+    }
+
+    if (!workshopId) {
+      setErrorMessage("Please select a workshop first.");
+      setLoading(false);
+      return;
+    }
+
+    const cacheKey = `pre-od:${participantId}:${workshopId}`;
+    const requestId = ++requestIdRef.current;
+    let cancelled = false;
+
     const loadForm = async () => {
-      if (!participant?.id) {
-        setErrorMessage("Please log in again.");
-        setLoading(false);
-        return;
-      }
-
-      if (!selectedWorkshop?.id) {
-        setErrorMessage("Please select a workshop first.");
-        setLoading(false);
-        return;
-      }
-
       try {
-        setErrorMessage("");
-        const cacheKey = `pre-od:${participant.id}:${selectedWorkshop.id}`;
         const cached = getCachedPageData<PreOdFormData>(cacheKey);
 
-        if (cached) {
+        if (cached && requestId === requestIdRef.current) {
           setFormData(cached);
           setAnswers(cached.answers || {});
           setLoading(false);
-        } else {
+        } else if (!cached) {
           setLoading(true);
         }
 
         const params = new URLSearchParams({
-          participantId: participant.id,
-          workshopId: selectedWorkshop.id,
+          participantId,
+          workshopId,
         });
 
-        if (participant.organizationId) {
-          params.set("organizationId", participant.organizationId);
+        if (organizationId) {
+          params.set("organizationId", organizationId);
         }
 
         const response = await fetch(
           `/api/get-workshop-pre-od?${params.toString()}`
         );
         const data = await response.json();
+
+        if (cancelled || requestId !== requestIdRef.current) {
+          return;
+        }
 
         if (!response.ok || !data.success) {
           if (!cached) {
@@ -112,16 +144,25 @@ export default function PreODForm() {
         setFormData(data);
         setAnswers(data.answers || {});
         setCachedPageData(cacheKey, data);
+        setErrorMessage("");
       } catch (error) {
         console.error(error);
-        setErrorMessage("Unable to load Pre OD form.");
+        if (!cancelled && requestId === requestIdRef.current) {
+          setErrorMessage("Unable to load Pre OD form.");
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled && requestId === requestIdRef.current) {
+          setLoading(false);
+        }
       }
     };
 
     loadForm();
-  }, [participant?.id, participant?.organizationId, selectedWorkshop?.id]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [navigate, participantId, organizationId, workshopId]);
 
   const handleAnswerChange = (srNo: number, value: string) => {
     setAnswers((current) => ({
@@ -131,7 +172,7 @@ export default function PreODForm() {
   };
 
   const handleSubmit = async () => {
-    if (!canFill || !formData?.workshop?.id || !participant?.id) {
+    if (!canFill || !formData?.workshop?.id || !participantId) {
       return;
     }
 
@@ -146,8 +187,8 @@ export default function PreODForm() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          participantId: participant.id,
-          organizationId: participant.organizationId || "",
+          participantId,
+          organizationId,
           workshopId: formData.workshop.id,
           answers,
         }),
@@ -160,7 +201,7 @@ export default function PreODForm() {
         return;
       }
 
-      clearCachedPageData(`pre-od:${participant.id}:${formData.workshop.id}`);
+      clearCachedPageData(`pre-od:${participantId}:${formData.workshop.id}`);
       setSuccessMessage("Pre OD submitted successfully.");
       navigate("/userdashboard", { replace: true });
       return;
@@ -196,7 +237,7 @@ export default function PreODForm() {
           <div className="pre-od-form-success">{successMessage}</div>
         ) : null}
 
-        {loading ? (
+        {loading && !formData ? (
           <p className="pre-od-form-status">Loading Pre OD form...</p>
         ) : !formData?.available ? (
           <div className="pre-od-form-empty">
@@ -222,14 +263,14 @@ export default function PreODForm() {
                 handleSubmit();
               }}
             >
-              {groupedQuestions.map(([category, items]) => (
+              {displayQuestions.map(({ category, items }) => (
                 <section key={category} className="pre-od-form-section">
                   <h3>{category}</h3>
 
                   {items.map((item) => (
                     <label key={item.srNo} className="pre-od-form-field">
                       <span className="pre-od-form-label">
-                        {item.srNo}. {item.question}
+                        {item.displayNo}. {item.question}
                       </span>
                       <textarea
                         value={answers[String(item.srNo)] || ""}

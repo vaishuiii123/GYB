@@ -1,6 +1,7 @@
 import UserLayout from "./UserLayout";
 import WorkshopEditBanner from "../../components/WorkshopEditBanner";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Crosshair,
   Eye,
@@ -15,6 +16,7 @@ import {
   clearCachedPageData,
   getActiveWorkshopContext,
   getCachedPageData,
+  getWorkshopModuleAccessStatus,
   setCachedPageData,
 } from "../../utils/workshopCache";
 import "../../styles/VisionMission.css";
@@ -68,6 +70,7 @@ function buildKeywordList(savedKeywords: string[], savedText: string) {
 }
 
 export default function VisionMission() {
+  const navigate = useNavigate();
   const [keywords, setKeywords] = useState<string[]>(DEFAULT_KEYWORDS);
   const [visionKeywords, setVisionKeywords] = useState<string[]>([]);
   const [missionKeywords, setMissionKeywords] = useState<string[]>([]);
@@ -89,6 +92,12 @@ export default function VisionMission() {
     canEdit: initialCanEdit,
     editMessage: initialEditMessage,
   } = getActiveWorkshopContext();
+
+  useEffect(() => {
+    if (!getWorkshopModuleAccessStatus(selectedWorkshop).enabled) {
+      navigate("/userdashboard", { replace: true });
+    }
+  }, [navigate, selectedWorkshop]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -387,7 +396,7 @@ export default function VisionMission() {
           <>
             {!canEdit && <WorkshopEditBanner message={editMessage} />}
 
-            <div className={canEdit ? "" : "vm-readonly"}>
+            <div className={canEdit ? "vm-content" : "vm-content vm-readonly"}>
               <section className="vm-keyword-bank">
                 <div className="vm-keyword-bank-header">
                   <h3>

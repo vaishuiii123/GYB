@@ -1,10 +1,24 @@
 import { useNavigate } from "react-router-dom";
+import { ChevronDown, LogOut, Menu } from "lucide-react";
 import logo from "../images/knav_white.png";
 import { appConfirm } from "../utils/appDialog";
+import "../styles/AdminShell.css";
 
-export default function Header({ user }: any) {
+type HeaderProps = {
+  user?: { name?: string };
+};
 
+export default function Header({ user }: HeaderProps) {
   const navigate = useNavigate();
+  const displayName = user?.name || "Admin";
+
+  const initials =
+    displayName
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((word) => word[0]?.toUpperCase() || "")
+      .join("") || "A";
 
   const handleLogout = async () => {
     const confirmLogout = await appConfirm("Do you really want to logout?", {
@@ -20,123 +34,42 @@ export default function Header({ user }: any) {
     }
   };
 
-  const initials =
-    user?.name
-      ?.split(" ")
-      .map(
-        (word: string) => word[0]
-      )
-      .join("")
-      .toUpperCase() || "U";
+  const toggleSidebar = () => {
+    document.body.classList.toggle("admin-sidebar-collapsed");
+  };
 
   return (
-
-    <div
-      style={{
-        position: "fixed",
-
-        top: 0,
-        left: 0,
-        right: 0,
-
-        height: "60px",
-
-        background: "#741D34",
-
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-
-        padding: "0 30px",
-
-        boxSizing: "border-box",
-
-        zIndex: 1000,
-
-        boxShadow:
-          "0 2px 10px rgba(0,0,0,0.15)",
-      }}
-    >
-
-      {/* Logo */}
-
-      <img
-        src={logo}
-        alt="KNAV Logo"
-        style={{
-          height: "38px",
-          objectFit: "contain",
-        }}
-      />
-
-      {/* Right Section */}
-
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "18px",
-        }}
-      >
-
-        {/* User Initials */}
-
-        <div
-          style={{
-            width: "42px",
-            height: "42px",
-
-            borderRadius: "50%",
-
-            background: "#FCECEF",
-
-            color: "#741D34",
-
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-
-            fontWeight: 700,
-            fontSize: "14px",
-          }}
+    <header className="admin-shell-header">
+      <div className="admin-shell-header-left">
+        <img src={logo} alt="KNAV" className="admin-shell-logo" />
+        <button
+          type="button"
+          className="admin-shell-menu-btn"
+          onClick={toggleSidebar}
+          aria-label="Toggle sidebar"
         >
-          {initials}
-        </div>
-
-        {/* Divider */}
-
-        <div
-          style={{
-            width: "1px",
-            height: "30px",
-
-            background:
-              "rgba(255,255,255,0.3)",
-          }}
-        />
-
-        {/* Logout */}
-
-        <div
-          onClick={handleLogout}
-          style={{
-            cursor: "pointer",
-
-            color: "#FFFFFF",
-
-            fontWeight: 600,
-            fontSize: "15px",
-
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-          }}
-        >
-          ⮕ Logout
-        </div>
-
+          <Menu size={22} strokeWidth={2.2} />
+        </button>
       </div>
 
-    </div>
+      <div className="admin-shell-header-right">
+        <div className="admin-shell-user">
+          <span className="admin-shell-avatar" aria-hidden>
+            {initials}
+          </span>
+          <span className="admin-shell-user-name">{displayName}</span>
+          <ChevronDown size={16} strokeWidth={2.2} />
+        </div>
+
+        <button
+          type="button"
+          className="admin-shell-logout"
+          onClick={handleLogout}
+        >
+          <LogOut size={16} strokeWidth={2.2} />
+          Logout
+        </button>
+      </div>
+    </header>
   );
 }

@@ -1,11 +1,21 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  CalendarDays,
+  CheckCircle2,
+  Clock3,
+  Users,
+} from "lucide-react";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
+import {
+  getWorkshopLifecycleStatus,
+  type WorkshopLifecycleStatus,
+} from "../../utils/workshopLifecycle";
 import "../../styles/AdminDashboard.css";
 
 type PageProps = {
-  user?: any;
+  user?: { name?: string };
 };
 
 type WorkshopRecord = {
@@ -14,71 +24,12 @@ type WorkshopRecord = {
   organizationName?: string;
   startDate?: string;
   endDate?: string;
+  participantCount?: number;
 };
 
-type ResponseSummary = {
-  workshopId: string;
-  counts: {
-    preOd: number;
-    odChart: number;
-    actionables: number;
-  };
-};
+type LifecycleStatus = WorkshopLifecycleStatus;
 
-type PreOdSummary = {
-  workshopId: string;
-  submissionCount: number;
-};
-
-type LifecycleStatus = "upcoming" | "in-progress" | "completed";
-
-function parseWorkshopEndMs(endDate?: string) {
-  if (!endDate) {
-    return null;
-  }
-
-  const date = new Date(endDate);
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-
-  const looksLikeDateOnly =
-    endDate.length <= 10 ||
-    (date.getUTCHours() === 0 &&
-      date.getUTCMinutes() === 0 &&
-      date.getUTCSeconds() === 0);
-
-  if (looksLikeDateOnly) {
-    date.setHours(23, 59, 59, 999);
-  }
-
-  return date.getTime();
-}
-
-function getWorkshopLifecycleStatus(
-  workshop: Pick<WorkshopRecord, "startDate" | "endDate">,
-  nowMs = Date.now()
-): LifecycleStatus {
-  const endMs = parseWorkshopEndMs(workshop.endDate);
-  if (endMs !== null && nowMs > endMs) {
-    return "completed";
-  }
-
-  const startMs = workshop.startDate
-    ? new Date(workshop.startDate).getTime()
-    : null;
-
-  if (startMs !== null && !Number.isNaN(startMs) && nowMs < startMs) {
-    return "upcoming";
-  }
-
-  // Started, or no start date but not yet past end
-  if (endMs !== null || (startMs !== null && !Number.isNaN(startMs))) {
-    return "in-progress";
-  }
-
-  return "upcoming";
-}
+const CARD_TONES = ["pink", "purple", "blue", "yellow", "green"] as const;
 
 function formatWorkshopDates(startDate?: string, endDate?: string) {
   const format = (value?: string) => {
@@ -100,66 +51,66 @@ function formatWorkshopDates(startDate?: string, endDate?: string) {
   const end = format(endDate);
 
   if (start && end) {
+    if (start === end) {
+      return start;
+    }
     return `${start} – ${end}`;
   }
 
-  return start || end || "";
+  return start || end || "Dates TBD";
+}
+
+function getWorkshopInitials(name?: string) {
+  const parts = String(name || "W")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (parts.length === 0) {
+    return "W";
+  }
+  if (parts.length === 1) {
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+  return `${parts[0][0] || ""}${parts[1][0] || ""}`.toUpperCase();
+}
+
+function isEndDateInCurrentMonth(endDate?: string, now = new Date()) {
+  if (!endDate) {
+    return false;
+  }
+  const date = new Date(endDate);
+  if (Number.isNaN(date.getTime())) {
+    return false;
+  }
+  return (
+    date.getMonth() === now.getMonth() &&
+    date.getFullYear() === now.getFullYear()
+  );
 }
 
 export default function Dashboard({ user }: PageProps) {
   const navigate = useNavigate();
   const [workshops, setWorkshops] = useState<WorkshopRecord[]>([]);
-  const [responseSummaries, setResponseSummaries] = useState<ResponseSummary[]>(
-    []
-  );
-  const [preOdSummaries, setPreOdSummaries] = useState<PreOdSummary[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const loadSummaries = useCallback(async () => {
+  const loadWorkshops = useCallback(async () => {
     try {
       setLoading(true);
-
-      const [workshopRes, responseRes, preOdRes] = await Promise.all([
-        fetch("/api/get-workshops"),
-        fetch("/api/get-workshop-responses"),
-        fetch("/api/get-pre-od-responses"),
-      ]);
-
-      const workshopData = await workshopRes.json();
-      const responseData = await responseRes.json();
-      const preOdData = await preOdRes.json();
-
-      if (workshopRes.ok && workshopData.success) {
-        setWorkshops(workshopData.workshops || []);
-      }
-
-      if (responseRes.ok && responseData.success) {
-        setResponseSummaries(responseData.summaries || []);
-      }
-
-      if (preOdRes.ok && preOdData.success) {
-        setPreOdSummaries(preOdData.summaries || []);
+      const response = await fetch("/api/get-workshops");
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setWorkshops(data.workshops || []);
       }
     } catch (error) {
-      console.error("Error loading dashboard summaries:", error);
+      console.error("Error loading dashboard workshops:", error);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadSummaries();
-  }, [loadSummaries]);
-
-  const responseMap = useMemo(
-    () => new Map(responseSummaries.map((item) => [item.workshopId, item])),
-    [responseSummaries]
-  );
-
-  const preOdMap = useMemo(
-    () => new Map(preOdSummaries.map((item) => [item.workshopId, item])),
-    [preOdSummaries]
-  );
+    loadWorkshops();
+  }, [loadWorkshops]);
 
   const { upcoming, inProgress, completed } = useMemo(() => {
     const buckets = {
@@ -191,109 +142,150 @@ export default function Dashboard({ user }: PageProps) {
     return buckets;
   }, [workshops]);
 
+  const completedThisMonth = useMemo(
+    () => completed.filter((item) => isEndDateInCurrentMonth(item.endDate)).length,
+    [completed]
+  );
+
+  const openWorkshop = (workshop: WorkshopRecord, status: LifecycleStatus) => {
+    if (status === "completed") {
+      navigate(`/workshop-responses/${workshop.id}`);
+      return;
+    }
+    navigate(`/pre-od-responses/${workshop.id}`);
+  };
+
   const renderWorkshopCard = (
     workshop: WorkshopRecord,
-    status: LifecycleStatus
-  ) => {
-    const response = responseMap.get(workshop.id);
-    const preOd = preOdMap.get(workshop.id);
-    const dates = formatWorkshopDates(workshop.startDate, workshop.endDate);
-
-    const onClick = () => {
-      if (status === "completed") {
-        navigate(`/workshop-responses/${workshop.id}`);
-        return;
-      }
-      navigate(`/pre-od-responses/${workshop.id}`);
-    };
-
-    return (
-      <button
-        key={workshop.id}
-        type="button"
-        className="admin-dashboard-workshop-card"
-        onClick={onClick}
+    status: LifecycleStatus,
+    index: number
+  ) => (
+    <button
+      key={workshop.id}
+      type="button"
+      className="adh-workshop-card"
+      onClick={() => openWorkshop(workshop, status)}
+    >
+      <span
+        className={`adh-workshop-badge tone-${CARD_TONES[index % CARD_TONES.length]}`}
       >
+        {getWorkshopInitials(workshop.workshopName)}
+      </span>
+      <div className="adh-workshop-card-body">
         <h3>{workshop.workshopName || "Workshop"}</h3>
         {workshop.organizationName ? (
-          <p className="admin-dashboard-card-meta">
-            {workshop.organizationName}
-          </p>
+          <p className="adh-workshop-org">{workshop.organizationName}</p>
         ) : null}
-        {dates ? (
-          <p className="admin-dashboard-card-meta">{dates}</p>
-        ) : null}
-
-        {status === "completed" && response ? (
-          <p>
-            Pre OD: {response.counts.preOd} · OD: {response.counts.odChart} ·
-            Actionables: {response.counts.actionables}
-          </p>
-        ) : null}
-
-        {(status === "upcoming" || status === "in-progress") && preOd ? (
-          <p>
-            {preOd.submissionCount} Pre OD submission
-            {preOd.submissionCount === 1 ? "" : "s"}
-          </p>
-        ) : null}
-
-        <span className="admin-dashboard-card-action">
-          {status === "completed" ? "View responses →" : "View Pre OD →"}
-        </span>
-      </button>
-    );
-  };
+        <p>{formatWorkshopDates(workshop.startDate, workshop.endDate)}</p>
+        <p className="adh-participants">
+          <Users size={14} strokeWidth={2} />
+          {Number(workshop.participantCount || 0)} participants
+        </p>
+      </div>
+    </button>
+  );
 
   const renderSection = (
     title: string,
-    items: WorkshopRecord[],
     status: LifecycleStatus,
+    items: WorkshopRecord[],
     emptyMessage: string
   ) => (
-    <section className="admin-dashboard-section">
-      <div className="admin-dashboard-section-header">
+    <section className="adh-section">
+      <div className="adh-section-header">
         <h2>{title}</h2>
+        <button
+          type="button"
+          className="adh-view-all"
+          onClick={() => navigate(`/workshop?status=${status}`)}
+        >
+          View all &gt;
+        </button>
       </div>
 
       {loading ? (
-        <p className="admin-dashboard-status">Loading workshops...</p>
+        <p className="adh-status">Loading workshops...</p>
       ) : items.length === 0 ? (
-        <div className="admin-dashboard-empty">{emptyMessage}</div>
+        <div className="adh-empty-panel">{emptyMessage}</div>
       ) : (
-        <div className="admin-dashboard-workshop-grid">
-          {items.map((workshop) => renderWorkshopCard(workshop, status))}
+        <div className="adh-workshop-grid">
+          {items
+            .slice(0, 6)
+            .map((workshop, index) =>
+              renderWorkshopCard(workshop, status, index)
+            )}
         </div>
       )}
     </section>
   );
 
   return (
-    <div className="admin-dashboard-page">
+    <div className="admin-dashboard-page adh-page">
       <Header user={user} />
       <Sidebar />
 
-      <div className="admin-dashboard-content">
-        <div className="admin-dashboard-header">
+      <div className="admin-dashboard-content adh-content">
+        <div className="adh-title-row">
           <h1>Dashboard</h1>
         </div>
 
+        <section className="adh-stats">
+          <article className="adh-stat-card">
+            <span className="adh-stat-icon is-completed" aria-hidden>
+              <CheckCircle2 size={22} strokeWidth={2.2} />
+            </span>
+            <div>
+              <p className="adh-stat-label">Completed Workshops</p>
+              <strong className="adh-stat-value">
+                {loading ? "—" : completedThisMonth}
+              </strong>
+              <span className="adh-stat-hint">This month</span>
+            </div>
+          </article>
+
+          <article className="adh-stat-card">
+            <span className="adh-stat-icon is-progress" aria-hidden>
+              <Clock3 size={22} strokeWidth={2.2} />
+            </span>
+            <div>
+              <p className="adh-stat-label">In Progress</p>
+              <strong className="adh-stat-value">
+                {loading ? "—" : inProgress.length}
+              </strong>
+              <span className="adh-stat-hint">Active now</span>
+            </div>
+          </article>
+
+          <article className="adh-stat-card">
+            <span className="adh-stat-icon is-upcoming" aria-hidden>
+              <CalendarDays size={22} strokeWidth={2.2} />
+            </span>
+            <div>
+              <p className="adh-stat-label">Upcoming Workshops</p>
+              <strong className="adh-stat-value">
+                {loading ? "—" : upcoming.length}
+              </strong>
+              <span className="adh-stat-hint">Scheduled</span>
+            </div>
+          </article>
+        </section>
+
         {renderSection(
-          "Upcoming workshops",
-          upcoming,
+          "Upcoming Workshops",
           "upcoming",
+          upcoming,
           "No upcoming workshops."
         )}
         {renderSection(
-          "In progress",
-          inProgress,
+          "In Progress",
           "in-progress",
+          inProgress,
           "No workshops in progress."
         )}
         {renderSection(
-          "Workshops completed",
-          completed,
+          "Completed Workshops",
           "completed",
+          completed,
           "No completed workshops."
         )}
       </div>

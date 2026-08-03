@@ -7,6 +7,7 @@ import {
   getParticipantDisplayName,
   getParticipantFromStorage,
 } from "../../utils/selectedWorkshop";
+import knavLogo from "../../images/KNAV logo1.png";
 import "../../styles/UserHeader.css";
 import { appConfirm } from "../../utils/appDialog";
 
@@ -66,6 +67,11 @@ export default function UserHeader() {
             >
               <Menu size={24} strokeWidth={2} />
             </button>
+            <img
+              src={knavLogo}
+              alt="KNAV"
+              className="user-header-logo"
+            />
           </div>
 
           <div className="user-header-right">

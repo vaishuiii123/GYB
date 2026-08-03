@@ -19,6 +19,7 @@ import {
   fetchParticipantWorkshops,
   getCachedParticipantWorkshops,
 } from "../../utils/workshopCache";
+import knavLogo from "../../images/KNAV logo1.png";
 import "../../styles/WorkshopSelection.css";
 import { appConfirm } from "../../utils/appDialog";
 
@@ -199,7 +200,13 @@ export default function WorkshopSelection() {
   return (
     <div className="workshop-selection-page">
       <header className="workshop-selection-header">
-        <div className="workshop-selection-header-left" />
+        <div className="workshop-selection-header-left">
+          <img
+            src={knavLogo}
+            alt="KNAV"
+            className="workshop-selection-logo"
+          />
+        </div>
 
         <div className="workshop-selection-header-right">
           <div className="workshop-selection-user-menu" ref={menuRef}>

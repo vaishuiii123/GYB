@@ -107,14 +107,6 @@ module.exports = async function (context, req) {
 
     const existing = await getFeedback(workshopId, participantId);
     const access = getFeedbackAccessStatus(workshop, existing);
-    const id = String(participantId).trim();
-    const storedNames = await loadStoredParticipantNames([id]);
-    const participantName =
-      pickDisplayName(
-        existing?.participantName,
-        storedNames.get(id),
-        await loadParticipantDisplayName(id)
-      ) || "";
 
     context.res = {
       status: 200,
@@ -133,7 +125,7 @@ module.exports = async function (context, req) {
         message: access.message,
         answers: existing?.answers || {},
         submittedDate: existing?.submittedDate || "",
-        participantName,
+        participantName: existing?.participantName || "",
       },
     };
   } catch (error) {

@@ -1,9 +1,10 @@
-import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { workshopNavItems } from "./userMenuItems";
 import {
   getFeedbackAccessStatus,
   getPreOdAccessStatus,
+  getWorkshopModuleAccessStatus,
+  workshopFromSelected,
 } from "../../utils/workshopCache";
 import { getSelectedWorkshop } from "../../utils/selectedWorkshop";
 import "../../styles/UserNavDrawer.css";
@@ -17,12 +18,12 @@ export default function UserNavDrawer({ open, onClose }: UserNavDrawerProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const selectedWorkshop = getSelectedWorkshop();
-  const [preOdEnabled] = useState(() =>
-    getPreOdAccessStatus(selectedWorkshop).enabled
-  );
-  const [feedbackEnabled] = useState(() =>
-    getFeedbackAccessStatus(selectedWorkshop).enabled
-  );
+  const workshopRecord = selectedWorkshop
+    ? workshopFromSelected(selectedWorkshop)
+    : null;
+  const preOdStatus = getPreOdAccessStatus(selectedWorkshop);
+  const feedbackStatus = getFeedbackAccessStatus(selectedWorkshop);
+  const moduleStatus = getWorkshopModuleAccessStatus(workshopRecord);
 
   const handleNavigate = (path: string | null) => {
     if (!path) return;
@@ -47,14 +48,27 @@ export default function UserNavDrawer({ open, onClose }: UserNavDrawerProps) {
             const isActive = item.match?.(location.pathname) ?? false;
             const isPreOdItem = item.path === "/pre-od-workshop";
             const isFeedbackItem = item.path === "/workshop-feedback";
-            let path = item.path;
+            const isWorkshopModule =
+              item.path === "/vision-mission" ||
+              item.path === "/od-chart" ||
+              item.path === "/actionables";
 
-            if (isPreOdItem && !preOdEnabled) {
+            let path = item.path;
+            let title: string | undefined;
+
+            if (isPreOdItem && !preOdStatus.enabled) {
               path = null;
+              title = preOdStatus.message;
             }
 
-            if (isFeedbackItem && !feedbackEnabled) {
+            if (isFeedbackItem && !feedbackStatus.enabled) {
               path = null;
+              title = feedbackStatus.message;
+            }
+
+            if (isWorkshopModule && !moduleStatus.enabled) {
+              path = null;
+              title = moduleStatus.message;
             }
 
             const disabled = !path;
@@ -68,6 +82,7 @@ export default function UserNavDrawer({ open, onClose }: UserNavDrawerProps) {
                   }`}
                   onClick={() => handleNavigate(path)}
                   disabled={disabled}
+                  title={title}
                 >
                   <span className="user-nav-icon" aria-hidden="true">
                     ❖

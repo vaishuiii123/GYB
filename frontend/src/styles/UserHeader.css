@@ -31,6 +31,14 @@
   min-width: 0;
 }
 
+.user-header-logo {
+  height: 36px;
+  width: auto;
+  max-width: min(180px, 42vw);
+  object-fit: contain;
+  display: block;
+}
+
 .user-header-menu-btn {
   display: inline-flex;
   align-items: center;

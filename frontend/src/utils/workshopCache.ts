@@ -60,11 +60,33 @@ function parseWorkshopEndMs(endDate?: string) {
   return date.getTime();
 }
 
+function parseWorkshopStartMs(startDate?: string) {
+  if (!startDate) {
+    return null;
+  }
+
+  const date = new Date(startDate);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return date.getTime();
+}
+
 export function getWorkshopEditStatus(workshop?: WorkshopRecord | null) {
   if (!workshop) {
     return {
       canEdit: false,
       editMessage: "No workshop is available for your organization.",
+    };
+  }
+
+  const startMs = parseWorkshopStartMs(workshop.startDate);
+  if (startMs !== null && Date.now() < startMs) {
+    return {
+      canEdit: false,
+      editMessage:
+        "Workshop modules open once the workshop starts. You can complete Pre OD until then.",
     };
   }
 
@@ -80,6 +102,36 @@ export function getWorkshopEditStatus(workshop?: WorkshopRecord | null) {
   return {
     canEdit: true,
     editMessage: "",
+  };
+}
+
+/** Vision / OD Chart / Actionables: enter after workshop starts; edit only while live. */
+export function getWorkshopModuleAccessStatus(
+  workshop?: WorkshopRecord | null
+) {
+  if (!workshop) {
+    return {
+      enabled: false,
+      canEdit: false,
+      message: "No workshop is available for your organization.",
+    };
+  }
+
+  const startMs = parseWorkshopStartMs(workshop.startDate);
+  if (startMs !== null && Date.now() < startMs) {
+    return {
+      enabled: false,
+      canEdit: false,
+      message:
+        "This module opens once the workshop starts. Complete Pre OD until then.",
+    };
+  }
+
+  const editStatus = getWorkshopEditStatus(workshop);
+  return {
+    enabled: true,
+    canEdit: editStatus.canEdit,
+    message: editStatus.editMessage,
   };
 }
 
@@ -131,7 +183,8 @@ export function getPreOdAccessStatus(workshop?: PreOdWorkshop | null) {
       return {
         available: true,
         canFill: false,
-        enabled: false,
+        // Still open for viewing after workshop starts.
+        enabled: true,
         message:
           "This window has closed because the workshop has started.",
       };

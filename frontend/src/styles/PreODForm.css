@@ -3,8 +3,9 @@
 }
 
 .pre-od-form-page {
-  max-width: 960px;
-  margin: 0 auto;
+  max-width: none;
+  margin: 0;
+  width: 100%;
   padding: 24px 20px 40px;
 }
 

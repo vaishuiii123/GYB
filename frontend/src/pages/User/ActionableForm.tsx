@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   CalendarDays,
   ClipboardCheck,
@@ -14,6 +15,7 @@ import {
   flattenOdChartLeaves,
   getActiveWorkshopContext,
   getWorkshopEditStatus,
+  getWorkshopModuleAccessStatus,
 } from "../../utils/workshopCache";
 import UserLayout from "./UserLayout";
 import WorkshopEditBanner from "../../components/WorkshopEditBanner";
@@ -56,6 +58,7 @@ function createEmptyForm(): FormEntry {
 }
 
 export default function ActionableForm() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -72,6 +75,12 @@ export default function ActionableForm() {
     canEdit: initialCanEdit,
     editMessage: initialEditMessage,
   } = getActiveWorkshopContext();
+
+  useEffect(() => {
+    if (!getWorkshopModuleAccessStatus(selectedWorkshop).enabled) {
+      navigate("/userdashboard", { replace: true });
+    }
+  }, [navigate, selectedWorkshop]);
 
   useEffect(() => {
     const loadFormData = async () => {
