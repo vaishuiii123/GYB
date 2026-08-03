@@ -1,4 +1,4 @@
-import { Eye, Pencil, Trash2 } from "lucide-react";
+import { Copy, Eye, Pencil, Trash2 } from "lucide-react";
 
 type IconBtnProps = {
   onClick?: () => void;
@@ -43,6 +43,26 @@ export function EditIconBtn({
       disabled={disabled}
     >
       <Pencil size={16} strokeWidth={2} />
+    </button>
+  );
+}
+
+export function CopyIconBtn({
+  onClick,
+  disabled,
+  title = "Use as new template",
+  className = "",
+}: IconBtnProps) {
+  return (
+    <button
+      type="button"
+      className={`admin-icon-btn admin-icon-copy ${className}`.trim()}
+      title={title}
+      aria-label={title}
+      onClick={onClick}
+      disabled={disabled}
+    >
+      <Copy size={16} strokeWidth={2} />
     </button>
   );
 }

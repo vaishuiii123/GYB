@@ -124,6 +124,16 @@ export default function TemplateDetails({ user }: PageProps) {
                 ))}
               </tbody>
             </table>
+
+            <div className="card-footer">
+              <button
+                type="button"
+                className="save-btn"
+                onClick={() => navigate(`/create-template?from=${id}`)}
+              >
+                Use as New Template
+              </button>
+            </div>
           </div>
         </div>
       </div>

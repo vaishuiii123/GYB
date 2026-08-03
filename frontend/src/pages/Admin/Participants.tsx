@@ -36,10 +36,19 @@ const emptyParticipantForm: ParticipantForm = {
   password: "",
 };
 
+function phoneDigits(value: string) {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (digits.length === 12 && digits.startsWith("91")) {
+    return digits.slice(2);
+  }
+  return digits;
+}
+
 export default function Participants({ user }: PageProps) {
   const [participants, setParticipants] = useState<any[]>([]);
   const [tableSearch, setTableSearch] = useState("");
   const [formError, setFormError] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const [showParticipantModal, setShowParticipantModal] = useState(false);
   const [participantForm, setParticipantForm] =
@@ -108,7 +117,25 @@ export default function Participants({ user }: PageProps) {
     return "";
   };
 
+  const isPhoneAlreadyRegistered = (phoneNo: string, excludeId?: string) => {
+    const target = phoneDigits(phoneNo);
+    if (!target) {
+      return false;
+    }
+
+    return participants.some((participant) => {
+      if (excludeId && participant.id === excludeId) {
+        return false;
+      }
+      return phoneDigits(participant.phoneNo) === target;
+    });
+  };
+
   const handleCreateParticipant = async () => {
+    if (saving) {
+      return;
+    }
+
     const payload = {
       firstName: participantForm.firstName.trim(),
       middleName: participantForm.middleName.trim(),
@@ -124,7 +151,13 @@ export default function Participants({ user }: PageProps) {
       return;
     }
 
+    if (isPhoneAlreadyRegistered(payload.phoneNo)) {
+      setFormError("This phone number is already registered.");
+      return;
+    }
+
     try {
+      setSaving(true);
       const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
 
       const response = await fetch("/api/create-participant", {
@@ -161,6 +194,8 @@ export default function Participants({ user }: PageProps) {
     } catch (error) {
       console.error(error);
       setFormError("Failed to create participant");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -171,6 +206,10 @@ export default function Participants({ user }: PageProps) {
   };
 
   const handleUpdateParticipant = async () => {
+    if (saving) {
+      return;
+    }
+
     const payload = {
       id: editParticipant.id,
       firstName: String(editParticipant.firstName || "").trim(),
@@ -187,7 +226,13 @@ export default function Participants({ user }: PageProps) {
       return;
     }
 
+    if (isPhoneAlreadyRegistered(payload.phoneNo, payload.id)) {
+      setFormError("This phone number is already registered.");
+      return;
+    }
+
     try {
+      setSaving(true);
       const response = await fetch("/api/update-participant", {
         method: "POST",
         headers: {
@@ -198,16 +243,18 @@ export default function Participants({ user }: PageProps) {
 
       const data = await response.json();
 
-      if (data.success) {
-        setFormError("");
+      if (response.ok && data.success) {
         setShowEditModal(false);
+        setFormError("");
         fetchParticipants();
       } else {
-        setFormError(data.message || "Update failed");
+        setFormError(data.message || data.error || "Update failed");
       }
     } catch (error) {
       console.error(error);
       setFormError("Failed to update participant");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -440,9 +487,9 @@ export default function Participants({ user }: PageProps) {
               <button
                 className="org-btn org-btn-primary"
                 onClick={handleCreateParticipant}
-                disabled={!isParticipantFormValid(participantForm)}
+                disabled={saving || !isParticipantFormValid(participantForm)}
               >
-                Save
+                {saving ? "Saving..." : "Save"}
               </button>
             </div>
           </div>
@@ -558,9 +605,9 @@ export default function Participants({ user }: PageProps) {
               <button
                 className="org-btn org-btn-primary"
                 onClick={handleUpdateParticipant}
-                disabled={!isParticipantFormValid(editParticipant)}
+                disabled={saving || !isParticipantFormValid(editParticipant)}
               >
-                Save
+                {saving ? "Saving..." : "Save"}
               </button>
             </div>
           </div>

@@ -157,6 +157,11 @@
   color: #c2410c !important;
 }
 
+.admin-icon-copy {
+  background: #ecfdf5 !important;
+  color: #047857 !important;
+}
+
 .admin-icon-delete,
 .delete-btn,
 .org-btn-delete,

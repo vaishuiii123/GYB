@@ -1,5 +1,7 @@
 const { TableClient } = require("@azure/data-tables");
 const { isValidEmail, isValidPhone } = require("../shared/validation");
+const { normalizePhone } = require("../shared/smsProvider");
+const { findParticipantWithPhone } = require("../shared/participantUniqueness");
 
 module.exports = async function (context, req) {
   try {
@@ -71,11 +73,25 @@ module.exports = async function (context, req) {
       return;
     }
 
+    const existingByPhone = await findParticipantWithPhone(trimmedPhone, id);
+    if (existingByPhone) {
+      context.res = {
+        status: 409,
+        body: {
+          success: false,
+          message: "This phone number is already registered.",
+        },
+      };
+      return;
+    }
+
     const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
     const client = TableClient.fromConnectionString(
       connectionString,
       "Participants"
     );
+
+    const normalizedPhone = normalizePhone(trimmedPhone);
 
     await client.updateEntity(
       {
@@ -85,7 +101,7 @@ module.exports = async function (context, req) {
         Middle_Name: trimmedMiddle,
         Last_Name: trimmedLast,
         Email: trimmedEmail,
-        Phone_No: trimmedPhone,
+        Phone_No: normalizedPhone || trimmedPhone,
         Password: trimmedPassword,
         Role: "Participant",
       },

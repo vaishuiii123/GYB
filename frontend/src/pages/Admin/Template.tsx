@@ -4,6 +4,7 @@ import Sidebar from "../../components/Sidebar";
 import { useNavigate } from "react-router-dom";
 import { Search } from "lucide-react";
 import {
+  CopyIconBtn,
   DeleteIconBtn,
   ViewIconBtn,
 } from "../../components/AdminActionIcons";
@@ -101,7 +102,7 @@ export default function Template({ user }: PageProps) {
               className="create-btn"
               onClick={() => navigate("/create-template")}
             >
-              + Create Template
+              + Create New Template
             </button>
           </div>
 
@@ -145,6 +146,12 @@ export default function Template({ user }: PageProps) {
                           <ViewIconBtn
                             onClick={() =>
                               navigate(`/template-details/${template.id}`)
+                            }
+                          />
+                          <CopyIconBtn
+                            title="Use as new template"
+                            onClick={() =>
+                              navigate(`/create-template?from=${template.id}`)
                             }
                           />
                           <DeleteIconBtn

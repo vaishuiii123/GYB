@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import "../../styles/Template.css";
 
 type PageProps = {
@@ -13,6 +13,19 @@ type CategoryItem = {
   categoryName: string;
   fullPath: string;
   questions: any[];
+};
+
+type SourceQuestion = {
+  id: string;
+  question: string;
+  categoryName: string;
+  categoryPath?: string;
+};
+
+type SourceCategoryMeta = {
+  categoryIds: string[];
+  categoryNames: string[];
+  categoryPaths: string[];
 };
 
 function SelectAllCheckbox({
@@ -52,30 +65,141 @@ function SelectAllCheckbox({
   );
 }
 
+function buildCopyName(name: string) {
+  const trimmed = String(name || "").trim();
+  if (!trimmed) {
+    return "";
+  }
+  if (/^copy of /i.test(trimmed)) {
+    return trimmed;
+  }
+  return `Copy of ${trimmed}`;
+}
+
 export default function CreateTemplate({ user }: PageProps) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const sourceTemplateId = searchParams.get("from") || "";
 
   const [templateName, setTemplateName] = useState("");
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [activeCategoryId, setActiveCategoryId] = useState("");
   const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
+  const [sourceQuestions, setSourceQuestions] = useState<SourceQuestion[]>([]);
+  const [sourceCategoryMeta, setSourceCategoryMeta] =
+    useState<SourceCategoryMeta>({
+      categoryIds: [],
+      categoryNames: [],
+      categoryPaths: [],
+    });
   const [saving, setSaving] = useState(false);
+  const [loadingCategories, setLoadingCategories] = useState(true);
+  const [loadingSource, setLoadingSource] = useState(Boolean(sourceTemplateId));
+  const [sourceLabel, setSourceLabel] = useState("");
 
   useEffect(() => {
-    loadCategories();
-  }, []);
+    let cancelled = false;
 
-  const loadCategories = async () => {
-    try {
-      const response = await fetch("/api/get-all-categories");
-      const data = await response.json();
-      if (data.success) {
-        setCategories(data.categories);
+    const loadCategories = async () => {
+      try {
+        const response = await fetch("/api/get-all-categories");
+        const data = await response.json();
+        if (cancelled || !data.success) {
+          return;
+        }
+
+        setCategories(data.categories || []);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        if (!cancelled) {
+          setLoadingCategories(false);
+        }
       }
-    } catch (error) {
-      console.error(error);
-    }
-  };
+    };
+
+    const loadSourceTemplate = async () => {
+      if (!sourceTemplateId) {
+        setLoadingSource(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `/api/get-template-details?templateId=${encodeURIComponent(
+            sourceTemplateId
+          )}`
+        );
+        const data = await response.json();
+        if (cancelled) {
+          return;
+        }
+
+        if (!data.success || !data.template) {
+          alert(data.message || "Could not load the selected template.");
+          return;
+        }
+
+        const source = data.template;
+        const questions: SourceQuestion[] = (source.questions || [])
+          .map(
+            (question: {
+              id?: string;
+              question?: string;
+              categoryName?: string;
+              categoryPath?: string;
+            }) => ({
+              id: String(question.id || "").trim(),
+              question: String(question.question || "").trim(),
+              categoryName: String(question.categoryName || "General").trim(),
+              categoryPath: String(question.categoryPath || "").trim(),
+            })
+          )
+          .filter((question: SourceQuestion) => question.id);
+
+        const preselected =
+          questions.length > 0
+            ? questions.map((question) => question.id)
+            : (source.questionIds || [])
+                .map((id: string) => String(id).trim())
+                .filter(Boolean);
+
+        setTemplateName(buildCopyName(source.templateName || ""));
+        setSelectedQuestions(preselected);
+        setSourceQuestions(questions);
+        setSourceLabel(source.templateName || "selected template");
+        setSourceCategoryMeta({
+          categoryIds: (source.categoryIds || [])
+            .map((id: string) => String(id).trim())
+            .filter(Boolean),
+          categoryNames: (source.categoryNames || [])
+            .map((name: string) => String(name).trim())
+            .filter(Boolean),
+          categoryPaths: (source.categoryPaths || [])
+            .map((path: string) => String(path).trim())
+            .filter(Boolean),
+        });
+        // Keep category empty so all source questions stay visible.
+        setActiveCategoryId("");
+      } catch (error) {
+        console.error(error);
+        if (!cancelled) {
+          alert("Error loading template to copy.");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingSource(false);
+        }
+      }
+    };
+
+    loadCategories();
+    loadSourceTemplate();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [sourceTemplateId]);
 
   const activeCategory = useMemo(() => {
     return categories.find((c) => c.id === activeCategoryId) || null;
@@ -88,12 +212,15 @@ export default function CreateTemplate({ user }: PageProps) {
   }, [categories, selectedQuestions]);
 
   const selectedQuestionsList = useMemo(() => {
-    const list: { id: string; question: string; categoryName: string }[] = [];
+    const byId = new Map<
+      string,
+      { id: string; question: string; categoryName: string }
+    >();
 
     categories.forEach((category) => {
       category.questions.forEach((q) => {
         if (selectedQuestions.includes(q.id)) {
-          list.push({
+          byId.set(q.id, {
             id: q.id,
             question: q.question,
             categoryName: category.categoryName,
@@ -102,13 +229,57 @@ export default function CreateTemplate({ user }: PageProps) {
       });
     });
 
-    return list;
-  }, [categories, selectedQuestions]);
+    sourceQuestions.forEach((question) => {
+      if (selectedQuestions.includes(question.id) && !byId.has(question.id)) {
+        byId.set(question.id, {
+          id: question.id,
+          question: question.question || question.id,
+          categoryName: question.categoryName || "General",
+        });
+      }
+    });
+
+    return selectedQuestions
+      .map((id) => byId.get(id))
+      .filter(Boolean) as {
+      id: string;
+      question: string;
+      categoryName: string;
+    }[];
+  }, [categories, selectedQuestions, sourceQuestions]);
+
+  const browsableCategories = useMemo(
+    () =>
+      categories
+        .filter((category) => category.questions.length > 0)
+        .sort((a, b) =>
+          a.categoryName.localeCompare(b.categoryName, undefined, {
+            sensitivity: "base",
+          })
+        ),
+    [categories]
+  );
+
+  const visibleQuestions = useMemo(() => {
+    if (activeCategory) {
+      return activeCategory.questions.map((question) => ({
+        id: question.id,
+        question: question.question,
+        categoryName: activeCategory.categoryName,
+      }));
+    }
+
+    if (sourceTemplateId && sourceQuestions.length > 0) {
+      return sourceQuestions;
+    }
+
+    return [];
+  }, [activeCategory, sourceTemplateId, sourceQuestions]);
 
   const toggleCategoryAll = () => {
-    if (!activeCategory) return;
+    const questionIds = visibleQuestions.map((q) => q.id);
+    if (questionIds.length === 0) return;
 
-    const questionIds = activeCategory.questions.map((q) => q.id);
     const allSelected = questionIds.every((id) =>
       selectedQuestions.includes(id)
     );
@@ -147,6 +318,26 @@ export default function CreateTemplate({ user }: PageProps) {
       return;
     }
 
+    const categoryIds =
+      selectedCategoryData.length > 0
+        ? selectedCategoryData.map((c) => c.id)
+        : sourceCategoryMeta.categoryIds;
+    const categoryNames =
+      selectedCategoryData.length > 0
+        ? selectedCategoryData.map((c) => c.categoryName)
+        : sourceCategoryMeta.categoryNames;
+    const categoryPaths =
+      selectedCategoryData.length > 0
+        ? selectedCategoryData.map((c) => c.fullPath)
+        : sourceCategoryMeta.categoryPaths;
+
+    if (categoryIds.length === 0) {
+      alert(
+        "Could not resolve categories for the selected questions. Pick at least one question from a category."
+      );
+      return;
+    }
+
     try {
       setSaving(true);
 
@@ -154,10 +345,10 @@ export default function CreateTemplate({ user }: PageProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          templateName,
-          categoryIds: selectedCategoryData.map((c) => c.id),
-          categoryNames: selectedCategoryData.map((c) => c.categoryName),
-          categoryPaths: selectedCategoryData.map((c) => c.fullPath),
+          templateName: templateName.trim(),
+          categoryIds,
+          categoryNames,
+          categoryPaths,
           questionIds: selectedQuestions,
           createdBy: user?.email || user?.name || "Admin",
         }),
@@ -166,7 +357,11 @@ export default function CreateTemplate({ user }: PageProps) {
       const data = await response.json();
 
       if (data.success) {
-        alert("Template Created Successfully");
+        alert(
+          sourceTemplateId
+            ? "New template created from the selected template"
+            : "Template Created Successfully"
+        );
         navigate("/template");
       } else {
         alert(data.message || data.error || "Failed to create template");
@@ -179,8 +374,11 @@ export default function CreateTemplate({ user }: PageProps) {
     }
   };
 
-  const activeQuestionIds =
-    activeCategory?.questions.map((q) => q.id) || [];
+  const visibleQuestionIds = visibleQuestions.map((q) => q.id);
+  const pageTitle = sourceTemplateId
+    ? "Create Template from Existing"
+    : "Create Template";
+  const isLoading = loadingSource;
 
   return (
     <div className="template-page">
@@ -195,30 +393,46 @@ export default function CreateTemplate({ user }: PageProps) {
               Template
             </span>
             {" > "}
-            <span>Create Template</span>
+            <span>{pageTitle}</span>
           </div>
 
-          <h1 className="page-title">Create Template</h1>
+          <h1 className="page-title">{pageTitle}</h1>
+
+          {sourceTemplateId ? (
+            <p className="template-copy-hint">
+              {loadingSource
+                ? "Loading selected template questions..."
+                : `Started from “${sourceLabel}”. ${selectedQuestions.length} question(s) pre-selected. Change the name or selection, then save as a new template.`}
+            </p>
+          ) : null}
 
           <div className="template-card">
             <div className="form-row">
               <div className="form-group">
                 <label>Template Name *</label>
                 <input
-                  placeholder="Enter template name"
+                  placeholder="Enter a new template name"
                   value={templateName}
                   onChange={(e) => setTemplateName(e.target.value)}
+                  disabled={loadingSource}
                 />
               </div>
 
               <div className="form-group">
-                <label>Select Question Category</label>
+                <label>Browse Question Category</label>
                 <select
                   value={activeCategoryId}
                   onChange={(e) => setActiveCategoryId(e.target.value)}
+                  disabled={loadingCategories}
                 >
-                  <option value="">Select question category</option>
-                  {categories.map((category) => (
+                  <option value="">
+                    {loadingCategories
+                      ? "Loading categories..."
+                      : sourceTemplateId
+                        ? "All questions from source template"
+                        : "Select question category"}
+                  </option>
+                  {browsableCategories.map((category) => (
                     <option key={category.id} value={category.id}>
                       {category.categoryName} ({category.questions.length})
                     </option>
@@ -230,8 +444,11 @@ export default function CreateTemplate({ user }: PageProps) {
             {selectedQuestionsList.length > 0 && (
               <div className="selected-summary">
                 <div className="selected-summary-title">
-                  Selected for template ({selectedQuestionsList.length}{" "}
-                  from {selectedCategoryData.length} categories)
+                  Selected for template ({selectedQuestionsList.length}
+                  {selectedCategoryData.length > 0
+                    ? ` from ${selectedCategoryData.length} categories`
+                    : ""}
+                  )
                 </div>
                 <div className="selected-summary-list">
                   {selectedQuestionsList.map((item) => (
@@ -257,9 +474,9 @@ export default function CreateTemplate({ user }: PageProps) {
                   <th>Question Category</th>
                   <th>
                     Include{" "}
-                    {activeCategory && activeCategory.questions.length > 0 && (
+                    {visibleQuestions.length > 0 && (
                       <SelectAllCheckbox
-                        questionIds={activeQuestionIds}
+                        questionIds={visibleQuestionIds}
                         selectedQuestions={selectedQuestions}
                         onToggleAll={toggleCategoryAll}
                       />
@@ -268,25 +485,26 @@ export default function CreateTemplate({ user }: PageProps) {
                 </tr>
               </thead>
               <tbody>
-                {!activeCategory ? (
+                {isLoading ? (
                   <tr>
                     <td colSpan={4} className="empty-row">
-                      Select a category from the dropdown to view its questions
+                      Loading template questions...
                     </td>
                   </tr>
-                ) : activeCategory.questions.length === 0 ? (
+                ) : visibleQuestions.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="empty-row">
-                      No questions in this category. Assign questions in
-                      Category Management first.
+                      {loadingCategories
+                        ? "Loading categories..."
+                        : "Select a category from the dropdown to view its questions"}
                     </td>
                   </tr>
                 ) : (
-                  activeCategory.questions.map((question, index) => (
+                  visibleQuestions.map((question, index) => (
                     <tr key={question.id}>
                       <td>{index + 1}</td>
                       <td>{question.question}</td>
-                      <td>{activeCategory.categoryName}</td>
+                      <td>{question.categoryName}</td>
                       <td>
                         <input
                           type="checkbox"
@@ -304,9 +522,13 @@ export default function CreateTemplate({ user }: PageProps) {
               <button
                 className="save-btn"
                 onClick={saveTemplate}
-                disabled={saving}
+                disabled={saving || loadingSource}
               >
-                {saving ? "Saving..." : "Save Template"}
+                {saving
+                  ? "Saving..."
+                  : sourceTemplateId
+                    ? "Save as New Template"
+                    : "Save Template"}
               </button>
             </div>
           </div>

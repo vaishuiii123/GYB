@@ -142,9 +142,8 @@ module.exports = async function (context, req) {
             ? template.CategoryPath.split("|").filter(Boolean)
             : [];
 
-        const questionIds = template.QuestionIds
-            ? template.QuestionIds.split(",").filter(Boolean)
-            : [];
+        const questionIds = parseQuestionIds(template.QuestionIds);
+        const categoryIds = parseQuestionIds(template.CategoryId);
 
         const allOptions = [];
         for await (const opt of optionClient.listEntities({
@@ -175,6 +174,7 @@ module.exports = async function (context, req) {
                     answerType: question.QuestionType,
                     required: false,
                     options,
+                    categoryId: categoryInfo?.id || "",
                     categoryName: categoryInfo?.categoryName || "",
                     categoryPath: categoryInfo?.fullPath || ""
                 });
@@ -190,11 +190,16 @@ module.exports = async function (context, req) {
                 template: {
                     id: template.rowKey,
                     templateName: template.TemplateName,
+                    categoryId: template.CategoryId || "",
+                    categoryIds,
                     categoryName: template.CategoryName,
                     categoryNames: template.CategoryName
-                        ? template.CategoryName.split(",").filter(Boolean)
+                        ? template.CategoryName.split(",")
+                              .map((name) => name.trim())
+                              .filter(Boolean)
                         : [],
                     categoryPaths: savedPaths,
+                    questionIds,
                     questions
                 }
             }

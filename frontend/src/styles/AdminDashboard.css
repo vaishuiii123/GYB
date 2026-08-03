@@ -36,6 +36,23 @@
   flex-wrap: wrap;
 }
 
+.admin-dashboard-primary-btn {
+  height: 40px;
+  border: none;
+  border-radius: 8px;
+  padding: 0 16px;
+  background: #7b0f2c;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-dashboard-primary-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .admin-dashboard-secondary-btn {
   height: 40px;
   border: 1px solid #d1d5db;

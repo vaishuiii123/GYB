@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
+import { exportWorkshopResponsesExcel } from "../../utils/exportWorkshopResponses";
 import "../../styles/AdminDashboard.css";
 
 type PageProps = {
@@ -65,7 +66,7 @@ export default function WorkshopResponses({ user }: PageProps) {
   const [activeTab, setActiveTab] = useState<TabKey>("preOd");
   const [participants, setParticipants] = useState<ParticipantResponse[]>([]);
   const [preOdQuestions, setPreOdQuestions] = useState<
-    Array<{ srNo: number; question: string }>
+    Array<{ srNo: number; category?: string; question: string }>
   >([]);
   const [questionLabels, setQuestionLabels] = useState<Record<string, string>>(
     {}
@@ -146,6 +147,18 @@ export default function WorkshopResponses({ user }: PageProps) {
 
   const showingFeedback = activeTab === "feedback";
 
+  const handleExportExcel = () => {
+    exportWorkshopResponsesExcel({
+      workshopName,
+      organizationName,
+      participants,
+      preOdQuestions,
+      questionLabels,
+      feedbackQuestions,
+      feedbackSubmissions,
+    });
+  };
+
   return (
     <div className="admin-dashboard-page">
       <Header user={user} />
@@ -160,13 +173,23 @@ export default function WorkshopResponses({ user }: PageProps) {
             ) : null}
           </div>
 
-          <button
-            type="button"
-            className="admin-dashboard-secondary-btn"
-            onClick={() => navigate("/dashboard")}
-          >
-            Back to Dashboard
-          </button>
+          <div className="admin-dashboard-header-actions">
+            <button
+              type="button"
+              className="admin-dashboard-primary-btn"
+              onClick={handleExportExcel}
+              disabled={loading || Boolean(errorMessage)}
+            >
+              Export Excel
+            </button>
+            <button
+              type="button"
+              className="admin-dashboard-secondary-btn"
+              onClick={() => navigate("/dashboard")}
+            >
+              Back to Dashboard
+            </button>
+          </div>
         </div>
 
         <div className="admin-dashboard-tabs">
