@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, LogOut, Menu } from "lucide-react";
+import { ChevronDown, LogOut } from "lucide-react";
 import logo from "../images/knav_white.png";
 import { appConfirm } from "../utils/appDialog";
 import "../styles/AdminShell.css";
@@ -32,10 +32,6 @@ export default function Header({ user }: HeaderProps) {
       sessionStorage.clear();
       navigate("/");
     }
-  };
-
-  const toggleSidebar = () => {
-    document.body.classList.toggle("admin-sidebar-collapsed");
   };
 
   return (
