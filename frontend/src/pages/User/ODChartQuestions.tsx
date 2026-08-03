@@ -179,6 +179,13 @@ export default function ODChartQuestions() {
           workshopId: navState.workshop.id,
           organizationId: participant.organizationId || "",
           templateId: navState.workshop.templateId,
+          participantName: [
+            participant.firstName || participant.First_Name || "",
+            participant.lastName || participant.Last_Name || "",
+          ]
+            .map((part) => String(part).trim())
+            .filter(Boolean)
+            .join(" "),
           answers,
         }),
       });

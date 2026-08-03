@@ -19,6 +19,9 @@ type TabKey =
 type ParticipantResponse = {
   participantId: string;
   participantName: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
   preOd: { answers: Record<string, string>; submittedDate?: string } | null;
   odChart: { answers: Record<string, string>; submittedDate?: string } | null;
   visionMission: {
@@ -46,6 +49,8 @@ type FeedbackQuestion = {
 type FeedbackSubmission = {
   participantId: string;
   participantName: string;
+  firstName?: string;
+  lastName?: string;
   answers: Record<string, string>;
   submittedDate?: string;
 };
@@ -54,6 +59,29 @@ function formatDate(value?: string) {
   if (!value) return "—";
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+}
+
+function buildFullName(item: {
+  firstName?: string;
+  middleName?: string;
+  lastName?: string;
+  email?: string;
+}) {
+  const fullName = [item.firstName, item.middleName, item.lastName]
+    .map((part) => String(part || "").trim())
+    .filter(Boolean)
+    .join(" ");
+  return fullName || String(item.email || "").trim();
+}
+
+function isPlaceholderName(name?: string) {
+  const trimmed = String(name || "").trim();
+  return (
+    !trimmed ||
+    trimmed.toLowerCase() === "participant" ||
+    trimmed.toLowerCase() === "unknown" ||
+    /^\d{10,}$/.test(trimmed)
+  );
 }
 
 export default function WorkshopResponses({ user }: PageProps) {
@@ -77,7 +105,30 @@ export default function WorkshopResponses({ user }: PageProps) {
   const [feedbackSubmissions, setFeedbackSubmissions] = useState<
     FeedbackSubmission[]
   >([]);
+  const [participantNameById, setParticipantNameById] = useState<
+    Record<string, string>
+  >({});
   const [expandedId, setExpandedId] = useState("");
+  const [exporting, setExporting] = useState(false);
+
+  const resolveParticipantName = (participantId: string, fallbackName?: string, firstName?: string, lastName?: string) => {
+    const composed = [firstName, lastName]
+      .map((part) => String(part || "").trim())
+      .filter(Boolean)
+      .join(" ");
+    if (composed) {
+      return composed;
+    }
+
+    const mapped = participantNameById[String(participantId || "").trim()];
+    if (mapped && !isPlaceholderName(mapped)) {
+      return mapped;
+    }
+    if (!isPlaceholderName(fallbackName)) {
+      return String(fallbackName).trim();
+    }
+    return mapped || "Unknown";
+  };
 
   useEffect(() => {
     if (!workshopId) {
@@ -91,7 +142,7 @@ export default function WorkshopResponses({ user }: PageProps) {
         setLoading(true);
         setErrorMessage("");
 
-        const [responsesRes, feedbackRes] = await Promise.all([
+        const [responsesRes, feedbackRes, participantsRes] = await Promise.all([
           fetch(
             `/api/get-workshop-responses?workshopId=${encodeURIComponent(
               workshopId
@@ -102,10 +153,12 @@ export default function WorkshopResponses({ user }: PageProps) {
               workshopId
             )}&admin=true`
           ),
+          fetch("/api/get-participants"),
         ]);
 
         const responsesData = await responsesRes.json();
         const feedbackData = await feedbackRes.json();
+        const participantsData = await participantsRes.json().catch(() => null);
 
         if (!responsesRes.ok || !responsesData.success) {
           setErrorMessage(
@@ -114,15 +167,73 @@ export default function WorkshopResponses({ user }: PageProps) {
           return;
         }
 
+        const nameMap: Record<string, string> = {};
+        if (participantsData?.success && Array.isArray(participantsData.participants)) {
+          participantsData.participants.forEach(
+            (item: {
+              id?: string;
+              firstName?: string;
+              middleName?: string;
+              lastName?: string;
+              email?: string;
+            }) => {
+              const id = String(item.id || "").trim();
+              if (!id) {
+                return;
+              }
+              const fullName = buildFullName(item);
+              if (fullName) {
+                nameMap[id] = fullName;
+              }
+            }
+          );
+        }
+
+        const responseParticipants: ParticipantResponse[] =
+          responsesData.participants || [];
+        responseParticipants.forEach((item) => {
+          const id = String(item.participantId || "").trim();
+          if (!id || nameMap[id]) {
+            return;
+          }
+          const composed = buildFullName({
+            firstName: item.firstName,
+            lastName: item.lastName,
+            email: item.email,
+          });
+          if (composed && !isPlaceholderName(composed)) {
+            nameMap[id] = composed;
+            return;
+          }
+          if (!isPlaceholderName(item.participantName)) {
+            nameMap[id] = String(item.participantName).trim();
+          }
+        });
+
+        let feedbackList: FeedbackSubmission[] = [];
+        if (feedbackRes.ok && feedbackData.success) {
+          feedbackList = feedbackData.submissions || [];
+          feedbackList.forEach((item) => {
+            const id = String(item.participantId || "").trim();
+            if (!id || nameMap[id]) {
+              return;
+            }
+            if (!isPlaceholderName(item.participantName)) {
+              nameMap[id] = String(item.participantName).trim();
+            }
+          });
+        }
+
+        setParticipantNameById(nameMap);
         setWorkshopName(responsesData.workshop?.workshopName || "Workshop");
         setOrganizationName(responsesData.workshop?.organizationName || "");
-        setParticipants(responsesData.participants || []);
+        setParticipants(responseParticipants);
         setPreOdQuestions(responsesData.preOdQuestions || []);
         setQuestionLabels(responsesData.questionLabels || {});
 
         if (feedbackRes.ok && feedbackData.success) {
           setFeedbackQuestions(feedbackData.questions || []);
-          setFeedbackSubmissions(feedbackData.submissions || []);
+          setFeedbackSubmissions(feedbackList);
         }
 
         setExpandedId("");
@@ -147,16 +258,26 @@ export default function WorkshopResponses({ user }: PageProps) {
 
   const showingFeedback = activeTab === "feedback";
 
-  const handleExportExcel = () => {
-    exportWorkshopResponsesExcel({
-      workshopName,
-      organizationName,
-      participants,
-      preOdQuestions,
-      questionLabels,
-      feedbackQuestions,
-      feedbackSubmissions,
-    });
+  const handleExportExcel = async () => {
+    if (exporting) {
+      return;
+    }
+
+    try {
+      setExporting(true);
+      exportWorkshopResponsesExcel({
+        workshopName,
+        organizationName,
+        participants,
+        preOdQuestions,
+        questionLabels,
+        feedbackQuestions,
+        feedbackSubmissions,
+        participantNameById,
+      });
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -178,9 +299,9 @@ export default function WorkshopResponses({ user }: PageProps) {
               type="button"
               className="admin-dashboard-primary-btn"
               onClick={handleExportExcel}
-              disabled={loading || Boolean(errorMessage)}
+              disabled={loading || exporting || Boolean(errorMessage)}
             >
-              Export Excel
+              {exporting ? "Exporting..." : "Export Excel"}
             </button>
             <button
               type="button"
@@ -248,7 +369,14 @@ export default function WorkshopResponses({ user }: PageProps) {
                         }
                       >
                         <div>
-                          <strong>{submission.participantName}</strong>
+                          <strong>
+                            {resolveParticipantName(
+                              submission.participantId,
+                              submission.participantName,
+                              submission.firstName,
+                              submission.lastName
+                            )}
+                          </strong>
                           <span>
                             Submitted: {formatDate(submission.submittedDate)}
                           </span>
@@ -303,7 +431,14 @@ export default function WorkshopResponses({ user }: PageProps) {
                       }
                     >
                       <div>
-                        <strong>{participant.participantName}</strong>
+                        <strong>
+                          {resolveParticipantName(
+                            participant.participantId,
+                            participant.participantName,
+                            participant.firstName,
+                            participant.lastName
+                          )}
+                        </strong>
                         <span>
                           {activeTab === "preOd" &&
                             `Submitted: ${formatDate(

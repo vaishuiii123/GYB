@@ -49,7 +49,37 @@ export type WorkshopExportInput = {
   questionLabels: Record<string, string>;
   feedbackQuestions: FeedbackQuestion[];
   feedbackSubmissions: FeedbackSubmission[];
+  participantNameById?: Record<string, string>;
 };
+
+function isLikelyId(value: string) {
+  return /^\d{10,}$/.test(String(value || "").trim());
+}
+
+function displayParticipantName(
+  name: string,
+  participantId?: string,
+  nameById?: Record<string, string>
+) {
+  const fromMap = String(
+    (participantId && nameById?.[participantId]) || ""
+  ).trim();
+  if (fromMap && !isLikelyId(fromMap)) {
+    return fromMap;
+  }
+
+  const trimmed = String(name || "").trim();
+  if (
+    trimmed &&
+    trimmed.toLowerCase() !== "participant" &&
+    trimmed.toLowerCase() !== "unknown" &&
+    !isLikelyId(trimmed)
+  ) {
+    return trimmed;
+  }
+
+  return fromMap || "";
+}
 
 function safeSheetName(name: string) {
   return name.replace(/[\\/?*[\]]/g, " ").slice(0, 31);
@@ -85,6 +115,20 @@ function addSheet(
   );
 }
 
+function participantLabel(
+  input: WorkshopExportInput,
+  participantId: string,
+  participantName?: string
+) {
+  return (
+    displayParticipantName(
+      participantName || "",
+      participantId,
+      input.participantNameById
+    ) || "Unknown"
+  );
+}
+
 function buildPreOdRows(input: WorkshopExportInput) {
   const rows: Record<string, string | number>[] = [];
 
@@ -95,7 +139,11 @@ function buildPreOdRows(input: WorkshopExportInput) {
 
     input.preOdQuestions.forEach((question) => {
       rows.push({
-        Participant: participant.participantName,
+        Participant: participantLabel(
+          input,
+          participant.participantId,
+          participant.participantName
+        ),
         Organization: input.organizationName || "",
         Workshop: input.workshopName || "",
         "Category Name": question.category || "Pre OD",
@@ -121,7 +169,11 @@ function buildOdChartRows(input: WorkshopExportInput) {
     Object.entries(participant.odChart.answers || {}).forEach(
       ([questionId, answer]) => {
         rows.push({
-          Participant: participant.participantName,
+          Participant: participantLabel(
+            input,
+            participant.participantId,
+            participant.participantName
+          ),
           Organization: input.organizationName || "",
           Workshop: input.workshopName || "",
           "Category Name": "OD Chart",
@@ -146,7 +198,11 @@ function buildVisionMissionRows(input: WorkshopExportInput) {
     }
 
     const base = {
-      Participant: participant.participantName,
+      Participant: participantLabel(
+        input,
+        participant.participantId,
+        participant.participantName
+      ),
       Organization: input.organizationName || "",
       Workshop: input.workshopName || "",
       "Category Name": "Vision and Mission",
@@ -184,7 +240,11 @@ function buildActionablesRows(input: WorkshopExportInput) {
   input.participants.forEach((participant) => {
     participant.actionables.forEach((item) => {
       rows.push({
-        Participant: participant.participantName,
+        Participant: participantLabel(
+          input,
+          participant.participantId,
+          participant.participantName
+        ),
         Organization: input.organizationName || "",
         Workshop: input.workshopName || "",
         "Category Name": item.categoryName || item.categoryPath || "Actionables",
@@ -209,7 +269,11 @@ function buildFeedbackRows(input: WorkshopExportInput) {
   input.feedbackSubmissions.forEach((submission) => {
     Object.entries(submission.answers || {}).forEach(([questionId, answer]) => {
       rows.push({
-        Participant: submission.participantName,
+        Participant: participantLabel(
+          input,
+          submission.participantId,
+          submission.participantName
+        ),
         Organization: input.organizationName || "",
         Workshop: input.workshopName || "",
         "Category Name": "Feedback",

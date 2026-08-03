@@ -7,19 +7,12 @@ const { parseWorkshopEndMs } = require("./workshopAccess");
 const { listPreOdResponsesForWorkshop } = require("./preOdResponseStore");
 const { PRE_OD_QUESTIONS } = require("./preOdQuestions");
 const { parseCustomQuestions } = require("./preOdCustomQuestions");
-
-async function loadParticipantName(participantId) {
-  try {
-    const client = getTableClient("Participants");
-    const entity = await client.getEntity("Participant", participantId);
-    const firstName = String(entity.First_Name || "").trim();
-    const lastName = String(entity.Last_Name || "").trim();
-    const fullName = [firstName, lastName].filter(Boolean).join(" ");
-    return fullName || String(entity.Email || "Participant");
-  } catch {
-    return "Participant";
-  }
-}
+const {
+  loadAllParticipantRecords,
+  loadParticipantDisplayName,
+  loadStoredParticipantNames,
+  pickDisplayName,
+} = require("./participantNames");
 
 async function listOrganizationParticipantIds(organizationId) {
   const ids = new Set();
@@ -58,13 +51,14 @@ async function listOdResponsesForWorkshop(workshopId) {
     })) {
       const participantId = String(
         entity.partitionKey || entity.ParticipantId || ""
-      );
+      ).trim();
       if (!participantId) {
         continue;
       }
 
       const current = byParticipant.get(participantId) || {
         participantId,
+        participantName: "",
         answers: {},
         submittedDate: "",
         templateId: "",
@@ -73,6 +67,13 @@ async function listOdResponsesForWorkshop(workshopId) {
       if (entity.QuestionId) {
         current.answers[entity.QuestionId] =
           entity.AnswerText || entity.OptionId || "";
+      }
+
+      if (
+        entity.ParticipantName &&
+        !current.participantName
+      ) {
+        current.participantName = String(entity.ParticipantName).trim();
       }
 
       if (
@@ -268,13 +269,36 @@ async function buildWorkshopResponsePayload(workshop) {
     ...participantIds,
   ]);
 
-  const nameEntries = await Promise.all(
-    [...allParticipantIds].map(async (participantId) => [
-      participantId,
-      await loadParticipantName(participantId),
-    ])
+  const participantIdList = [...allParticipantIds].map((id) =>
+    String(id || "").trim()
+  ).filter(Boolean);
+
+  const [participantRecords, storedNames] = await Promise.all([
+    loadAllParticipantRecords(),
+    loadStoredParticipantNames(participantIdList),
+  ]);
+
+  // Fill any missing ids with a direct lookup fallback.
+  await Promise.all(
+    [...allParticipantIds].map(async (rawId) => {
+      const participantId = String(rawId || "").trim();
+      if (!participantId || participantRecords.has(participantId)) {
+        return;
+      }
+      const displayName = await loadParticipantDisplayName(participantId);
+      if (displayName) {
+        participantRecords.set(participantId, {
+          id: participantId,
+          firstName: "",
+          middleName: "",
+          lastName: "",
+          email: "",
+          phoneNo: "",
+          displayName,
+        });
+      }
+    })
   );
-  const names = new Map(nameEntries);
 
   const questionIds = odResponses.flatMap((item) =>
     Object.keys(item.answers || {})
@@ -282,16 +306,19 @@ async function buildWorkshopResponsePayload(workshop) {
   const questionLabels = await loadQuestionLabels(questionIds);
 
   const participants = [...allParticipantIds]
-    .map((participantId) => {
+    .map((rawId) => {
+      const participantId = String(rawId || "").trim();
       const preOd = preOdResponses.find(
-        (item) => item.participantId === participantId
+        (item) => String(item.participantId).trim() === participantId
       );
-      const od = odResponses.find((item) => item.participantId === participantId);
+      const od = odResponses.find(
+        (item) => String(item.participantId).trim() === participantId
+      );
       const actionables = actionableGroups.find(
-        (item) => item.participantId === participantId
+        (item) => String(item.participantId).trim() === participantId
       );
       const vision = visionResponses.find(
-        (item) => item.participantId === participantId
+        (item) => String(item.participantId).trim() === participantId
       );
 
       const hasAny =
@@ -304,9 +331,21 @@ async function buildWorkshopResponsePayload(workshop) {
         return null;
       }
 
+      const record = participantRecords.get(participantId);
+      const participantName =
+        pickDisplayName(
+          record?.displayName,
+          od?.participantName,
+          preOd?.participantName,
+          storedNames.get(participantId)
+        ) || "Unknown";
+
       return {
         participantId,
-        participantName: names.get(participantId) || "Participant",
+        participantName,
+        firstName: record?.firstName || "",
+        lastName: record?.lastName || "",
+        email: record?.email || "",
         preOd: preOd
           ? {
               answers: preOd.answers || {},

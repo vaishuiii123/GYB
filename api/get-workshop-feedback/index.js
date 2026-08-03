@@ -1,4 +1,3 @@
-const { getTableClient } = require("../shared/tableHelper");
 const { getWorkshopById } = require("../shared/workshopAccess");
 const { getFeedbackQuestions } = require("../shared/workshopFeedback");
 const {
@@ -6,18 +5,12 @@ const {
   getFeedbackAccessStatus,
   listFeedbackForWorkshop,
 } = require("../shared/workshopFeedbackStore");
-
-async function loadParticipantName(participantId) {
-  try {
-    const client = getTableClient("Participants");
-    const entity = await client.getEntity("Participant", participantId);
-    const firstName = String(entity.First_Name || "").trim();
-    const lastName = String(entity.Last_Name || "").trim();
-    return [firstName, lastName].filter(Boolean).join(" ") || "Participant";
-  } catch {
-    return "Participant";
-  }
-}
+const {
+  loadAllParticipantRecords,
+  loadParticipantDisplayName,
+  loadStoredParticipantNames,
+  pickDisplayName,
+} = require("../shared/participantNames");
 
 module.exports = async function (context, req) {
   try {
@@ -52,6 +45,36 @@ module.exports = async function (context, req) {
 
     if (adminView) {
       const submissions = await listFeedbackForWorkshop(workshopId);
+      const participantIds = submissions.map((item) => item.participantId);
+      const [participantRecords, storedNames] = await Promise.all([
+        loadAllParticipantRecords(),
+        loadStoredParticipantNames(participantIds),
+      ]);
+
+      const resolvedSubmissions = await Promise.all(
+        submissions.map(async (submission) => {
+          const id = String(submission.participantId || "").trim();
+          const record = participantRecords.get(id);
+          let displayName = pickDisplayName(
+            record?.displayName,
+            submission.participantName,
+            storedNames.get(id)
+          );
+
+          if (!displayName) {
+            displayName = await loadParticipantDisplayName(id);
+          }
+
+          return {
+            ...submission,
+            participantId: id,
+            participantName: displayName || "Unknown",
+            firstName: record?.firstName || "",
+            lastName: record?.lastName || "",
+            email: record?.email || "",
+          };
+        })
+      );
 
       context.res = {
         status: 200,
@@ -64,8 +87,8 @@ module.exports = async function (context, req) {
             endDate: workshop.endDate,
           },
           questions,
-          submissions,
-          submissionCount: submissions.length,
+          submissions: resolvedSubmissions,
+          submissionCount: resolvedSubmissions.length,
         },
       };
       return;
@@ -84,6 +107,14 @@ module.exports = async function (context, req) {
 
     const existing = await getFeedback(workshopId, participantId);
     const access = getFeedbackAccessStatus(workshop, existing);
+    const id = String(participantId).trim();
+    const storedNames = await loadStoredParticipantNames([id]);
+    const participantName =
+      pickDisplayName(
+        existing?.participantName,
+        storedNames.get(id),
+        await loadParticipantDisplayName(id)
+      ) || "";
 
     context.res = {
       status: 200,
@@ -102,9 +133,7 @@ module.exports = async function (context, req) {
         message: access.message,
         answers: existing?.answers || {},
         submittedDate: existing?.submittedDate || "",
-        participantName:
-          existing?.participantName ||
-          (await loadParticipantName(participantId)),
+        participantName,
       },
     };
   } catch (error) {

@@ -12,21 +12,24 @@
 .admin-dashboard-link-btn,
 .pre-od-save-btn,
 .admin-btn-primary {
-  box-sizing: border-box;
-  height: 40px;
-  min-height: 40px;
-  padding: 0 16px;
+  box-sizing: border-box !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  min-width: 96px;
+  padding: 0 16px !important;
+  margin: 0;
+  float: none;
   border: none;
   border-radius: 8px;
   background: var(--admin-brand) !important;
   color: #ffffff !important;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
   cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   white-space: nowrap;
   transition: background 0.15s ease;
 }
@@ -56,21 +59,24 @@
 .pre-od-cancel-btn,
 .admin-btn-cancel,
 .admin-dashboard-secondary-btn {
-  box-sizing: border-box;
-  height: 40px;
-  min-height: 40px;
-  padding: 0 16px;
+  box-sizing: border-box !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  min-width: 96px;
+  padding: 0 16px !important;
+  margin: 0;
+  float: none;
   border: 1px solid #d1d5db !important;
   border-radius: 8px;
   background: #ffffff !important;
   color: #374151 !important;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
   cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   white-space: nowrap;
 }
 

@@ -1,5 +1,10 @@
-const { ensureTableClient, getTableClient, listPartition } = require("../shared/tableHelper");
+const {
+  ensureTableClient,
+  getTableClient,
+  listPartition,
+} = require("../shared/tableHelper");
 const { assertWorkshopEditable } = require("../shared/workshopAccess");
+const { loadParticipantDisplayName } = require("../shared/participantNames");
 
 function buildOptionLookup(optionClient) {
   return listPartition(optionClient, "QuestionOption").then((allOptions) => {
@@ -30,6 +35,7 @@ module.exports = async function (context, req) {
       organizationId,
       templateId,
       answers,
+      participantName: participantNameFromClient,
     } = req.body || {};
 
     if (!participantId || !workshopId) {
@@ -73,6 +79,9 @@ module.exports = async function (context, req) {
     const questionTable = getTableClient("Questions");
     const optionTable = getTableClient("QuestionOptions");
     const optionLookup = await buildOptionLookup(optionTable);
+    const participantName =
+      String(participantNameFromClient || "").trim() ||
+      (await loadParticipantDisplayName(participantId));
 
     const savedAnswers = {};
     const now = new Date().toISOString();
@@ -103,9 +112,10 @@ module.exports = async function (context, req) {
 
       const rowKey = `${workshopId}_${questionId}`;
       const entity = {
-        partitionKey: participantId,
+        partitionKey: String(participantId),
         rowKey,
-        ParticipantId: participantId,
+        ParticipantId: String(participantId),
+        ParticipantName: participantName || "",
         WorkshopId: workshopId,
         OrganizationId: organizationId || "",
         TemplateId: templateId || "",
@@ -116,7 +126,7 @@ module.exports = async function (context, req) {
       };
 
       try {
-        await answerTable.getEntity(participantId, rowKey);
+        await answerTable.getEntity(String(participantId), rowKey);
         await answerTable.updateEntity(entity, "Replace");
       } catch {
         await answerTable.createEntity(entity);
@@ -134,6 +144,7 @@ module.exports = async function (context, req) {
         data: {
           participantId,
           workshopId,
+          participantName,
           answers: savedAnswers,
           submittedDate: now,
         },
