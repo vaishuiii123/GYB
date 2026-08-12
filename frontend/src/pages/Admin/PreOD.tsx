@@ -382,7 +382,7 @@ export default function PreOD({ user }: PageProps) {
                 className="pre-od-save-btn pre-od-create-btn"
                 onClick={openCreateForm}
               >
-                Create Pre OD
+                Create Pre Organization Development
               </button>
             )}
           </div>

@@ -23,6 +23,7 @@ type ParticipantForm = {
   middleName: string;
   lastName: string;
   email: string;
+  username: string;
   phoneNo: string;
   password: string;
 };
@@ -32,6 +33,7 @@ const emptyParticipantForm: ParticipantForm = {
   middleName: "",
   lastName: "",
   email: "",
+  username: "",
   phoneNo: "",
   password: "",
 };
@@ -78,6 +80,7 @@ export default function Participants({ user }: PageProps) {
     firstName?: string;
     lastName?: string;
     email?: string;
+    username?: string;
     phoneNo?: string;
     password?: string;
   }) =>
@@ -85,6 +88,8 @@ export default function Participants({ user }: PageProps) {
       String(form.firstName || "").trim() &&
         String(form.lastName || "").trim() &&
         isValidEmail(String(form.email || "")) &&
+        String(form.username || "").trim().length >= 3 &&
+        !/\s/.test(String(form.username || "").trim()) &&
         isValidPhone(String(form.phoneNo || "")) &&
         String(form.password || "").trim()
     );
@@ -93,6 +98,7 @@ export default function Participants({ user }: PageProps) {
     firstName?: string;
     lastName?: string;
     email?: string;
+    username?: string;
     phoneNo?: string;
     password?: string;
   }) => {
@@ -105,6 +111,17 @@ export default function Participants({ user }: PageProps) {
       return emailError;
     }
 
+    const username = String(form.username || "").trim();
+    if (!username) {
+      return "Username is required.";
+    }
+    if (username.length < 3) {
+      return "Username must be at least 3 characters.";
+    }
+    if (/\s/.test(username)) {
+      return "Username cannot contain spaces.";
+    }
+
     const phoneError = getPhoneError(String(form.phoneNo || ""));
     if (phoneError) {
       return phoneError;
@@ -115,6 +132,20 @@ export default function Participants({ user }: PageProps) {
     }
 
     return "";
+  };
+
+  const isUsernameAlreadyTaken = (username: string, excludeId?: string) => {
+    const target = String(username || "").trim().toLowerCase();
+    if (!target) {
+      return false;
+    }
+
+    return participants.some((participant) => {
+      if (excludeId && participant.id === excludeId) {
+        return false;
+      }
+      return String(participant.username || "").trim().toLowerCase() === target;
+    });
   };
 
   const isPhoneAlreadyRegistered = (phoneNo: string, excludeId?: string) => {
@@ -141,6 +172,7 @@ export default function Participants({ user }: PageProps) {
       middleName: participantForm.middleName.trim(),
       lastName: participantForm.lastName.trim(),
       email: participantForm.email.trim(),
+      username: participantForm.username.trim(),
       phoneNo: participantForm.phoneNo.trim(),
       password: participantForm.password,
     };
@@ -148,6 +180,11 @@ export default function Participants({ user }: PageProps) {
     const error = validateParticipantFields(payload);
     if (error) {
       setFormError(error);
+      return;
+    }
+
+    if (isUsernameAlreadyTaken(payload.username)) {
+      setFormError("This username is already taken.");
       return;
     }
 
@@ -200,7 +237,10 @@ export default function Participants({ user }: PageProps) {
   };
 
   const handleEditParticipant = (participant: any) => {
-    setEditParticipant(participant);
+    setEditParticipant({
+      ...participant,
+      username: String(participant.username || participant.email || "").trim(),
+    });
     setFormError("");
     setShowEditModal(true);
   };
@@ -216,6 +256,7 @@ export default function Participants({ user }: PageProps) {
       middleName: String(editParticipant.middleName || "").trim(),
       lastName: String(editParticipant.lastName || "").trim(),
       email: String(editParticipant.email || "").trim(),
+      username: String(editParticipant.username || "").trim(),
       phoneNo: String(editParticipant.phoneNo || "").trim(),
       password: String(editParticipant.password || ""),
     };
@@ -223,6 +264,11 @@ export default function Participants({ user }: PageProps) {
     const error = validateParticipantFields(payload);
     if (error) {
       setFormError(error);
+      return;
+    }
+
+    if (isUsernameAlreadyTaken(payload.username, payload.id)) {
+      setFormError("This username is already taken.");
       return;
     }
 
@@ -293,8 +339,14 @@ export default function Participants({ user }: PageProps) {
     return participants.filter((p) => {
       const name = formatParticipantName(p).toLowerCase();
       const email = String(p.email || "").toLowerCase();
+      const username = String(p.username || "").toLowerCase();
       const phone = String(p.phoneNo || "").toLowerCase();
-      return name.includes(query) || email.includes(query) || phone.includes(query);
+      return (
+        name.includes(query) ||
+        email.includes(query) ||
+        username.includes(query) ||
+        phone.includes(query)
+      );
     });
   }, [participants, tableSearch]);
 
@@ -323,7 +375,7 @@ export default function Participants({ user }: PageProps) {
             <div className="org-card">
               <input
                 type="text"
-                placeholder="Search participants by name, email, or phone..."
+                placeholder="Search participants by name, username, email, or phone..."
                 value={tableSearch}
                 onChange={(e) => setTableSearch(e.target.value)}
                 className="org-input org-search-input"
@@ -333,6 +385,7 @@ export default function Participants({ user }: PageProps) {
                 <thead>
                   <tr>
                     <th>Name</th>
+                    <th>Username</th>
                     <th>Email</th>
                     <th>Phone No</th>
                     <th>Actions</th>
@@ -344,6 +397,7 @@ export default function Participants({ user }: PageProps) {
                     filteredParticipants.map((p) => (
                       <tr key={p.id}>
                         <td>{formatParticipantName(p)}</td>
+                        <td>{p.username || "-"}</td>
                         <td>{p.email}</td>
                         <td>{p.phoneNo || "-"}</td>
                         <td>
@@ -360,7 +414,7 @@ export default function Participants({ user }: PageProps) {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={4} className="org-empty-cell">
+                      <td colSpan={5} className="org-empty-cell">
                         No participants found
                       </td>
                     </tr>
@@ -432,6 +486,21 @@ export default function Participants({ user }: PageProps) {
                 setParticipantForm({
                   ...participantForm,
                   email: e.target.value,
+                })
+              }
+            />
+
+            <label className="org-field-label">
+              Username <span className="org-required">*</span>
+            </label>
+            <input
+              className="org-input"
+              placeholder="Username"
+              value={participantForm.username}
+              onChange={(e) =>
+                setParticipantForm({
+                  ...participantForm,
+                  username: e.target.value,
                 })
               }
             />
@@ -553,6 +622,21 @@ export default function Participants({ user }: PageProps) {
                 setEditParticipant({
                   ...editParticipant,
                   email: e.target.value,
+                })
+              }
+            />
+
+            <label className="org-field-label">
+              Username <span className="org-required">*</span>
+            </label>
+            <input
+              className="org-input"
+              placeholder="Username"
+              value={editParticipant.username || ""}
+              onChange={(e) =>
+                setEditParticipant({
+                  ...editParticipant,
+                  username: e.target.value,
                 })
               }
             />

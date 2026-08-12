@@ -45,11 +45,27 @@ export default function Organization({ user }: PageProps) {
   const [searchText, setSearchText] = useState("");
   const [tableSearch, setTableSearch] = useState("");
 
+  const [showNewPassword, setShowNewPassword] = useState(false);
+
   const [orgForm, setOrgForm] = useState<OrganizationForm>(emptyOrgForm);
   const [editOrganization, setEditOrganization] = useState<any>({
     id: "",
     ...emptyOrgForm,
   });
+
+  const emptyNewParticipant = {
+    firstName: "",
+    middleName: "",
+    lastName: "",
+    email: "",
+    username: "",
+    phoneNo: "",
+    password: "",
+  };
+  
+  const [newParticipant, setNewParticipant] = useState(emptyNewParticipant);
+  const [newParticipantError, setNewParticipantError] = useState("");
+  const [savingNewParticipant, setSavingNewParticipant] = useState(false);
 
   useEffect(() => {
     fetchOrganizations();
@@ -140,8 +156,22 @@ export default function Organization({ user }: PageProps) {
       const data = await response.json();
 
       if (data.success) {
+        if (selectedParticipantIds.length > 0) {
+          await fetch("/api/save-organization-participants", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              organizationId: data.organizationId,
+              participantIds: selectedParticipantIds,
+              createdBy: user?.email,
+            }),
+          });
+        }
+      
         showToast("Organization created successfully");
         setOrgForm(emptyOrgForm);
+        setSelectedParticipantIds([]);
+        setSearchText("");
         setShowOrgModal(false);
         fetchOrganizations();
       } else {
@@ -266,6 +296,8 @@ export default function Organization({ user }: PageProps) {
     await loadParticipants();
     await loadAssignedParticipants(org.id);
     setShowViewModal(true);
+    setNewParticipant(emptyNewParticipant);
+setNewParticipantError("");
   };
 
   const loadParticipants = async () => {
@@ -323,6 +355,63 @@ export default function Organization({ user }: PageProps) {
     } catch (error) {
       console.error(error);
       alert("Failed to assign participants");
+    }
+  };
+
+  const handleCreateAndAssignParticipant = async () => {
+    if (!selectedOrganization?.id) return;
+  
+    const payload = {
+      firstName: newParticipant.firstName.trim(),
+      middleName: newParticipant.middleName.trim(),
+      lastName: newParticipant.lastName.trim(),
+      email: newParticipant.email.trim(),
+      username: newParticipant.email.trim(),
+      phoneNo: newParticipant.phoneNo.trim(),
+      password: newParticipant.password,
+      createdBy: user?.email,
+    };
+  
+    if (!payload.firstName || !payload.lastName || !payload.email || !payload.phoneNo || !payload.password) {
+      setNewParticipantError("First name, last name, email, phone, and password are required.");
+      return;
+    }
+  
+    try {
+      setSavingNewParticipant(true);
+      setNewParticipantError("");
+  
+      const createRes = await fetch("/api/create-participant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const createData = await createRes.json();
+  
+      if (!createRes.ok || !createData.success) {
+        setNewParticipantError(createData.message || createData.error || "Failed to create participant");
+        return;
+      }
+  
+      await fetch("/api/save-organization-participants", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          organizationId: selectedOrganization.id,
+          participantIds: [createData.participantId],
+          createdBy: user?.email,
+        }),
+      });
+  
+      await loadAssignedParticipants(selectedOrganization.id);
+      await loadParticipants();
+      setNewParticipant(emptyNewParticipant);
+      showToast("Participant created and assigned");
+    } catch (error) {
+      console.error(error);
+      setNewParticipantError("Failed to create participant");
+    } finally {
+      setSavingNewParticipant(false);
     }
   };
 
@@ -408,7 +497,13 @@ export default function Organization({ user }: PageProps) {
             <div className="org-page-header">
               <h1 className="org-page-title">Organization</h1>
               <button
-                onClick={() => setShowOrgModal(true)}
+                onClick={async () => {
+                  setSelectedParticipantIds([]);
+                  setSearchText("");
+                  setAssignedParticipants([]);
+                  await loadParticipants();
+                  setShowOrgModal(true);
+                }}
                 className="org-btn org-btn-primary"
               >
                 Create Organization
@@ -479,7 +574,7 @@ export default function Organization({ user }: PageProps) {
       {/* Create Modal */}
       {showOrgModal && (
         <div className="org-modal-overlay">
-          <div className="org-modal org-modal-md">
+          <div className="org-modal org-modal-lg">
             <h2 className="org-modal-title">Create Organization</h2>
 
             <label className="org-field-label">
@@ -519,13 +614,14 @@ export default function Organization({ user }: PageProps) {
               required
               onChange={(e) => setOrgForm({ ...orgForm, email: e.target.value })}
             />
-
             <div className="org-modal-footer">
               <button
                 className="org-btn org-btn-cancel"
                 onClick={() => {
                   setShowOrgModal(false);
                   setOrgForm(emptyOrgForm);
+                  setSelectedParticipantIds([]);
+                  setSearchText("");
                 }}
               >
                 Cancel
@@ -637,7 +733,103 @@ export default function Organization({ user }: PageProps) {
                 <p className="org-add-subtitle">
                   Select one or more participants to assign to this organization.
                 </p>
+                <label className="org-field-label">
+                  First Name <span className="org-required">*</span>
+                </label>
+                <input
+                  className="org-input"
+                  placeholder="First Name"
+                  value={newParticipant.firstName}
+                  onChange={(e) =>
+                    setNewParticipant({ ...newParticipant, firstName: e.target.value })
+                  }
+                />
 
+                <label className="org-field-label">Middle Name</label>
+                <input
+                  className="org-input"
+                  placeholder="Middle Name (optional)"
+                  value={newParticipant.middleName}
+                  onChange={(e) =>
+                    setNewParticipant({ ...newParticipant, middleName: e.target.value })
+                  }
+                />
+
+                <label className="org-field-label">
+                  Last Name <span className="org-required">*</span>
+                </label>
+                <input
+                  className="org-input"
+                  placeholder="Last Name"
+                  value={newParticipant.lastName}
+                  onChange={(e) =>
+                    setNewParticipant({ ...newParticipant, lastName: e.target.value })
+                  }
+                />
+
+                <label className="org-field-label">
+                  Email <span className="org-required">*</span>
+                </label>
+                <input
+                  className="org-input"
+                  type="email"
+                  placeholder="Email"
+                  value={newParticipant.email}
+                  onChange={(e) =>
+                    setNewParticipant({ ...newParticipant, email: e.target.value })
+                  }
+                />
+
+                <label className="org-field-label">
+                  Phone Number <span className="org-required">*</span>
+                </label>
+                <input
+                  className="org-input"
+                  placeholder="Phone Number"
+                  value={newParticipant.phoneNo}
+                  onChange={(e) =>
+                    setNewParticipant({ ...newParticipant, phoneNo: e.target.value })
+                  }
+                />
+
+                  <label className="org-field-label">
+                    Password <span className="org-required">*</span>
+                  </label>
+                  <div className="org-password-wrap">
+                    <input
+                      className="org-input"
+                      type={showNewPassword ? "text" : "password"}
+                      placeholder="Password"
+                      value={newParticipant.password}
+                      onChange={(e) =>
+                        setNewParticipant({ ...newParticipant, password: e.target.value })
+                      }
+                    />
+                    <button
+                      type="button"
+                      className="org-password-toggle"
+                      onClick={() => setShowNewPassword((prev) => !prev)}
+                    >
+                      {showNewPassword ? "Hide" : "Show"}
+                    </button>
+                  </div>
+
+                {newParticipantError ? (
+                  <div className="org-fetch-error" role="alert">
+                    {newParticipantError}
+                  </div>
+                ) : null}
+
+                <button
+                  className="org-btn org-btn-primary"
+                  onClick={handleCreateAndAssignParticipant}
+                  disabled={savingNewParticipant}
+                >
+                  {savingNewParticipant ? "Saving..." : "Create and add to organization"}
+                </button>
+
+<br></br>
+<br></br>
                 <input
                   type="text"
                   placeholder="Search participants by name or email..."

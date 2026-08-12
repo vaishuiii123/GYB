@@ -8,8 +8,8 @@ import {
   Send,
   Target,
   TrendingUp,
+  User,
   Users,
-  UserRound,
 } from "lucide-react";
 
 import myImage from "../../images/KNAV logo.png";
@@ -35,9 +35,12 @@ type LoginStep = "phone" | "otp";
 
 export default function UserLogin() {
   const [step, setStep] = useState<LoginStep>("phone");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [phoneNo, setPhoneNo] = useState("");
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingAction, setLoadingAction] = useState<"password" | "otp" | "">("");
   const [errorMessage, setErrorMessage] = useState("");
   const [infoMessage, setInfoMessage] = useState("");
 
@@ -140,6 +143,72 @@ export default function UserLogin() {
     return digits;
   };
 
+  const handlePasswordLogin = async () => {
+    const trimmedUsername = username.trim();
+
+    if (!trimmedUsername || !password) {
+      setErrorMessage("Please enter your username and password.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setLoadingAction("password");
+      setErrorMessage("");
+      setInfoMessage("");
+
+      const response = await fetch("/api/participant-password-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: trimmedUsername,
+          password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        setErrorMessage(data.message || "Invalid username or password.");
+        return;
+      }
+      
+      const assignedPhone = String(data.user?.phoneNo || "").replace(/\D/g, "");
+      
+      if (assignedPhone.length !== 10) {
+        setErrorMessage("No valid phone number is assigned to this user.");
+        return;
+      }
+      
+      setPhoneNo(assignedPhone);
+      
+      const otpResponse = await fetch("/api/send-login-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phoneNo: assignedPhone }),
+      });
+      
+      const otpData = await otpResponse.json();
+      
+      if (!otpData.success) {
+        setErrorMessage(otpData.message || "Unable to send OTP.");
+        return;
+      }
+      
+      setStep("otp");
+      setInfoMessage(otpData.message || "OTP sent to your mobile number.");
+
+      
+
+    } catch (error) {
+      console.error(error);
+      setErrorMessage("Unable to sign in.");
+    } finally {
+      setLoading(false);
+      setLoadingAction("");
+    }
+  };
+
   const handleSendOtp = async () => {
     const digits = validatePhone();
     if (!digits) {
@@ -148,6 +217,7 @@ export default function UserLogin() {
 
     try {
       setLoading(true);
+      setLoadingAction("otp");
       setErrorMessage("");
       setInfoMessage("");
 
@@ -171,6 +241,7 @@ export default function UserLogin() {
       setErrorMessage("Unable to send OTP.");
     } finally {
       setLoading(false);
+      setLoadingAction("");
     }
   };
 
@@ -187,6 +258,7 @@ export default function UserLogin() {
 
     try {
       setLoading(true);
+      setLoadingAction("otp");
       setErrorMessage("");
 
       const response = await fetch("/api/user-login", {
@@ -212,6 +284,7 @@ export default function UserLogin() {
       setErrorMessage("Unable to verify OTP.");
     } finally {
       setLoading(false);
+      setLoadingAction("");
     }
   };
 
@@ -223,12 +296,21 @@ export default function UserLogin() {
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Enter") {
-      if (step === "phone") {
-        handleSendOtp();
-      } else {
-        handleVerifyOtp();
-      }
+    if (event.key !== "Enter") {
+      return;
+    }
+
+    const field = event.currentTarget.id;
+
+    if (field === "user-username" || field === "user-password") {
+      handlePasswordLogin();
+      return;
+    }
+
+    if (step === "phone") {
+      handleSendOtp();
+    } else {
+      handleVerifyOtp();
     }
   };
 
@@ -246,7 +328,7 @@ export default function UserLogin() {
           <ul className="user-login-features">
             <li>
               <span className="user-login-feature-icon" aria-hidden>
-                <TrendingUp size={16} strokeWidth={2.2} />
+                <TrendingUp size={20} strokeWidth={2.2} />
               </span>
               <div>
                 <strong>Strategic Growth</strong>
@@ -255,16 +337,16 @@ export default function UserLogin() {
             </li>
             <li>
               <span className="user-login-feature-icon" aria-hidden>
-                <Users size={16} strokeWidth={2.2} />
+                <Users size={20} strokeWidth={2.2} />
               </span>
               <div>
-                <strong>People Excellence</strong>
-                <span>Build high-performing teams and strong culture</span>
+                <strong>Organisational Excellence</strong>
+                <span>Strengthen capabilities, optimise execution and build for scale</span>
               </div>
             </li>
             <li>
               <span className="user-login-feature-icon" aria-hidden>
-                <Target size={16} strokeWidth={2.2} />
+                <Target size={20} strokeWidth={2.2} />
               </span>
               <div>
                 <strong>Business Impact</strong>
@@ -288,7 +370,7 @@ export default function UserLogin() {
             About KNAV
           </a>
           <a
-            href="https://www.linkedin.com/company/knav/"
+            href="https://in.linkedin.com/company/knav-ind"
             className="user-login-icon-btn"
             target="_blank"
             rel="noopener noreferrer"
@@ -300,35 +382,62 @@ export default function UserLogin() {
 
         <div className="user-login-card">
           <div className="user-login-card-header">
-            <span className="user-login-card-avatar" aria-hidden>
-              <UserRound size={22} strokeWidth={2} />
-            </span>
-            <div>
-              <h2>Welcome to GYB</h2>
-              <p>Organisation Development Workshop</p>
-            </div>
           </div>
 
-          <label className="user-login-label" htmlFor="user-phone">
-            Phone Number
-          </label>
-          <div className="user-login-input-wrap">
-            <Phone size={16} strokeWidth={2} aria-hidden />
-            <input
-              id="user-phone"
-              type="tel"
-              className="user-login-input"
-              value={phoneNo}
-              onChange={(e) =>
-                setPhoneNo(e.target.value.replace(/\D/g, "").slice(0, 10))
-              }
-              onKeyDown={handleKeyDown}
-              placeholder="Enter your phone number"
-              inputMode="numeric"
-              maxLength={10}
-              disabled={step === "otp"}
-            />
-          </div>
+          {infoMessage ? (
+            <div className="user-login-info">{infoMessage}</div>
+          ) : null}
+          {errorMessage ? (
+            <div className="user-login-error">{errorMessage}</div>
+          ) : null}
+
+          {step === "phone" ? (
+            <>
+              <label className="user-login-label" htmlFor="user-username">
+                Username
+              </label>
+              <div className="user-login-input-wrap">
+                <User size={16} strokeWidth={2} aria-hidden />
+                <input
+                  id="user-username"
+                  type="text"
+                  className="user-login-input"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Enter your username"
+                  autoComplete="username"
+                />
+              </div>
+
+              <label className="user-login-label" htmlFor="user-password">
+                Password
+              </label>
+              <div className="user-login-input-wrap">
+                <Lock size={16} strokeWidth={2} aria-hidden />
+                <input
+                  id="user-password"
+                  type="password"
+                  className="user-login-input"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Enter your password"
+                  autoComplete="current-password"
+                />
+              </div>
+
+              <button
+                type="button"
+                className="user-login-btn user-login-btn-primary"
+                onClick={handlePasswordLogin}
+                disabled={loading}
+              >
+                <Lock size={16} strokeWidth={2.2} />
+                {loadingAction === "password" ? "Signing in..." : "Login"}
+              </button>
+            </>
+          ) : null}         
 
           {step === "otp" ? (
             <div className="user-login-input-wrap">
@@ -349,24 +458,7 @@ export default function UserLogin() {
             </div>
           ) : null}
 
-          {infoMessage ? (
-            <div className="user-login-info">{infoMessage}</div>
-          ) : null}
-          {errorMessage ? (
-            <div className="user-login-error">{errorMessage}</div>
-          ) : null}
-
-          {step === "phone" ? (
-            <button
-              type="button"
-              className="user-login-btn user-login-btn-primary"
-              onClick={handleSendOtp}
-              disabled={loading}
-            >
-              <Send size={16} strokeWidth={2.2} />
-              {loading ? "Checking..." : "Send OTP"}
-            </button>
-          ) : (
+          {step === "otp" ? (
             <>
               <button
                 type="button"
@@ -375,7 +467,7 @@ export default function UserLogin() {
                 disabled={loading}
               >
                 <Lock size={16} strokeWidth={2.2} />
-                {loading ? "Verifying..." : "Verify OTP"}
+                {loadingAction === "otp" ? "Verifying..." : "Verify OTP"}
               </button>
               <button
                 type="button"
@@ -391,10 +483,10 @@ export default function UserLogin() {
                 onClick={handleBackToPhone}
                 disabled={loading}
               >
-                Change phone number
+                Back to login
               </button>
             </>
-          )}
+          ) : null}
 
           <div className="user-login-divider">
             <span>OR</span>

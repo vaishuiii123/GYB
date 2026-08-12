@@ -34,16 +34,17 @@
   position: relative;
   z-index: 1;
   margin-top: 72px;
-  max-width: 460px;
+  max-width: none;
 }
 
 .user-login-brand-copy h1 {
   margin: 0 0 10px;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(34px, 4vw, 48px);
+  font-size: clamp(28px, 3.2vw, 44px);
   font-weight: 700;
   letter-spacing: 0.03em;
   line-height: 1.1;
+  white-space: nowrap;
 }
 
 .user-login-brand-subtitle {
@@ -74,10 +75,15 @@
   border-radius: 999px;
   background: rgba(212, 162, 76, 0.18);
   color: var(--login-gold);
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  line-height: 0;
+}
+
+.user-login-feature-icon svg {
+  display: block;
 }
 
 .user-login-features strong {
@@ -86,7 +92,7 @@
   margin-bottom: 2px;
 }
 
-.user-login-features span {
+.user-login-features li > div span {
   display: block;
   color: rgba(255, 255, 255, 0.78);
   font-size: 13px;
@@ -165,7 +171,14 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 22px;
+}
+
+.user-login-label {
+  display: block;
+  margin: 0 0 8px;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .user-login-card-avatar {
@@ -191,14 +204,6 @@
   margin: 0;
   color: #6b7280;
   font-size: 13px;
-}
-
-.user-login-label {
-  display: block;
-  margin: 0 0 8px;
-  color: #374151;
-  font-size: 13px;
-  font-weight: 700;
 }
 
 .user-login-input-wrap {

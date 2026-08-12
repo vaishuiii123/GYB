@@ -398,3 +398,35 @@
     width: 95%;
   }
 }
+
+.org-password-wrap {
+  position: relative;
+}
+
+.org-password-wrap .org-input {
+  padding-right: 64px;
+}
+
+.org-password-toggle {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  border: none;
+  background: none;
+  color: #9b304a;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.org-password-wrap input[type="password"]::-ms-reveal,
+.org-password-wrap input[type="password"]::-ms-clear {
+  display: none;
+}
+
+.org-password-wrap input[type="password"]::-webkit-credentials-auto-fill-button,
+.org-password-wrap input[type="password"]::-webkit-contacts-auto-fill-button {
+  visibility: hidden;
+  display: none !important;
+  pointer-events: none;
+}

@@ -55,9 +55,43 @@ async function findParticipantByPhone(normalizedPhone) {
   return null;
 }
 
-async function getParticipantLoginContext(normalizedPhone) {
-  const participant = await findParticipantByPhone(normalizedPhone);
+async function findParticipantByUsername(username) {
+  const normalizedUsername = String(username || "")
+    .trim()
+    .toLowerCase();
 
+  if (!normalizedUsername) {
+    return null;
+  }
+
+  const participantClient = TableClient.fromConnectionString(
+    getConnectionString(),
+    "Participants"
+  );
+
+  let emailMatch = null;
+
+  for await (const entity of participantClient.listEntities()) {
+    const storedUsername = String(entity.Username || "")
+      .trim()
+      .toLowerCase();
+    const storedEmail = String(entity.Email || "")
+      .trim()
+      .toLowerCase();
+
+    if (storedUsername && storedUsername === normalizedUsername) {
+      return entity;
+    }
+
+    if (!emailMatch && storedEmail === normalizedUsername) {
+      emailMatch = entity;
+    }
+  }
+
+  return emailMatch;
+}
+
+async function getLoginContextForParticipant(participant) {
   if (!participant) {
     return null;
   }
@@ -95,6 +129,26 @@ async function getParticipantLoginContext(normalizedPhone) {
     orgName,
     missingOrganization: false,
   };
+}
+
+async function getParticipantLoginContext(normalizedPhone) {
+  const participant = await findParticipantByPhone(normalizedPhone);
+
+  if (!participant) {
+    return null;
+  }
+
+  return getLoginContextForParticipant(participant);
+}
+
+async function getParticipantLoginContextByUsername(username) {
+  const participant = await findParticipantByUsername(username);
+
+  if (!participant) {
+    return null;
+  }
+
+  return getLoginContextForParticipant(participant);
 }
 
 async function saveParticipantOtp(participantId, otp, expiresAt) {
@@ -143,7 +197,9 @@ module.exports = {
   buildUserResponse,
   parsePhoneInput,
   findParticipantByPhone,
+  findParticipantByUsername,
   getParticipantLoginContext,
+  getParticipantLoginContextByUsername,
   saveParticipantOtp,
   clearParticipantOtp,
   getOtpValidityMinutes,

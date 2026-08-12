@@ -25,6 +25,7 @@ module.exports = async function (context, req) {
         middleName: entity.Middle_Name || "",
         lastName: entity.Last_Name || "",
         email: entity.Email || "",
+        username: entity.Username || "",
         phoneNo: entity.Phone_No || "",
         password: entity.Password || "",
       });
