@@ -20,6 +20,11 @@ function jsonResponse(status, body) {
 
 module.exports = async function (context, req) {
   try {
+    // Debug: check which IP the local backend sees
+    context.log("Request IP:", req.headers?.["x-forwarded-for"]);
+    context.log("X-Real-IP:", req.headers?.["x-real-ip"]);
+    context.log("Client IP:", req.headers?.["client-ip"]);
+
     const { phoneNo, phone } = req.body || {};
     const phoneResult = parsePhoneInput(phoneNo || phone);
 

@@ -123,6 +123,27 @@ function sortTopsForDisplay(tops: Top[]): Top[] {
   return [...tops].sort((a, b) => rank(a.name) - rank(b.name));
 }
 
+function filterAssignedTops(tops: Top[]): Top[] {
+  return tops
+    .map((top) => ({
+      ...top,
+      middles: top.middles
+        .map((middle) => ({
+          ...middle,
+          parents: middle.parents
+            .map((parent) => ({
+              ...parent,
+              leaves: parent.leaves.filter(
+                (leaf) => leaf.hasAssignedQuestions === true
+              ),
+            }))
+            .filter((parent) => parent.leaves.length > 0),
+        }))
+        .filter((middle) => middle.parents.length > 0),
+    }))
+    .filter((top) => top.middles.length > 0);
+}
+
 function topIcon(name: string): LucideIcon {
   const lower = name.toLowerCase();
   if (lower.includes("market")) return Users;
@@ -635,7 +656,9 @@ export default function ODChart() {
     navigate("/od-chart/questions", { state: navState });
   };
 
-  const chartTops = useMemo(() => tops, [tops]);
+const chartTops = useMemo(() => {
+  return filterAssignedTops(tops);
+}, [tops]);
 
   return (
     <ODChartShell>
