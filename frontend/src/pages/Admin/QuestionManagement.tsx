@@ -2,6 +2,7 @@ import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import "../../styles/QuestionManagement.css";
 import { useEffect, useState } from "react";
+import ExcelJS from "exceljs";
 import {
   DeleteIconBtn,
   EditIconBtn,
@@ -69,6 +70,148 @@ export default function QuestionManagement({ user }: PageProps) {
             console.error("Error fetching questions:", error);
         }
     };
+
+  const downloadExcelTemplate = async () => {
+    try {
+        // Question types used in Question Management
+        const questionTypes = [
+            "Multiple Choice",
+            "Single Choice",
+            "Text",
+            "Rating",
+        ];
+
+        // Get tag names dynamically from Tag Management
+        const tagNames = tags
+            .map((tag) => tag.tagName)
+            .filter(
+                (name) =>
+                    name &&
+                    name.trim() !== ""
+            );
+
+        // Create a new Excel workbook
+        const workbook = new ExcelJS.Workbook();
+
+        // Create Questions sheet
+        const worksheet =
+            workbook.addWorksheet("Questions");
+
+        // Add headers
+        worksheet.addRow([
+            "Question",
+            "Question Type",
+            "Tag",
+            "Option 1",
+            "Option 2",
+            "Option 3",
+            "Option 4",
+            "Option 5",
+        ]);
+
+        // Style the header row
+        const headerRow = worksheet.getRow(1);
+
+        headerRow.font = {
+            bold: true,
+        };
+
+        headerRow.alignment = {
+            vertical: "middle",
+            horizontal: "center",
+        };
+
+        // Set column widths
+        worksheet.getColumn(1).width = 50;
+        worksheet.getColumn(2).width = 22;
+        worksheet.getColumn(3).width = 30;
+        worksheet.getColumn(4).width = 20;
+        worksheet.getColumn(5).width = 20;
+        worksheet.getColumn(6).width = 20;
+        worksheet.getColumn(7).width = 20;
+        worksheet.getColumn(8).width = 20;
+
+        // Add dropdowns to rows 2 to 500
+        for (let row = 2; row <= 500; row++) {
+
+            // Question Type dropdown
+            worksheet.getCell(row, 2).dataValidation = {
+                type: "list",
+                allowBlank: true,
+                formulae: [
+                    `"${questionTypes.join(",")}"`,
+                ],
+                showErrorMessage: true,
+                errorTitle: "Invalid Question Type",
+                error: "Please select a Question Type from the dropdown.",
+            };
+
+            // Tag dropdown
+            if (tagNames.length > 0) {
+                worksheet.getCell(row, 3).dataValidation = {
+                    type: "list",
+                    allowBlank: true,
+                    formulae: [
+                        `"${tagNames.join(",")}"`,
+                    ],
+                    showErrorMessage: true,
+                    errorTitle: "Invalid Tag",
+                    error: "Please select a Tag from the dropdown.",
+                };
+            }
+        }
+
+        // Freeze the header row
+        worksheet.views = [
+            {
+                state: "frozen",
+                ySplit: 1,
+            },
+        ];
+
+        // Create Excel file
+        const buffer =
+            await workbook.xlsx.writeBuffer();
+
+        // Create downloadable file
+        const blob = new Blob(
+            [buffer],
+            {
+                type:
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            }
+        );
+
+        // Create download link
+        const url =
+            window.URL.createObjectURL(blob);
+
+        const link =
+            document.createElement("a");
+
+        link.href = url;
+        link.download =
+            "Question_Upload_Template.xlsx";
+
+        document.body.appendChild(link);
+
+        link.click();
+
+        // Clean up
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+    } catch (error) {
+        console.error(
+            "Error creating Excel template:",
+            error
+        );
+
+        alert(
+            "Unable to create Excel template."
+        );
+    }
+};
 
     useEffect(() => {
         fetchTags();
@@ -245,12 +388,23 @@ export default function QuestionManagement({ user }: PageProps) {
                 <div className="category-body">
                     <div className="page-header">
                         <h1 className="page-title">Questions</h1>
-                        <button
-                            className="create-btn"
-                            onClick={openCreateModal}
-                        >
-                            + Add Question
-                        </button>
+                        <div className="page-actions">
+
+                            <button
+                                className="create-btn"
+                                onClick={downloadExcelTemplate}
+                            >
+                                Download Excel Template
+                            </button>
+
+                            <button
+                                className="create-btn"
+                                onClick={openCreateModal}
+                            >
+                                + Add Question
+                            </button>
+
+                        </div>
                     </div>
 
                     <div className="question-table-card">

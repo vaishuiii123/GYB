@@ -51,6 +51,9 @@ export default function PreODForm() {
   const [successMessage, setSuccessMessage] = useState("");
   const requestIdRef = useRef(0);
 
+  const PAGE_SIZE = 5;
+const [page, setPage] = useState(0);
+
   const canFill = formData?.canFill ?? false;
 
   const groupedQuestions = useMemo(() => {
@@ -79,6 +82,19 @@ export default function PreODForm() {
       }),
     }));
   }, [groupedQuestions]);
+
+  const flatQuestions = useMemo(() => {
+    return displayQuestions.flatMap(({ category, items }) =>
+      items.map((item) => ({ ...item, category }))
+    );
+  }, [displayQuestions]);
+  
+  const totalPages = Math.ceil(flatQuestions.length / PAGE_SIZE) || 1;
+  const pageQuestions = flatQuestions.slice(
+    page * PAGE_SIZE,
+    page * PAGE_SIZE + PAGE_SIZE
+  );
+  const isLastPage = page >= totalPages - 1;
 
   useEffect(() => {
     const workshop = getSelectedWorkshop();
@@ -171,43 +187,82 @@ export default function PreODForm() {
     }));
   };
 
-  const handleSubmit = async () => {
+  const saveAnswers = async (isDraft: boolean) => {
     if (!canFill || !formData?.workshop?.id || !participantId) {
       return;
     }
-
+  
+    const response = await fetch("/api/save-pre-od-response", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        participantId,
+        organizationId,
+        workshopId: formData.workshop.id,
+        answers,
+        isDraft,
+      }),
+    });
+  
+    const data = await response.json();
+  
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || "Failed to save Pre OD.");
+    }
+  
+    return data;
+  };
+  
+  const handleSave = async () => {
     try {
       setSaving(true);
       setErrorMessage("");
       setSuccessMessage("");
-
-      const response = await fetch("/api/save-pre-od-response", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          participantId,
-          organizationId,
-          workshopId: formData.workshop.id,
-          answers,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        setErrorMessage(data.message || "Failed to submit Pre OD.");
-        return;
-      }
-
-      clearCachedPageData(`pre-od:${participantId}:${formData.workshop.id}`);
+      await saveAnswers(true);
+      setSuccessMessage("Progress saved.");
+    } catch (error: any) {
+      console.error(error);
+      setErrorMessage(error.message || "Failed to save Pre OD.");
+    } finally {
+      setSaving(false);
+    }
+  };
+  
+  const handleNext = async () => {
+    try {
+      setSaving(true);
+      setErrorMessage("");
+      setSuccessMessage("");
+  
+      setPage((current) => Math.min(current + 1, totalPages - 1));
+    } catch (error: any) {
+      console.error(error);
+      setErrorMessage(error.message || "Failed to save Pre OD.");
+      // still go to next page? remove the line below if you want to block on save error
+      // setPage((current) => Math.min(current + 1, totalPages - 1));
+    } finally {
+      setSaving(false);
+    }
+  };
+  
+  const handlePrevious = () => {
+    setPage((current) => Math.max(current - 1, 0));
+  };
+  
+  const handleSubmit = async () => {
+    try {
+      setSaving(true);
+      setErrorMessage("");
+      setSuccessMessage("");
+      await saveAnswers(false);
+      clearCachedPageData(`pre-od:${participantId}:${formData!.workshop.id}`);
       setSuccessMessage("Pre OD submitted successfully.");
       navigate("/userdashboard", { replace: true });
-      return;
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      setErrorMessage("Failed to submit Pre OD.");
+      setErrorMessage(error.message || "Failed to submit Pre OD.");
     } finally {
       setSaving(false);
     }
@@ -246,60 +301,90 @@ export default function PreODForm() {
           </div>
         ) : (
           <>
-            <div className="pre-od-form-workshop-card">
-              <h2>{formData.workshop.workshopName}</h2>
+           
               {formData.submittedDate ? (
                 <p className="pre-od-form-submitted">
                   Last submitted:{" "}
                   {new Date(formData.submittedDate).toLocaleString()}
                 </p>
               ) : null}
-            </div>
 
-            <form
-              className="pre-od-form"
-              onSubmit={(event) => {
-                event.preventDefault();
-                handleSubmit();
-              }}
-            >
-              {displayQuestions.map(({ category, items }) => (
-                <section key={category} className="pre-od-form-section">
-                  <h3>{category}</h3>
+<form
+  className="pre-od-form"
+  onSubmit={(event) => {
+    event.preventDefault();
+  }}
+>
+  <div className="pre-od-toolbar">
+    <p className="pre-od-form-page-indicator">
+      Page {page + 1} of {totalPages}
+    </p>
 
-                  {items.map((item) => (
-                    <label key={item.srNo} className="pre-od-form-field">
-                      <span className="pre-od-form-label">
-                        {item.displayNo}. {item.question}
-                      </span>
-                      <textarea
-                        value={answers[String(item.srNo)] || ""}
-                        onChange={(event) =>
-                          handleAnswerChange(item.srNo, event.target.value)
-                        }
-                        rows={4}
-                        disabled={!canFill || saving}
-                        placeholder="Enter your response"
-                      />
-                    </label>
-                  ))}
-                </section>
-              ))}
+    {canFill ? (
+      <div className="pre-od-form-actions">
+        <button
+          type="button"
+          className="pre-od-btn pre-od-btn-outline"
+          onClick={handlePrevious}
+          disabled={page === 0 || saving}
+        >
+          ← Previous
+        </button>
 
-              {canFill ? (
-                <button
-                  type="submit"
-                  className="user-btn-primary pre-od-form-submit"
-                  disabled={saving}
-                >
-                  {saving ? "Submitting..." : "Submit Pre OD"}
-                </button>
-              ) : (
-                <p className="pre-od-form-readonly-note">
-                  This form is read-only because the workshop has started.
-                </p>
-              )}
-            </form>
+        <button
+          type="button"
+          className="pre-od-btn pre-od-btn-outline"
+          onClick={handleSave}
+          disabled={saving}
+        >
+          {saving ? "Saving..." : "Save"}
+        </button>
+
+        {!isLastPage ? (
+          <button
+            type="button"
+            className="pre-od-btn pre-od-btn-solid"
+            onClick={handleNext}
+            disabled={saving}
+          >
+            Next →
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="pre-od-btn pre-od-btn-solid"
+            onClick={handleSubmit}
+            disabled={saving}
+          >
+            {saving ? "Submitting..." : "Submit"}
+          </button>
+        )}
+      </div>
+    ) : (
+      <p className="pre-od-form-readonly-note">Read-only</p>
+    )}
+  </div>
+
+  <div className="pre-od-question-list">
+    {pageQuestions.map((item) => (
+      <div key={item.srNo} className="pre-od-question-card">
+        <div className="pre-od-question-title">
+          <span className="pre-od-question-number">{item.displayNo}</span>
+          <span className="pre-od-question-text">{item.question}</span>
+        </div>
+        <textarea
+          value={answers[String(item.srNo)] || ""}
+          onChange={(event) =>
+            handleAnswerChange(item.srNo, event.target.value)
+          }
+          rows={4}
+          disabled={!canFill || saving}
+          placeholder="Enter your response"
+        />
+      </div>
+    ))}
+  </div>
+</form>
           </>
         )}
       </div>

@@ -49,7 +49,7 @@ async function loadParticipantName(participantId) {
 
 module.exports = async function (context, req) {
   try {
-    const { participantId, organizationId, workshopId, answers } = req.body || {};
+    const { participantId, organizationId, workshopId, answers, isDraft } = req.body || {};
 
     if (!participantId) {
       context.res = {
@@ -99,21 +99,6 @@ module.exports = async function (context, req) {
     }
 
     const cleanedAnswers = cleanAnswers(answers, filteredSrNos);
-    const missing = filteredSrNos.filter(
-      (srNo) => !cleanedAnswers[String(srNo)]
-    );
-
-    if (missing.length > 0) {
-      context.res = {
-        status: 400,
-        body: {
-          success: false,
-          message: "Please answer all assigned Pre OD questions before submitting.",
-        },
-      };
-      return;
-    }
-
     const participantName = await loadParticipantName(participantId);
     const saved = await savePreOdResponse({
       workshopId: workshop.id,

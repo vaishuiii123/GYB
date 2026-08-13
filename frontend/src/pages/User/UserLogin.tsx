@@ -55,7 +55,7 @@ export default function UserLogin() {
         break;
       case "Participant":
         clearSelectedWorkshop();
-        navigate("/select-workshop");
+        navigate("/about-us");
         break;
       default:
         alert("No role has been assigned to this user.");
@@ -370,7 +370,7 @@ export default function UserLogin() {
             About KNAV
           </a>
           <a
-            href="https://in.linkedin.com/company/knav-ind"
+            href="https://in.linkedin.com/company/knav-ind/"
             className="user-login-icon-btn"
             target="_blank"
             rel="noopener noreferrer"

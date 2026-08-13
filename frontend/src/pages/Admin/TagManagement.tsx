@@ -18,15 +18,10 @@ export default function TagManagement({ user }: PageProps) {
 
 
     const [tags, setTags] = useState<any[]>([]);
-
     const [showModal, setShowModal] = useState(false);
-
     const [tagName, setTagName] = useState("");
-
     const [tagColor, setTagColor] = useState("");
-
     const [editMode, setEditMode] = useState(false);
-
     const [selectedTagId, setSelectedTagId] = useState("");
 
 

@@ -1,42 +1,53 @@
 .admin-login-page {
-  height: 100vh;
-  width: 100vw;
-  margin: 0;
-  padding: 0;
-  background: #eef3ff;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow: hidden;
-  font-family: "Segoe UI", sans-serif;
+  /* can remove if you no longer use this class */
 }
 
 .admin-login-card {
-  width: 360px;
-  background: #ffffff;
-  border-radius: 24px;
-  padding: 32px 30px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-  text-align: center;
-}
-
-.admin-login-icon {
-  width: 75px;
-  height: 75px;
-  background: #edf2ff;
-  border-radius: 50%;
-  margin: 0 auto 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 32px;
+  /* if nested inside user-login-card, you can simplify:
+     remove width/shadow and let user-login-card handle it */
+  width: 100%;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  padding: 0;
+  text-align: left;
 }
 
 .admin-login-title {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 700;
-  color: #0f172a;
+  color: #7b0f2c;
+}
+
+.admin-login-primary-btn {
+  background: #7b0f2c;
+  color: #ffffff;
+  border: none;
+}
+
+.admin-login-primary-btn:hover:not(:disabled) {
+  background: #651028;
+}
+
+.admin-login-microsoft-btn {
+  background: #ffffff;
+  color: #7b0f2c;
+  border: 1.5px solid #7b0f2c;
+}
+
+.admin-login-microsoft-btn:hover:not(:disabled) {
+  background: #fdf2f4;
+}
+
+.admin-login-input:focus {
+  border-color: #7b0f2c;
+  box-shadow: 0 0 0 3px rgba(123, 15, 44, 0.15);
+}
+
+.admin-login-back-link {
+  color: #7b0f2c;
+}
+
+.admin-login-icon {
+  background: #f8e9ee;
 }
 
 .admin-login-subtitle {
@@ -56,17 +67,6 @@
   box-sizing: border-box;
   margin-bottom: 15px;
   outline: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.admin-login-input:focus {
-  border-color: #2f56d4;
-  box-shadow: 0 0 0 3px rgba(47, 86, 212, 0.15);
-}
-
-.admin-login-input:disabled {
-  background: #f9fafb;
-  cursor: not-allowed;
 }
 
 .admin-login-message {
@@ -91,27 +91,6 @@
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s ease, opacity 0.2s ease;
-}
-
-.admin-login-primary-btn {
-  border: none;
-  background: #2f56d4;
-  color: #ffffff;
-}
-
-.admin-login-primary-btn:hover:not(:disabled) {
-  background: #2447b8;
-}
-
-.admin-login-microsoft-btn {
-  background: #ffffff;
-  color: #2f56d4;
-  border: 1px solid #2f56d4;
-}
-
-.admin-login-microsoft-btn:hover:not(:disabled) {
-  background: #f5f8ff;
 }
 
 .admin-login-primary-btn:disabled,
@@ -140,15 +119,37 @@
   font-weight: 600;
 }
 
+.admin-login-icon {
+  width: 75px;
+  height: 75px;
+  background: #f8e9ee;
+  border-radius: 50%;
+  margin: 0 auto 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+}
+
+.admin-login-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: #7b0f2c;
+  text-align: center;
+}
+
+.admin-login-subtitle {
+  text-align: center;
+}
+
 .admin-login-back-link {
   display: inline-block;
   margin-top: 18px;
-  color: #2f56d4;
+  color: #7b0f2c;
   font-size: 14px;
   font-weight: 600;
   text-decoration: none;
-}
-
-.admin-login-back-link:hover {
-  text-decoration: underline;
+  text-align: center;
+  width: 100%;
 }

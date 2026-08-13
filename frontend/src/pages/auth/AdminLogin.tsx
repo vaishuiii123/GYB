@@ -2,6 +2,12 @@ import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useMsal } from "@azure/msal-react";
 import { InteractionStatus } from "@azure/msal-browser";
+
+import myImage from "../../images/KNAV logo.png";
+import { Lock, Target, TrendingUp, Users } from "lucide-react";
+import "../../styles/UserLogin.css";
+import "../../styles/AdminLogin.css";
+
 import {
   adminLoginRequest,
   MSAL_LOGIN_TARGET_KEY,
@@ -150,74 +156,146 @@ export default function AdminLogin({ onLogin }: LoginProps) {
     inProgress === InteractionStatus.HandleRedirect ||
     inProgress === InteractionStatus.Startup;
 
-  if (isRedirecting) {
-    return (
-      <div className="admin-login-page">
-        <div className="admin-login-card">
-          <p className="admin-login-subtitle">Signing in with Microsoft...</p>
+    if (isRedirecting) {
+      return (
+        <div className="user-login-page">
+          <aside className="user-login-brand">
+            <img src={myImage} alt="KNAV" className="user-login-logo" />
+            <div className="user-login-brand-copy">
+              <h1>GROW YOUR BUSINESS</h1>
+              <p className="user-login-brand-subtitle">
+                Organisation Development Workshop
+              </p>
+            </div>
+            <div className="user-login-brand-art" aria-hidden />
+          </aside>
+          <section className="user-login-panel">
+            <div className="user-login-card">
+              <p className="user-login-label" style={{ textAlign: "center" }}>
+                Signing in with Microsoft...
+              </p>
+            </div>
+          </section>
         </div>
+      );
+    }
+  
+    return (
+      <div className="user-login-page">
+        <aside className="user-login-brand">
+          <img src={myImage} alt="KNAV" className="user-login-logo" />
+  
+          <div className="user-login-brand-copy">
+            <h1>GROW YOUR BUSINESS</h1>
+            <p className="user-login-brand-subtitle">
+              Organisation Development Workshop
+            </p>
+  
+            <ul className="user-login-features">
+              <li>
+                <span className="user-login-feature-icon" aria-hidden>
+                  <TrendingUp size={20} strokeWidth={2.2} />
+                </span>
+                <div>
+                  <strong>Strategic Growth</strong>
+                  <span>Unlock your potential and drive sustainable growth</span>
+                </div>
+              </li>
+              <li>
+                <span className="user-login-feature-icon" aria-hidden>
+                  <Users size={20} strokeWidth={2.2} />
+                </span>
+                <div>
+                  <strong>Organisational Excellence</strong>
+                  <span>
+                    Strengthen capabilities, optimise execution and build for scale
+                  </span>
+                </div>
+              </li>
+              <li>
+                <span className="user-login-feature-icon" aria-hidden>
+                  <Target size={20} strokeWidth={2.2} />
+                </span>
+                <div>
+                  <strong>Business Impact</strong>
+                  <span>Deliver measurable results and long-term value</span>
+                </div>
+              </li>
+            </ul>
+          </div>
+  
+          <div className="user-login-brand-art" aria-hidden />
+        </aside>
+  
+        <section className="user-login-panel">
+          <div className="user-login-card">
+            <div className="user-login-card-header" style={{ marginBottom: 18 }}>
+              <span className="user-login-card-avatar" aria-hidden>
+                <Lock size={22} strokeWidth={2} />
+              </span>
+              <div>
+                <h2>Welcome Back</h2>
+                <p>Sign in with Microsoft or your registered admin email</p>
+              </div>
+            </div>
+  
+            {message ? (
+              <div
+                className={
+                  isSuccessMessage ? "user-login-info" : "user-login-error"
+                }
+              >
+                {message}
+              </div>
+            ) : null}
+  
+            <label className="user-login-label" htmlFor="admin-email">
+              Email
+            </label>
+            <div className="user-login-input-wrap">
+              <Lock size={16} strokeWidth={2} aria-hidden />
+              <input
+                id="admin-email"
+                type="email"
+                className="user-login-input"
+                placeholder="Enter Email ID"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onKeyDown={handleKeyDown}
+                disabled={loading}
+              />
+            </div>
+  
+            <button
+              type="button"
+              className="user-login-btn user-login-btn-primary"
+              onClick={checkEmail}
+              disabled={loading}
+            >
+              <Lock size={16} strokeWidth={2.2} />
+              {loading ? "Please wait..." : "Continue"}
+            </button>
+  
+            <div className="user-login-divider">
+              <span>OR</span>
+            </div>
+  
+            <button
+              type="button"
+              className="user-login-btn user-login-btn-outline"
+              onClick={handleMicrosoftLogin}
+              disabled={loading}
+            >
+              Continue with Microsoft
+            </button>
+  
+            <Link to="/" className="user-login-link-btn">
+              Back to participant login
+            </Link>
+          </div>
+  
+          <p className="user-login-footer">© 2026 KNAV. All rights reserved.</p>
+        </section>
       </div>
     );
-  }
-
-  return (
-    <div className="admin-login-page">
-      <div className="admin-login-card">
-        <div className="admin-login-icon">📧</div>
-
-        <h1 className="admin-login-title">Welcome Back</h1>
-
-        <p className="admin-login-subtitle">
-          Sign in with Microsoft or use your registered admin email
-        </p>
-
-        <input
-          type="email"
-          placeholder="Enter Email ID"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          onKeyDown={handleKeyDown}
-          className="admin-login-input"
-          disabled={loading}
-        />
-
-        {message && (
-          <div
-            className={`admin-login-message ${
-              isSuccessMessage ? "success" : "error"
-            }`}
-          >
-            {message}
-          </div>
-        )}
-
-        <button
-          onClick={checkEmail}
-          className="admin-login-primary-btn"
-          disabled={loading}
-        >
-          {loading ? "Please wait..." : "Continue"}
-        </button>
-
-        <div className="admin-login-divider">
-          <span />
-          <p>OR</p>
-          <span />
-        </div>
-
-        <button
-          onClick={handleMicrosoftLogin}
-          className="admin-login-microsoft-btn"
-          disabled={loading}
-          type="button"
-        >
-          Continue with Microsoft
-        </button>
-
-        <Link to="/" className="admin-login-back-link">
-          Back to participant login
-        </Link>
-      </div>
-    </div>
-  );
 }

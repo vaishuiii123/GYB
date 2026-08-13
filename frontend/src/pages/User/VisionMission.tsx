@@ -86,6 +86,8 @@ export default function VisionMission() {
   const [editMessage, setEditMessage] = useState("");
   const [workshopId, setWorkshopId] = useState("");
 
+  const [dragSource, setDragSource] = useState<"bank" | DropZone | null>(null);
+
   const {
     participant,
     workshop: selectedWorkshop,
@@ -232,11 +234,30 @@ export default function VisionMission() {
 
   const handleDrop = (zone: DropZone, event: React.DragEvent) => {
     event.preventDefault();
-    const keyword = event.dataTransfer.getData("text/plain");
-    if (keyword) {
-      addKeywordToZone(zone, keyword);
+    if (!canEdit) {
+      return;
     }
+  
+    const keyword = event.dataTransfer.getData("text/plain").trim();
+    if (!keyword) {
+      setDraggingKeyword(null);
+      setDragSource(null);
+      return;
+    }
+  
+    // Add to target zone (Vision or Mission)
+    addKeywordToZone(zone, keyword);
+  
+    // If dragged from the other box, remove from source (move)
+    if (dragSource === "vision" && zone === "mission") {
+      setVisionKeywords((prev) => prev.filter((item) => item !== keyword));
+    }
+    if (dragSource === "mission" && zone === "vision") {
+      setMissionKeywords((prev) => prev.filter((item) => item !== keyword));
+    }
+  
     setDraggingKeyword(null);
+    setDragSource(null);
   };
 
   const handleInputKeyDown = (
@@ -338,19 +359,39 @@ export default function VisionMission() {
 
         <div className="vm-drop-zone">
           <div className="vm-selected-keywords">
-            {selectedKeywords.map((keyword) => (
-              <div key={keyword} className="vm-chip is-selected">
-                <span>{keyword}</span>
-                <button
-                  type="button"
-                  onClick={() => removeKeywordFromZone(zone, keyword)}
-                  aria-label={`Remove ${keyword}`}
-                  disabled={!canEdit}
-                >
-                  <X size={14} strokeWidth={2.4} />
-                </button>
-              </div>
-            ))}
+          {selectedKeywords.map((keyword) => (
+            <div
+              key={keyword}
+              className={`vm-chip is-selected ${
+                draggingKeyword === keyword ? "is-dragging" : ""
+              }`}
+              draggable={canEdit}
+              onDragStart={(event) => {
+                if (!canEdit) {
+                  event.preventDefault();
+                  return;
+                }
+                event.dataTransfer.setData("text/plain", keyword);
+                event.dataTransfer.effectAllowed = "move";
+                setDraggingKeyword(keyword);
+                setDragSource(zone);
+              }}
+              onDragEnd={() => {
+                setDraggingKeyword(null);
+                setDragSource(null);
+              }}
+            >
+              <span>{keyword}</span>
+              <button
+                type="button"
+                onClick={() => removeKeywordFromZone(zone, keyword)}
+                aria-label={`Remove ${keyword}`}
+                disabled={!canEdit}
+              >
+                <X size={14} strokeWidth={2.4} />
+              </button>
+            </div>
+          ))}
 
             <input
               type="text"
@@ -441,8 +482,12 @@ export default function VisionMission() {
                       onDragStart={(event) => {
                         event.dataTransfer.setData("text/plain", keyword);
                         setDraggingKeyword(keyword);
+                        setDragSource("bank");
                       }}
-                      onDragEnd={() => setDraggingKeyword(null)}
+                      onDragEnd={() => {
+                        setDraggingKeyword(null);
+                        setDragSource(null);
+                      }}
                       onClick={() => addKeywordToZone(activeZone, keyword)}
                       title={`Click to add to ${
                         activeZone === "vision" ? "Vision" : "Mission"
@@ -498,19 +543,6 @@ export default function VisionMission() {
             </div>
           </>
         )}
-
-        <footer className="vm-footer-banner">
-          <div className="vm-footer-copy">
-            <span className="vm-footer-icon" aria-hidden>
-              <TrendingUp size={20} strokeWidth={2.1} />
-            </span>
-            <div>
-              <strong>Grow Your Business</strong>
-              <span>Organization Development Workshop</span>
-            </div>
-          </div>
-          <div className="vm-footer-art" aria-hidden />
-        </footer>
       </div>
     </UserLayout>
   );

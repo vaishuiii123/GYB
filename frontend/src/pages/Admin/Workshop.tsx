@@ -25,6 +25,7 @@ export default function Workshop({ user }: PageProps) {
   const statusFilter = parseWorkshopStatusParam(searchParams.get("status"));
 
   const [templates, setTemplates] = useState<any[]>([]);
+  const [preOdTemplates, setPreOdTemplates] = useState<any[]>([]);
   const [organizations, setOrganizations] = useState<any[]>([]);
   const [participants, setParticipants] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -43,6 +44,7 @@ export default function Workshop({ user }: PageProps) {
     startDate: "",
     endDate: "",
     templateId: "",
+    preOdTemplateId: "",
     organizationId: "",
   });
   const [editingWorkshopId, setEditingWorkshopId] = useState("");
@@ -54,6 +56,7 @@ export default function Workshop({ user }: PageProps) {
     startDate: "",
     endDate: "",
     templateId: "",
+    preOdTemplateId: "",
     organizationId: "",
   };
 
@@ -109,6 +112,7 @@ export default function Workshop({ user }: PageProps) {
 
   useEffect(() => {
     loadTemplates();
+    loadPreOdTemplates();
     loadOrganizations();
     loadWorkshops();
   }, [user?.email, user?.role]);
@@ -143,21 +147,29 @@ export default function Workshop({ user }: PageProps) {
     }
   }, [formData.organizationId]);
 
-
-
   const loadTemplates = async () => {
     try {
       const response = await fetch("/api/get-templates");
       const data = await response.json();
 
-      console.log("Templates:", data);
-
       if (data.success) {
         setTemplates(data.templates || []);
-       
       }
     } catch (error) {
       console.error("Error loading templates", error);
+    }
+  };
+
+  const loadPreOdTemplates = async () => {
+    try {
+      const response = await fetch("/api/get-pre-od-templates");
+      const data = await response.json();
+
+      if (data.success) {
+        setPreOdTemplates(data.templates || []);
+      }
+    } catch (error) {
+      console.error("Error loading Pre OD templates", error);
     }
   };
 
@@ -165,8 +177,6 @@ export default function Workshop({ user }: PageProps) {
     try {
       const response = await fetch("/api/get-organizations");
       const data = await response.json();
-
-      console.log("Organizations:", data);
 
       if (data.success) {
         setOrganizations(data.organizations || []);
@@ -236,7 +246,6 @@ export default function Workshop({ user }: PageProps) {
     await handleViewOrganization(org, workshop);
   };
 
-
   const openCreatePopup = () => {
     resetForm();
     setModalMode("create");
@@ -257,6 +266,7 @@ export default function Workshop({ user }: PageProps) {
       startDate: toDateTimeLocal(workshop.startDate),
       endDate: toDateTimeLocal(workshop.endDate),
       templateId: workshop.templateId || "",
+      preOdTemplateId: workshop.preOdTemplateId || "",
       organizationId: workshop.organizationId || "",
     });
 
@@ -270,6 +280,34 @@ export default function Workshop({ user }: PageProps) {
     setShowCreatePopup(true);
   };
 
+  const applyPreOdTemplate = async (workshopId: string) => {
+    const selectedPreOd = preOdTemplates.find(
+      (t) => t.id === formData.preOdTemplateId
+    );
+
+    if (!selectedPreOd) {
+      return;
+    }
+
+    const response = await fetch("/api/save-workshop-pre-od", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        workshopId,
+        questionSrNos: selectedPreOd.questionSrNos || [],
+        customQuestions: [],
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || "Failed to assign Pre OD questions");
+    }
+  };
+
   const handleSaveWorkshop = async () => {
     if (
       !formData.workshopName ||
@@ -277,6 +315,7 @@ export default function Workshop({ user }: PageProps) {
       !formData.startDate ||
       !formData.endDate ||
       !formData.templateId ||
+      !formData.preOdTemplateId ||
       !formData.organizationId
     ) {
       alert("Please fill all required fields");
@@ -306,6 +345,10 @@ export default function Workshop({ user }: PageProps) {
         (t) => t.id === formData.templateId
       );
 
+      const selectedPreOdTemplate = preOdTemplates.find(
+        (t) => t.id === formData.preOdTemplateId
+      );
+
       const selectedOrganization = organizations.find(
         (o) => o.id === formData.organizationId
       );
@@ -317,6 +360,8 @@ export default function Workshop({ user }: PageProps) {
         endDate: new Date(formData.endDate).toISOString(),
         templateId: selectedTemplate?.id,
         templateName: selectedTemplate?.templateName,
+        preOdTemplateId: selectedPreOdTemplate?.id,
+        preOdTemplateName: selectedPreOdTemplate?.templateName,
         organizationId: selectedOrganization?.id,
         organizationName: selectedOrganization?.organizationName,
         participantCount: participants.length,
@@ -341,6 +386,13 @@ export default function Workshop({ user }: PageProps) {
       const data = await response.json();
 
       if (data.success) {
+        const workshopId =
+          modalMode === "edit" ? editingWorkshopId : data.workshopId;
+
+        if (workshopId) {
+          await applyPreOdTemplate(workshopId);
+        }
+
         alert(
           modalMode === "edit"
             ? "Workshop updated successfully"
@@ -354,27 +406,30 @@ export default function Workshop({ user }: PageProps) {
       }
     } catch (error) {
       console.error("Error saving workshop:", error);
-      alert("Failed to save workshop");
+      alert(
+        error instanceof Error ? error.message : "Failed to save workshop"
+      );
     } finally {
       setLoading(false);
     }
   };
-  const loadWorkshops = async () => {
-  try {
-    const response = await fetch("/api/get-workshops");
-    const data = await response.json();
 
-    if (data.success) {
-      setWorkshops(data.workshops || []);
-    } else {
-      console.error(data.error || "Failed to load workshops");
+  const loadWorkshops = async () => {
+    try {
+      const response = await fetch("/api/get-workshops");
+      const data = await response.json();
+
+      if (data.success) {
+        setWorkshops(data.workshops || []);
+      } else {
+        console.error(data.error || "Failed to load workshops");
+        setWorkshops([]);
+      }
+    } catch (error) {
+      console.error("Error loading workshops", error);
       setWorkshops([]);
     }
-  } catch (error) {
-    console.error("Error loading workshops", error);
-    setWorkshops([]);
-  }
-};
+  };
 
   const handleDeleteWorkshop = async (workshop: any) => {
     const confirmed = await appConfirm(
@@ -469,9 +524,7 @@ export default function Workshop({ user }: PageProps) {
 
                 <div className={styles.formGridTwo}>
                   <div className={styles.formGroup}>
-                    <label className={styles.label}>
-                      Workshop Name *
-                    </label>
+                    <label className={styles.label}>Workshop Name *</label>
 
                     <input
                       className={styles.input}
@@ -554,11 +607,32 @@ export default function Workshop({ user }: PageProps) {
                 </div>
 
                 <div className={styles.formGridTwo}>
-
                   <div className={styles.formGroup}>
                     <label className={styles.label}>
-                      Select OD Template *
+                      Select Pre OD Template *
                     </label>
+
+                    <select
+                      className={styles.select}
+                      value={formData.preOdTemplateId}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          preOdTemplateId: e.target.value,
+                        })
+                      }
+                    >
+                      <option value="">Select Pre OD Template</option>
+                      {preOdTemplates.map((template: any) => (
+                        <option key={template.id} value={template.id}>
+                          {template.templateName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Select OD Template *</label>
 
                     <select
                       className={styles.select}
@@ -573,10 +647,7 @@ export default function Workshop({ user }: PageProps) {
                       <option value="">Select OD Template</option>
 
                       {templates.map((template: any) => (
-                        <option
-                          key={template.id}
-                          value={template.id}
-                        >
+                        <option key={template.id} value={template.id}>
                           {template.templateName}
                         </option>
                       ))}
@@ -585,11 +656,8 @@ export default function Workshop({ user }: PageProps) {
                 </div>
 
                 <div className={styles.formGridTwo}>
-
                   <div className={styles.formGroup}>
-                    <label className={styles.label}>
-                      Select Organization *
-                    </label>
+                    <label className={styles.label}>Select Organization *</label>
 
                     <select
                       className={styles.select}
@@ -598,15 +666,10 @@ export default function Workshop({ user }: PageProps) {
                         handleOrganizationSelect(e.target.value)
                       }
                     >
-                      <option value="">
-                        Select Organization
-                      </option>
+                      <option value="">Select Organization</option>
 
                       {organizations.map((org: any) => (
-                        <option
-                          key={org.id}
-                          value={org.id}
-                        >
+                        <option key={org.id} value={org.id}>
                           {org.organizationName}
                         </option>
                       ))}
@@ -616,6 +679,17 @@ export default function Workshop({ user }: PageProps) {
 
                 {formData.organizationId && (
                   <div className={styles.modalParticipants}>
+                    {formData.preOdTemplateId && (
+                      <p className={styles.selectedTemplateName}>
+                        Pre OD Template:{" "}
+                        <strong>
+                          {preOdTemplates.find(
+                            (t) => t.id === formData.preOdTemplateId
+                          )?.templateName || "-"}
+                        </strong>
+                      </p>
+                    )}
+
                     {formData.templateId && (
                       <p className={styles.selectedTemplateName}>
                         OD Template:{" "}
@@ -627,7 +701,8 @@ export default function Workshop({ user }: PageProps) {
                     )}
 
                     <h4 className={styles.modalParticipantsTitle}>
-                      Participants in selected organization ({participants.length})
+                      Participants in selected organization (
+                      {participants.length})
                     </h4>
 
                     {participants.length > 0 ? (
@@ -684,7 +759,6 @@ export default function Workshop({ user }: PageProps) {
                     Cancel
                   </button>
                 </div>
-
               </div>
             </div>
           )}
@@ -692,100 +766,108 @@ export default function Workshop({ user }: PageProps) {
           <div className={styles.tableCard}>
             <h3 className={styles.tableTitle}>{listTitle}</h3>
 
-  <table className={styles.table}>
-    <thead>
-      <tr>
-        <th className={styles.th}>Sr No</th>
-        <th className={styles.th}>Workshop Name</th>
-        <th className={styles.th}>OD Template</th>
-        <th className={styles.th}>Pre OD Questions</th>
-        <th className={styles.th}>Organization</th>
-        <th className={styles.th}>Pre OD Start</th>
-        <th className={styles.th}>Workshop Start</th>
-        <th className={styles.th}>Workshop End</th>
-        <th className={styles.th}>Participants</th>
-        <th className={styles.th}>Actions</th>
-      </tr>
-    </thead>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th className={styles.th}>Sr No</th>
+                  <th className={styles.th}>Workshop Name</th>
+                  <th className={styles.th}>OD Template</th>
+                  <th className={styles.th}>Pre OD Questions</th>
+                  <th className={styles.th}>Organization</th>
+                  <th className={styles.th}>Pre OD Start</th>
+                  <th className={styles.th}>Workshop Start</th>
+                  <th className={styles.th}>Workshop End</th>
+                  <th className={styles.th}>Participants</th>
+                  <th className={styles.th}>Actions</th>
+                </tr>
+              </thead>
 
-    <tbody>
-      {filteredWorkshops.length > 0 ? (
-        filteredWorkshops.map((workshop: any, index: number) => (
-          <tr key={workshop.id}>
-            <td className={styles.td}>{index + 1}</td>
-            <td className={styles.td}>{workshop.workshopName}</td>
-            <td className={styles.td}>{workshop.templateName}</td>
-            <td className={styles.td}>
-              {workshop.preOdQuestionCount
-                ? `${workshop.preOdQuestionCount} questions`
-                : "-"}
-            </td>
-            <td className={styles.td}>{workshop.organizationName}</td>
-            <td className={styles.td}>
-              {formatDateTime(workshop.preOdStartDate)}
-            </td>
-            <td className={styles.td}>
-              {formatDateTime(workshop.startDate)}
-            </td>
-            <td className={styles.td}>
-              {formatDateTime(workshop.endDate)}
-            </td>
-            <td className={styles.td}>{workshop.participantCount}</td>
-            <td className={styles.td}>
-              <div className={styles.actionGroup}>
-                <ViewIconBtn
-                  onClick={() => handleViewWorkshopOrganization(workshop)}
-                  disabled={loadingOrgView}
-                />
-                {canEditWorkshop(workshop) ? (
-                  <EditIconBtn
-                    onClick={() => openEditPopup(workshop)}
-                    title="Edit workshop (available before workshop start)"
-                  />
+              <tbody>
+                {filteredWorkshops.length > 0 ? (
+                  filteredWorkshops.map((workshop: any, index: number) => (
+                    <tr key={workshop.id}>
+                      <td className={styles.td}>{index + 1}</td>
+                      <td className={styles.td}>{workshop.workshopName}</td>
+                      <td className={styles.td}>{workshop.templateName}</td>
+                      <td className={styles.td}>
+                        {workshop.preOdQuestionCount
+                          ? `${workshop.preOdQuestionCount} questions`
+                          : "-"}
+                      </td>
+                      <td className={styles.td}>
+                        {workshop.organizationName}
+                      </td>
+                      <td className={styles.td}>
+                        {formatDateTime(workshop.preOdStartDate)}
+                      </td>
+                      <td className={styles.td}>
+                        {formatDateTime(workshop.startDate)}
+                      </td>
+                      <td className={styles.td}>
+                        {formatDateTime(workshop.endDate)}
+                      </td>
+                      <td className={styles.td}>
+                        {workshop.participantCount}
+                      </td>
+                      <td className={styles.td}>
+                        <div className={styles.actionGroup}>
+                          <ViewIconBtn
+                            onClick={() =>
+                              handleViewWorkshopOrganization(workshop)
+                            }
+                            disabled={loadingOrgView}
+                          />
+                          {canEditWorkshop(workshop) ? (
+                            <EditIconBtn
+                              onClick={() => openEditPopup(workshop)}
+                              title="Edit workshop (available before workshop start)"
+                            />
+                          ) : (
+                            <span
+                              className={styles.fieldHint}
+                              title="Editing locks when the workshop starts"
+                            >
+                              Locked
+                            </span>
+                          )}
+                          <DeleteIconBtn
+                            onClick={() => handleDeleteWorkshop(workshop)}
+                            disabled={deletingWorkshopId === workshop.id}
+                            title={
+                              deletingWorkshopId === workshop.id
+                                ? "Deleting..."
+                                : "Delete"
+                            }
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  ))
                 ) : (
-                  <span
-                    className={styles.fieldHint}
-                    title="Editing locks when the workshop starts"
-                  >
-                    Locked
-                  </span>
+                  <tr>
+                    <td className={styles.td} colSpan={10}>
+                      {statusFilter === "upcoming"
+                        ? "No upcoming workshops."
+                        : statusFilter === "in-progress"
+                          ? "No workshops in progress."
+                          : statusFilter === "completed"
+                            ? "No completed workshops."
+                            : "No workshops scheduled."}
+                    </td>
+                  </tr>
                 )}
-                <DeleteIconBtn
-                  onClick={() => handleDeleteWorkshop(workshop)}
-                  disabled={deletingWorkshopId === workshop.id}
-                  title={
-                    deletingWorkshopId === workshop.id
-                      ? "Deleting..."
-                      : "Delete"
-                  }
-                />
-              </div>
-            </td>
-          </tr>
-        ))
-      ) : (
-        <tr>
-          <td className={styles.td} colSpan={10}>
-            {statusFilter === "upcoming"
-              ? "No upcoming workshops."
-              : statusFilter === "in-progress"
-                ? "No workshops in progress."
-                : statusFilter === "completed"
-                  ? "No completed workshops."
-                  : "No workshops scheduled."}
-          </td>
-        </tr>
-      )}
-    </tbody>
-  </table>
-</div>
+              </tbody>
+            </table>
+          </div>
 
           {showOrgViewModal && selectedOrgDetails && (
             <div className={styles.modalOverlay}>
               <div className={styles.modal}>
                 <div className={styles.modalHeader}>
                   <h3 className={styles.modalTitle}>
-                    {viewWorkshopDetails ? "Workshop Details" : "Organization Details"}
+                    {viewWorkshopDetails
+                      ? "Workshop Details"
+                      : "Organization Details"}
                   </h3>
                   <button
                     className={styles.closeButton}
@@ -813,6 +895,14 @@ export default function Workshop({ user }: PageProps) {
                         <span className={styles.infoLabel}>Template</span>
                         <p className={styles.infoValue}>
                           {viewWorkshopDetails.templateName || "-"}
+                        </p>
+                      </div>
+                      <div>
+                        <span className={styles.infoLabel}>
+                          Pre OD Template
+                        </span>
+                        <p className={styles.infoValue}>
+                          {viewWorkshopDetails.preOdTemplateName || "-"}
                         </p>
                       </div>
                       <div>
@@ -898,7 +988,6 @@ export default function Workshop({ user }: PageProps) {
           )}
         </div>
       </div>
-      
     </div>
   );
 }
