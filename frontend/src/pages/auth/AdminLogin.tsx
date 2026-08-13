@@ -248,38 +248,7 @@ export default function AdminLogin({ onLogin }: LoginProps) {
                 {message}
               </div>
             ) : null}
-  
-            <label className="user-login-label" htmlFor="admin-email">
-              Email
-            </label>
-            <div className="user-login-input-wrap">
-              <Lock size={16} strokeWidth={2} aria-hidden />
-              <input
-                id="admin-email"
-                type="email"
-                className="user-login-input"
-                placeholder="Enter Email ID"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                onKeyDown={handleKeyDown}
-                disabled={loading}
-              />
-            </div>
-  
-            <button
-              type="button"
-              className="user-login-btn user-login-btn-primary"
-              onClick={checkEmail}
-              disabled={loading}
-            >
-              <Lock size={16} strokeWidth={2.2} />
-              {loading ? "Please wait..." : "Continue"}
-            </button>
-  
-            <div className="user-login-divider">
-              <span>OR</span>
-            </div>
-  
+
             <button
               type="button"
               className="user-login-btn user-login-btn-outline"
@@ -288,6 +257,10 @@ export default function AdminLogin({ onLogin }: LoginProps) {
             >
               Continue with Microsoft
             </button>
+
+            
+          <br></br>
+          <br></br>
   
             <Link to="/" className="user-login-link-btn">
               Back to participant login

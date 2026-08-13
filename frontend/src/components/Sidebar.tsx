@@ -12,6 +12,7 @@ export default function Sidebar() {
     { name: "Workshop", path: "/workshop", icon: "🎓" },
     { name: "Pre Organization Development", path: "/pre-od", icon: "📋" },
     { name: "Admin Management", path: "/admin-management", icon: "🛡️" },
+    {name: "Export", path: "/export", icon: "📤"},
   ];
 
   return (

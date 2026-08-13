@@ -37,6 +37,7 @@ import AdminManagement from "./pages/Admin/AdminManagement";
 import PreODForm from "./pages/User/PreODForm";
 import WorkshopFeedback from "./pages/User/WorkshopFeedback";
 import Reports from "./pages/User/Reports";
+import Export from "./pages/Admin/Export";
 
 function App() {
 
@@ -114,6 +115,11 @@ function App() {
         <Route
           path="/reports"
           element={<Reports />}
+        />
+        
+        <Route
+          path="/export"
+          element={<Export user={currentUser} />}
         />
        
        <Route
