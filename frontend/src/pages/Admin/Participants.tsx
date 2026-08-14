@@ -312,13 +312,18 @@ export default function Participants({ user }: PageProps) {
   };
 
   const handleDeleteParticipant = async (p: any) => {
-    if (!(await appConfirm(`Delete ${formatParticipantName(p)}?`, {
+  if (
+    !(await appConfirm(`Delete ${formatParticipantName(p)}?`, {
       title: "Delete participant",
       confirmLabel: "Delete",
       variant: "error",
-    }))) return;
+    }))
+  ) {
+    return;
+  }
 
-    await fetch("/api/delete-participant", {
+  try {
+    const response = await fetch("/api/delete-participant", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -328,10 +333,31 @@ export default function Participants({ user }: PageProps) {
       }),
     });
 
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(
+        data.message ||
+          data.error ||
+          "Failed to delete participant"
+      );
+    }
+
+    // Remove the participant immediately from the UI.
+    // No need to call get-participants again.
     setParticipants((prev) =>
-  prev.filter((participant) => participant.id !== participantId)
-);
-  };
+      prev.filter((participant) => participant.id !== p.id)
+    );
+  } catch (error) {
+    console.error("Delete participant error:", error);
+
+    setFormError(
+      error instanceof Error
+        ? error.message
+        : "Failed to delete participant"
+    );
+  }
+};
 
   const formatParticipantName = (p: any) =>
     [p.firstName, p.middleName, p.lastName]
