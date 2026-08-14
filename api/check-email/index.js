@@ -48,7 +48,12 @@ module.exports = async function (context, req) {
     let role = "";
     let name = "";
 
-    const entities = client.listEntities();
+    // Select only needed columns; compare email in code (case-insensitive).
+    const entities = client.listEntities({
+      queryOptions: {
+        select: ["Email", "Role", "Name"],
+      },
+    });
 
     for await (const entity of entities) {
       if (

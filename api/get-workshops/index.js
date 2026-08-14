@@ -11,7 +11,26 @@ module.exports = async function (context, req) {
 
     const entities = client.listEntities({
       queryOptions: {
-        filter: `PartitionKey eq 'Workshop'`
+        filter: `PartitionKey eq 'Workshop'`,
+        select: [
+          "RowKey",
+          "WorkshopName",
+          "PreOdStartDate",
+          "StartDate",
+          "EndDate",
+          "TemplateId",
+          "TemplateName",
+          "PreOdTemplateId",
+          "PreOdTemplateName",
+          "PreOdQuestionSrNos",
+          "PreOdCustomQuestions",
+          "PreOdQuestionCount",
+          "OrganizationId",
+          "OrganizationName",
+          "ParticipantCount",
+          "CreatedBy",
+          "CreatedDate",
+        ],
       }
     });
 

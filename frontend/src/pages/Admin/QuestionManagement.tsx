@@ -8,6 +8,11 @@ import {
   EditIconBtn,
 } from "../../components/AdminActionIcons";
 import { appConfirm } from "../../utils/appDialog";
+import {
+  ADMIN_CACHE_KEYS,
+  readAdminListCache,
+  writeAdminListCache,
+} from "../../utils/adminListCache";
 
 type PageProps = {
     user?: any;
@@ -34,7 +39,9 @@ export default function QuestionManagement({ user }: PageProps) {
             const response = await fetch("/api/get-tags");
             const result = await response.json();
             if (result.success) {
-                setTags(result.data);
+                const list = result.data || [];
+                setTags(list);
+                writeAdminListCache(ADMIN_CACHE_KEYS.tags, list);
             }
         } catch (error) {
             console.error("Error fetching tags:", error);
@@ -70,6 +77,10 @@ export default function QuestionManagement({ user }: PageProps) {
                     })
                 );
                 setQuestions(questionsWithOptions);
+                writeAdminListCache(
+                  ADMIN_CACHE_KEYS.questions,
+                  questionsWithOptions
+                );
             }
         } catch (error) {
             console.error("Error fetching questions:", error);
@@ -722,6 +733,16 @@ const handleImportQuestions = async () => {
 };
 
     useEffect(() => {
+        const cachedTags = readAdminListCache<any[]>(ADMIN_CACHE_KEYS.tags);
+        const cachedQuestions = readAdminListCache<any[]>(
+          ADMIN_CACHE_KEYS.questions
+        );
+        if (cachedTags) {
+            setTags(cachedTags);
+        }
+        if (cachedQuestions) {
+            setQuestions(cachedQuestions);
+        }
         fetchTags();
         fetchQuestions();
     }, []);

@@ -10,6 +10,11 @@ import {
 import styles from "../../styles/Workshop.module.css";
 import { appConfirm } from "../../utils/appDialog";
 import {
+  ADMIN_CACHE_KEYS,
+  readAdminListCache,
+  writeAdminListCache,
+} from "../../utils/adminListCache";
+import {
   getWorkshopLifecycleStatus,
   parseWorkshopStatusParam,
   workshopStatusLabel,
@@ -111,6 +116,24 @@ export default function Workshop({ user }: PageProps) {
   };
 
   useEffect(() => {
+    const cachedWorkshops = readAdminListCache<any[]>(
+      ADMIN_CACHE_KEYS.workshops
+    );
+    const cachedTemplates = readAdminListCache<any[]>(
+      ADMIN_CACHE_KEYS.templates
+    );
+    const cachedPreOd = readAdminListCache<any[]>(
+      ADMIN_CACHE_KEYS.preOdTemplates
+    );
+    const cachedOrgs = readAdminListCache<any[]>(
+      ADMIN_CACHE_KEYS.organizations
+    );
+
+    if (cachedWorkshops) setWorkshops(cachedWorkshops);
+    if (cachedTemplates) setTemplates(cachedTemplates);
+    if (cachedPreOd) setPreOdTemplates(cachedPreOd);
+    if (cachedOrgs) setOrganizations(cachedOrgs);
+
     loadTemplates();
     loadPreOdTemplates();
     loadOrganizations();
@@ -153,7 +176,9 @@ export default function Workshop({ user }: PageProps) {
       const data = await response.json();
 
       if (data.success) {
-        setTemplates(data.templates || []);
+        const list = data.templates || [];
+        setTemplates(list);
+        writeAdminListCache(ADMIN_CACHE_KEYS.templates, list);
       }
     } catch (error) {
       console.error("Error loading templates", error);
@@ -166,7 +191,9 @@ export default function Workshop({ user }: PageProps) {
       const data = await response.json();
 
       if (data.success) {
-        setPreOdTemplates(data.templates || []);
+        const list = data.templates || [];
+        setPreOdTemplates(list);
+        writeAdminListCache(ADMIN_CACHE_KEYS.preOdTemplates, list);
       }
     } catch (error) {
       console.error("Error loading Pre OD templates", error);
@@ -179,7 +206,9 @@ export default function Workshop({ user }: PageProps) {
       const data = await response.json();
 
       if (data.success) {
-        setOrganizations(data.organizations || []);
+        const list = data.organizations || [];
+        setOrganizations(list);
+        writeAdminListCache(ADMIN_CACHE_KEYS.organizations, list);
       }
     } catch (error) {
       console.error("Error loading organizations", error);
@@ -420,7 +449,9 @@ export default function Workshop({ user }: PageProps) {
       const data = await response.json();
 
       if (data.success) {
-        setWorkshops(data.workshops || []);
+        const list = data.workshops || [];
+        setWorkshops(list);
+        writeAdminListCache(ADMIN_CACHE_KEYS.workshops, list);
       } else {
         console.error(data.error || "Failed to load workshops");
         setWorkshops([]);

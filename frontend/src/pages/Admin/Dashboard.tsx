@@ -12,6 +12,12 @@ import {
   getWorkshopLifecycleStatus,
   type WorkshopLifecycleStatus,
 } from "../../utils/workshopLifecycle";
+import {
+  ADMIN_CACHE_KEYS,
+  prefetchAdminLists,
+  readAdminListCache,
+  writeAdminListCache,
+} from "../../utils/adminListCache";
 import "../../styles/AdminDashboard.css";
 
 type PageProps = {
@@ -93,43 +99,44 @@ export default function Dashboard({ user }: PageProps) {
   const [workshops, setWorkshops] = useState<WorkshopRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const loadWorkshops = useCallback(async () => {
+  const loadWorkshops = useCallback(async (backgroundRefresh = false) => {
     try {
-      setLoading(true);
+      if (!backgroundRefresh) {
+        setLoading(true);
+      }
       const response = await fetch("/api/get-workshops");
       const data = await response.json();
       if (response.ok && data.success) {
-        setWorkshops(data.workshops || []);
+        const list = data.workshops || [];
+        setWorkshops(list);
+        writeAdminListCache(ADMIN_CACHE_KEYS.workshops, list);
       }
     } catch (error) {
       console.error("Error loading dashboard workshops:", error);
     } finally {
-      setLoading(false);
+      if (!backgroundRefresh) {
+        setLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
-    loadWorkshops();
+    const cached = readAdminListCache<WorkshopRecord[]>(
+      ADMIN_CACHE_KEYS.workshops
+    );
+    if (cached) {
+      setWorkshops(cached);
+      setLoading(false);
+      void loadWorkshops(true);
+      return;
+    }
+
+    void loadWorkshops(false);
   }, [loadWorkshops]);
 
   useEffect(() => {
-  const prefetchOrganizations = async () => {
-    try {
-      const res = await fetch("/api/get-organizations");
-      const data = await res.json();
-      if (res.ok && data.success) {
-        sessionStorage.setItem(
-          "organizations_cache",
-          JSON.stringify(data.organizations || [])
-        );
-      }
-    } catch {
-      // ignore — Organization page will fetch itself
-    }
-  };
-
-  prefetchOrganizations();
-}, []);
+    prefetchAdminLists();
+  }, []);
 
   const { upcoming, inProgress, completed } = useMemo(() => {
     const buckets = {

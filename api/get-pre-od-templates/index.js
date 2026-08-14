@@ -7,11 +7,18 @@ module.exports = async function (context) {
 
     const templates = [];
 
-    for await (const entity of client.listEntities()) {
-      if (entity.partitionKey !== "PreODTemplate") {
-        continue;
-      }
-
+    for await (const entity of client.listEntities({
+      queryOptions: {
+        filter: "PartitionKey eq 'PreODTemplate'",
+        select: [
+          "RowKey",
+          "TemplateName",
+          "QuestionSrNos",
+          "CreatedBy",
+          "CreatedDate",
+        ],
+      },
+    })) {
       const questionSrNos = String(entity.QuestionSrNos || "")
         .split(",")
         .map((item) => item.trim())

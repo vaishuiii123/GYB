@@ -3,6 +3,11 @@ import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import { EditIconBtn, ViewIconBtn } from "../../components/AdminActionIcons";
 import "../../styles/PreOD.css";
+import {
+  ADMIN_CACHE_KEYS,
+  readAdminListCache,
+  writeAdminListCache,
+} from "../../utils/adminListCache";
 
 type PreOdQuestion = {
   srNo: number;
@@ -154,7 +159,9 @@ export default function PreOD({ user }: PageProps) {
       }
 
       if (workshopsData.success) {
-        setWorkshops(workshopsData.workshops || []);
+        const list = workshopsData.workshops || [];
+        setWorkshops(list);
+        writeAdminListCache(ADMIN_CACHE_KEYS.workshops, list);
       }
     } catch (error) {
       console.error("Error loading Pre OD data:", error);
@@ -164,6 +171,13 @@ export default function PreOD({ user }: PageProps) {
   }, []);
 
   useEffect(() => {
+    const cachedWorkshops = readAdminListCache<Workshop[]>(
+      ADMIN_CACHE_KEYS.workshops
+    );
+    if (cachedWorkshops) {
+      setWorkshops(cachedWorkshops);
+      setLoading(false);
+    }
     loadData();
   }, [loadData]);
 

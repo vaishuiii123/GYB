@@ -11,7 +11,7 @@ module.exports = async function (context, req) {
     for await (const entity of client.listEntities({
       queryOptions: {
         select: [
-          "rowKey",
+          "RowKey",
           "Organization_Name",
           "Contact_Person",
           "Email",

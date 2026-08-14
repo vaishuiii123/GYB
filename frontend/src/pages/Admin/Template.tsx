@@ -10,6 +10,11 @@ import {
 } from "../../components/AdminActionIcons";
 import "../../styles/Template.css";
 import { appConfirm } from "../../utils/appDialog";
+import {
+  ADMIN_CACHE_KEYS,
+  readAdminListCache,
+  writeAdminListCache,
+} from "../../utils/adminListCache";
 
 type PageProps = {
   user?: any;
@@ -23,6 +28,16 @@ export default function Template({ user }: PageProps) {
   const [page, setPage] = useState(1);
 
   useEffect(() => {
+    const cached = readAdminListCache<any[]>(ADMIN_CACHE_KEYS.templates);
+    if (cached) {
+      setTemplates(
+        cached.map((item: any) => ({
+          id: item.id,
+          name: item.templateName || item.name,
+          questionCount: item.questionCount,
+        }))
+      );
+    }
     loadTemplates();
   }, []);
 
@@ -32,8 +47,10 @@ export default function Template({ user }: PageProps) {
       const data = await response.json();
 
       if (data.success) {
+        const list = data.templates || [];
+        writeAdminListCache(ADMIN_CACHE_KEYS.templates, list);
         setTemplates(
-          data.templates.map((item: any) => ({
+          list.map((item: any) => ({
             id: item.id,
             name: item.templateName,
             questionCount: item.questionCount,

@@ -10,7 +10,15 @@ module.exports = async function (context, req) {
         // Get only TopCategory records
         const queryOptions = {
             queryOptions: {
-                filter: "PartitionKey eq 'TopCategory'"
+                filter: "PartitionKey eq 'TopCategory'",
+                select: [
+                    "RowKey",
+                    "TopCategoryName",
+                    "CreatedBy",
+                    "CreatedDate",
+                    "ModifiedBy",
+                    "ModifiedDate",
+                ],
             }
         };
         for await (const entity of tableClient.listEntities(queryOptions)) {

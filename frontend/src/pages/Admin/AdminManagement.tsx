@@ -5,6 +5,11 @@ import { DeleteIconBtn } from "../../components/AdminActionIcons";
 import { getEmailError, isValidEmail } from "../../utils/validation";
 import "../../styles/Organization.css";
 import { appAlert, appConfirm } from "../../utils/appDialog";
+import {
+  ADMIN_CACHE_KEYS,
+  readAdminListCache,
+  writeAdminListCache,
+} from "../../utils/adminListCache";
 
 type PageProps = {
   user?: {
@@ -57,9 +62,11 @@ export default function AdminManagement({ user }: PageProps) {
     .trim()
     .toLowerCase();
 
-  const fetchAdmins = async () => {
+  const fetchAdmins = async (backgroundRefresh = false) => {
     try {
-      setLoading(true);
+      if (!backgroundRefresh) {
+        setLoading(true);
+      }
       setFetchError("");
 
       const response = await fetch("/api/get-admins");
@@ -71,17 +78,28 @@ export default function AdminManagement({ user }: PageProps) {
         return;
       }
 
-      setAdmins(data.admins || []);
+      const list = data.admins || [];
+      setAdmins(list);
+      writeAdminListCache(ADMIN_CACHE_KEYS.admins, list);
     } catch (error) {
       console.error(error);
       setFetchError("Unable to load admins.");
     } finally {
-      setLoading(false);
+      if (!backgroundRefresh) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    fetchAdmins();
+    const cached = readAdminListCache<AdminUser[]>(ADMIN_CACHE_KEYS.admins);
+    if (cached) {
+      setAdmins(cached);
+      setLoading(false);
+      void fetchAdmins(true);
+      return;
+    }
+    fetchAdmins(false);
   }, []);
 
   const filteredAdmins = useMemo(() => {

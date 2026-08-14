@@ -13,6 +13,11 @@ import {
 } from "../../utils/validation";
 import "../../styles/Organization.css";
 import { appConfirm } from "../../utils/appDialog";
+import {
+  ADMIN_CACHE_KEYS,
+  readAdminListCache,
+  writeAdminListCache,
+} from "../../utils/adminListCache";
 
 type PageProps = {
   user?: any;
@@ -67,16 +72,26 @@ export default function Participants({ user }: PageProps) {
   }
 
   hasFetchedParticipants.current = true;
-  fetchParticipants();
+
+  const cached = readAdminListCache<any[]>(ADMIN_CACHE_KEYS.participants);
+  if (cached) {
+    setParticipants(cached);
+    void fetchParticipants(true);
+    return;
+  }
+
+  fetchParticipants(false);
 }, []);
 
-  const fetchParticipants = async () => {
+  const fetchParticipants = async (backgroundRefresh = false) => {
     try {
       const response = await fetch("/api/get-participants");
       const data = await response.json();
 
       if (data.success) {
-        setParticipants(data.participants);
+        const list = data.participants || [];
+        setParticipants(list);
+        writeAdminListCache(ADMIN_CACHE_KEYS.participants, list);
       }
     } catch (error) {
       console.error(error);

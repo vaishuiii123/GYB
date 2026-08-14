@@ -21,7 +21,16 @@ module.exports = async function (context, req) {
             tableClient.listEntities({
 
                 queryOptions:{
-                    filter:"PartitionKey eq 'Tag'"
+                    filter:"PartitionKey eq 'Tag'",
+                    select: [
+                        "RowKey",
+                        "TagName",
+                        "TagColor",
+                        "CreatedBy",
+                        "CreatedDate",
+                        "ModifiedBy",
+                        "ModifiedDate",
+                    ],
                 }
 
             });

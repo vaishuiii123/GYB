@@ -7,6 +7,11 @@ import {
   EditIconBtn,
 } from "../../components/AdminActionIcons";
 import { appConfirm } from "../../utils/appDialog";
+import {
+  ADMIN_CACHE_KEYS,
+  readAdminListCache,
+  writeAdminListCache,
+} from "../../utils/adminListCache";
 
 
 type PageProps = {
@@ -37,7 +42,9 @@ export default function TagManagement({ user }: PageProps) {
 
             if(result.success){
 
-                setTags(result.data);
+                const list = result.data || [];
+                setTags(list);
+                writeAdminListCache(ADMIN_CACHE_KEYS.tags, list);
 
             }
 
@@ -56,7 +63,10 @@ export default function TagManagement({ user }: PageProps) {
 
 
     useEffect(()=>{
-
+        const cached = readAdminListCache<any[]>(ADMIN_CACHE_KEYS.tags);
+        if (cached) {
+            setTags(cached);
+        }
         fetchTags();
 
     },[]);

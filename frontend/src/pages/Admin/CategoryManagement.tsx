@@ -9,6 +9,11 @@ import "../../styles/CategoryManagement.css";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { appConfirm } from "../../utils/appDialog";
+import {
+  ADMIN_CACHE_KEYS,
+  readAdminListCache,
+  writeAdminListCache,
+} from "../../utils/adminListCache";
 
 type PageProps = {
   user?: any;
@@ -97,7 +102,9 @@ export default function CategoryManagement({ user }: PageProps) {
 
       if (result.success) {
 
-        setTopCategories(result.data);
+        const list = result.data || [];
+        setTopCategories(list);
+        writeAdminListCache(ADMIN_CACHE_KEYS.topCategories, list);
 
       }
 
@@ -188,9 +195,11 @@ const handleUpdateTopCategory = async () => {
 
   // LOAD DATA
   useEffect(() => {
-
+    const cached = readAdminListCache<any[]>(ADMIN_CACHE_KEYS.topCategories);
+    if (cached) {
+      setTopCategories(cached);
+    }
     fetchTopCategories();
-
   }, []);
 
 const handleEditCategory = (category:any) => {

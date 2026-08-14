@@ -12,14 +12,26 @@ module.exports = async function (context, req) {
 
     const participants = [];
 
+    const select = [
+      "RowKey",
+      "Organisation",
+      "First_Name",
+      "Middle_Name",
+      "Last_Name",
+      "Email",
+      "Username",
+      "Phone_No",
+    ];
+
     const queryOptions = organization
       ? {
           filter: `Organisation eq '${organization.replace(
             /'/g,
             "''"
           )}'`,
+          select,
         }
-      : undefined;
+      : { select };
 
     for await (const entity of client.listEntities({
       queryOptions,

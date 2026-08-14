@@ -7,18 +7,25 @@ module.exports = async function (context, req) {
     const client =
       getTableClient("Template");
 
-    // Create table if not exists
-    await client.createTable();
-
     const templates = [];
 
     for await (
-      const entity of client.listEntities()
+      const entity of client.listEntities({
+        queryOptions: {
+          filter: "PartitionKey eq 'Template'",
+          select: [
+            "RowKey",
+            "TemplateName",
+            "CategoryId",
+            "CategoryName",
+            "CategoryPath",
+            "QuestionIds",
+            "CreatedBy",
+            "CreatedDate",
+          ],
+        },
+      })
     ) {
-
-      if (
-        entity.partitionKey === "Template"
-      ) {
 
         templates.push({
           id:
@@ -61,7 +68,6 @@ module.exports = async function (context, req) {
           createdDate:
             entity.CreatedDate || "",
         });
-      }
     }
 
     context.res = {

@@ -9,7 +9,18 @@ module.exports = async function (context, req) {
 
     const admins = [];
 
-    for await (const entity of client.listEntities()) {
+    for await (const entity of client.listEntities({
+      queryOptions: {
+        select: [
+          "PartitionKey",
+          "RowKey",
+          "Name",
+          "Email",
+          "Role",
+          "CreatedDate",
+        ],
+      },
+    })) {
       const role = String(entity.Role || "").trim();
       if (!ADMIN_ROLES.has(role.toLowerCase())) {
         continue;
