@@ -1,33 +1,48 @@
 const { TableClient, TableServiceClient } = require("@azure/data-tables");
 
-function getTableClient(tableName) {
-  const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
+const tableClients = new Map();
+const ensuredTables = new Set();
+let serviceClient;
 
+function getConnectionString() {
+  const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
   if (!connectionString) {
     throw new Error("AZURE_STORAGE_CONNECTION_STRING is not configured.");
   }
+  return connectionString;
+}
 
-  return TableClient.fromConnectionString(connectionString, tableName);
+function getTableClient(tableName) {
+  if (tableClients.has(tableName)) {
+    return tableClients.get(tableName);
+  }
+  const client = TableClient.fromConnectionString(
+    getConnectionString(),
+    tableName
+  );
+  tableClients.set(tableName, client);
+  return client;
+}
+
+function getServiceClient() {
+  if (!serviceClient) {
+    serviceClient = TableServiceClient.fromConnectionString(getConnectionString());
+  }
+  return serviceClient;
 }
 
 async function ensureTableClient(tableName) {
-  const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
-
-  if (!connectionString) {
-    throw new Error("AZURE_STORAGE_CONNECTION_STRING is not configured.");
-  }
-
-  const serviceClient = TableServiceClient.fromConnectionString(connectionString);
-
-  try {
-    await serviceClient.createTable(tableName);
-  } catch (error) {
-    if (error.statusCode !== 409) {
-      throw error;
+  if (!ensuredTables.has(tableName)) {
+    try {
+      await getServiceClient().createTable(tableName);
+    } catch (error) {
+      if (error.statusCode !== 409) {
+        throw error;
+      }
     }
+    ensuredTables.add(tableName);
   }
-
-  return TableClient.fromConnectionString(connectionString, tableName);
+  return getTableClient(tableName);
 }
 
 async function listPartition(tableClient, partitionKey, select) {

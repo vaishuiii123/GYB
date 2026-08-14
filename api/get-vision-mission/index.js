@@ -1,4 +1,5 @@
-const { TableClient } = require("@azure/data-tables");
+const { getTableClient } = require("../shared/tableHelper");
+
 
 const DEFAULT_KEYWORDS = [
   "Integrity",
@@ -55,10 +56,7 @@ function parseKeywords(raw) {
 
 module.exports = async function (context, req) {
   try {
-    const tableClient = TableClient.fromConnectionString(
-      process.env.AZURE_STORAGE_CONNECTION_STRING,
-      "VisionMission"
-    );
+    const tableClient = getTableClient("VisionMission");
 
     try {
       const entity = await tableClient.getEntity(

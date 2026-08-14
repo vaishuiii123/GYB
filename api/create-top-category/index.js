@@ -1,12 +1,9 @@
-const { TableClient } = require("@azure/data-tables");
+const { getTableClient } = require("../shared/tableHelper");
+
 
 module.exports = async function (context, req) {
     try {
-        const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
-        const tableClient = TableClient.fromConnectionString(
-            connectionString,
-            "QuestionnaireTopCategory"
-        );
+        const tableClient = getTableClient("QuestionnaireTopCategory");
         const { topCategoryName, createdBy } = req.body;
         
         // Check duplicate Top Category Name

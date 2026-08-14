@@ -1,4 +1,5 @@
-const { TableClient } = require("@azure/data-tables");
+const { getTableClient } = require("../shared/tableHelper");
+
 
 function parseQuestionIds(questionIdField) {
     if (!questionIdField) return [];
@@ -24,10 +25,7 @@ module.exports = async function (context, req) {
             return;
         }
 
-        const tableClient = TableClient.fromConnectionString(
-            process.env.AZURE_STORAGE_CONNECTION_STRING,
-            "QuestionnaireCategory"
-        );
+        const tableClient = getTableClient("QuestionnaireCategory");
 
         const category = await tableClient.getEntity("Category", categoryId);
         const existingIds = parseQuestionIds(category.QuestionId);

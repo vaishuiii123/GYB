@@ -1,11 +1,9 @@
-const { TableClient } = require("@azure/data-tables");
+const { getTableClient } = require("../shared/tableHelper");
+
 
 module.exports = async function (context, req) {
   try {
-    const tableClient = TableClient.fromConnectionString(
-      process.env.AZURE_STORAGE_CONNECTION_STRING,
-      "VisionMission"
-    );
+    const tableClient = getTableClient("VisionMission");
 
     const { keywords, modifiedBy } = req.body;
 

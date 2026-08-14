@@ -1,4 +1,5 @@
-const { TableClient } = require("@azure/data-tables");
+const { getTableClient } = require("../shared/tableHelper");
+
 
 module.exports = async function (context, req) {
 
@@ -28,10 +29,7 @@ module.exports = async function (context, req) {
     }
 
     const client =
-      TableClient.fromConnectionString(
-        process.env.AZURE_STORAGE_CONNECTION_STRING,
-        "OrganizationParticipants"
-      );
+      getTableClient("OrganizationParticipants");
 
     let deletedCount = 0;
 

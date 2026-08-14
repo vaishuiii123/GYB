@@ -1,5 +1,5 @@
-const { TableClient } =
-  require("@azure/data-tables");
+const { getTableClient } =
+  require("../shared/tableHelper");
 
 module.exports =
   async function (
@@ -27,11 +27,7 @@ module.exports =
       }
 
       const client =
-        TableClient.fromConnectionString(
-          process.env
-            .AZURE_STORAGE_CONNECTION_STRING,
-          "Template"
-        );
+        getTableClient("Template");
 
       await client.deleteEntity(
         "Template",

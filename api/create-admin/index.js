@@ -1,4 +1,5 @@
-const { TableClient } = require("@azure/data-tables");
+const { getTableClient } = require("../shared/tableHelper");
+
 const { isValidEmail } = require("../shared/validation");
 
 const ADMIN_ROLES = new Set(["admin", "organizer"]);
@@ -45,10 +46,7 @@ module.exports = async function (context, req) {
       return;
     }
 
-    const client = TableClient.fromConnectionString(
-      process.env.AZURE_STORAGE_CONNECTION_STRING,
-      "User"
-    );
+    const client = getTableClient("User");
 
     const normalizedEmail = email.toLowerCase();
 

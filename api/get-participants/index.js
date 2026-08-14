@@ -1,14 +1,11 @@
-const { TableClient } = require("@azure/data-tables");
-
-const client = TableClient.fromConnectionString(
-  process.env.AZURE_STORAGE_CONNECTION_STRING,
-  "Participants"
-);
+const { getTableClient } = require("../shared/tableHelper");
 
 module.exports = async function (context, req) {
   const startTime = Date.now();
 
   try {
+    const client = getTableClient("Participants");
+
     const organization = String(
       req.query.organization || ""
     ).trim();

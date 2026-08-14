@@ -1,7 +1,5 @@
-const {
-  TableClient,
-  TableServiceClient,
-} = require("@azure/data-tables");
+const { getTableClient } = require("../shared/tableHelper");
+const { TableServiceClient } = require("@azure/data-tables");
 
 module.exports = async function (context, req) {
   try {
@@ -56,10 +54,7 @@ module.exports = async function (context, req) {
       // table already exists
     }
 
-    const client = TableClient.fromConnectionString(
-      process.env.AZURE_STORAGE_CONNECTION_STRING,
-      "Template"
-    );
+    const client = getTableClient("Template");
 
     const templateId = Date.now().toString();
 

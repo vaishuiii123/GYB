@@ -1,4 +1,5 @@
-const { TableClient } = require("@azure/data-tables");
+const { getTableClient } = require("../shared/tableHelper");
+
 
 module.exports = async function (context, req) {
   try {
@@ -17,10 +18,7 @@ module.exports = async function (context, req) {
 
     const normalizedEmail = email.toLowerCase();
 
-    const userClient = TableClient.fromConnectionString(
-      process.env.AZURE_STORAGE_CONNECTION_STRING,
-      "User"
-    );
+    const userClient = getTableClient("User");
 
     for await (const entity of userClient.listEntities()) {
       if (
@@ -42,10 +40,7 @@ module.exports = async function (context, req) {
       }
     }
 
-    const participantClient = TableClient.fromConnectionString(
-      process.env.AZURE_STORAGE_CONNECTION_STRING,
-      "Participants"
-    );
+    const participantClient = getTableClient("Participants");
 
     for await (const entity of participantClient.listEntities()) {
       if (

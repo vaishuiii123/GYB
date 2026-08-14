@@ -1,4 +1,5 @@
-const { TableClient } = require("@azure/data-tables");
+const { getTableClient } = require("../shared/tableHelper");
+
 const { isValidEmail, isValidPhone } = require("../shared/validation");
 const { normalizePhone } = require("../shared/smsProvider");
 const { findParticipantWithPhone, findParticipantWithUsername } = require("../shared/participantUniqueness");
@@ -125,11 +126,7 @@ module.exports = async function (context, req) {
       return;
     }
 
-    const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
-    const client = TableClient.fromConnectionString(
-      connectionString,
-      "Participants"
-    );
+    const client = getTableClient("Participants");
 
     const normalizedPhone = normalizePhone(trimmedPhone);
 

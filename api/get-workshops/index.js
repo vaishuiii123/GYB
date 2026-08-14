@@ -1,13 +1,11 @@
-const { TableClient } = require("@azure/data-tables");
+const { getTableClient } = require("../shared/tableHelper");
+
 const { readWorkshopDate } = require("../shared/workshopDates");
 
 module.exports = async function (context, req) {
   try {
     // Shared admin view: return all workshops (no creator filter).
-    const client = TableClient.fromConnectionString(
-      process.env.AZURE_STORAGE_CONNECTION_STRING,
-      "Workshop"
-    );
+    const client = getTableClient("Workshop");
 
     const workshops = [];
 

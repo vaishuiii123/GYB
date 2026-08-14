@@ -1,4 +1,5 @@
-const { TableClient } = require("@azure/data-tables");
+const { getTableClient } = require("../shared/tableHelper");
+
 const { sendSms } = require("../shared/smsProvider");
 const {
   buildVerificationCode,
@@ -6,10 +7,7 @@ const {
 } = require("../shared/workshopSmsMessage");
 
 async function updateParticipantPassword(participantId, password) {
-  const client = TableClient.fromConnectionString(
-    process.env.AZURE_STORAGE_CONNECTION_STRING,
-    "Participants"
-  );
+  const client = getTableClient("Participants");
 
   await client.updateEntity(
     {
@@ -22,10 +20,7 @@ async function updateParticipantPassword(participantId, password) {
 }
 
 async function getWorkshop(workshopId) {
-  const client = TableClient.fromConnectionString(
-    process.env.AZURE_STORAGE_CONNECTION_STRING,
-    "Workshop"
-  );
+  const client = getTableClient("Workshop");
 
   try {
     const entity = await client.getEntity("Workshop", workshopId);
@@ -44,15 +39,9 @@ async function getWorkshop(workshopId) {
 }
 
 async function getOrganizationParticipants(organizationId) {
-  const mappingClient = TableClient.fromConnectionString(
-    process.env.AZURE_STORAGE_CONNECTION_STRING,
-    "OrganizationParticipants"
-  );
+  const mappingClient = getTableClient("OrganizationParticipants");
 
-  const participantClient = TableClient.fromConnectionString(
-    process.env.AZURE_STORAGE_CONNECTION_STRING,
-    "Participants"
-  );
+  const participantClient = getTableClient("Participants");
 
   const participantIds = [];
 

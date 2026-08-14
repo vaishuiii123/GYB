@@ -1,4 +1,5 @@
-const { TableClient } = require("@azure/data-tables");
+const { getTableClient } = require("../shared/tableHelper");
+
 const { PRE_OD_QUESTIONS } = require("../shared/preOdQuestions");
 const { canEditPreOd } = require("../shared/workshopAccess");
 const {
@@ -45,10 +46,7 @@ module.exports = async function (context, req) {
       return;
     }
 
-    const client = TableClient.fromConnectionString(
-      process.env.AZURE_STORAGE_CONNECTION_STRING,
-      "Workshop"
-    );
+    const client = getTableClient("Workshop");
 
     let workshop;
     try {

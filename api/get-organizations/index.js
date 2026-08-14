@@ -1,15 +1,9 @@
-const { TableClient } = require("@azure/data-tables");
-
-const client = TableClient.fromConnectionString(
-  process.env.AZURE_STORAGE_CONNECTION_STRING,
-  "Organization"
-);
+const { getTableClient } = require("../shared/tableHelper");
 
 module.exports = async function (context, req) {
-  // ...
-
   try {
-    
+    const client = getTableClient("Organization");
+
     const dbStart = Date.now();
 
     const organizations = [];

@@ -1,4 +1,5 @@
-const { TableClient } = require("@azure/data-tables");
+const { getTableClient } = require("../shared/tableHelper");
+
 
 function parseQuestionIds(questionIdField) {
     if (!questionIdField) return [];
@@ -10,35 +11,17 @@ function parseQuestionIds(questionIdField) {
 
 module.exports = async function (context, req) {
     try {
-        const categoryClient = TableClient.fromConnectionString(
-            process.env.AZURE_STORAGE_CONNECTION_STRING,
-            "QuestionnaireCategory"
-        );
+        const categoryClient = getTableClient("QuestionnaireCategory");
 
-        const parentClient = TableClient.fromConnectionString(
-            process.env.AZURE_STORAGE_CONNECTION_STRING,
-            "QuestionnaireParentCategory"
-        );
+        const parentClient = getTableClient("QuestionnaireParentCategory");
 
-        const middleClient = TableClient.fromConnectionString(
-            process.env.AZURE_STORAGE_CONNECTION_STRING,
-            "QuestionnaireMiddleCategory"
-        );
+        const middleClient = getTableClient("QuestionnaireMiddleCategory");
 
-        const topClient = TableClient.fromConnectionString(
-            process.env.AZURE_STORAGE_CONNECTION_STRING,
-            "QuestionnaireTopCategory"
-        );
+        const topClient = getTableClient("QuestionnaireTopCategory");
 
-        const questionClient = TableClient.fromConnectionString(
-            process.env.AZURE_STORAGE_CONNECTION_STRING,
-            "Questions"
-        );
+        const questionClient = getTableClient("Questions");
 
-        const optionClient = TableClient.fromConnectionString(
-            process.env.AZURE_STORAGE_CONNECTION_STRING,
-            "QuestionOptions"
-        );
+        const optionClient = getTableClient("QuestionOptions");
 
         const tops = [];
         const middles = [];

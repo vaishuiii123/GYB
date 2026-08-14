@@ -1,10 +1,6 @@
-const { TableClient } = require("@azure/data-tables");
+const { getTableClient } = require("./tableHelper");
 const { normalizePhone } = require("./smsProvider");
 const { listOrganizationIdsForParticipant } = require("./workshopAccess");
-
-function getConnectionString() {
-  return process.env.AZURE_STORAGE_CONNECTION_STRING;
-}
 
 function buildUserResponse(entity, orgName, organizationId) {
   return {
@@ -41,10 +37,7 @@ function parsePhoneInput(rawPhone) {
 }
 
 async function findParticipantByPhone(normalizedPhone) {
-  const participantClient = TableClient.fromConnectionString(
-    getConnectionString(),
-    "Participants"
-  );
+  const participantClient = getTableClient("Participants");
 
   for await (const entity of participantClient.listEntities()) {
     if (normalizePhone(entity.Phone_No) === normalizedPhone) {
@@ -64,10 +57,7 @@ async function findParticipantByUsername(username) {
     return null;
   }
 
-  const participantClient = TableClient.fromConnectionString(
-    getConnectionString(),
-    "Participants"
-  );
+  const participantClient = getTableClient("Participants");
 
   let emailMatch = null;
 
@@ -96,10 +86,7 @@ async function getLoginContextForParticipant(participant) {
     return null;
   }
 
-  const orgClient = TableClient.fromConnectionString(
-    getConnectionString(),
-    "Organization"
-  );
+  const orgClient = getTableClient("Organization");
 
   const organizationIds = await listOrganizationIdsForParticipant(
     participant.rowKey
@@ -152,10 +139,7 @@ async function getParticipantLoginContextByUsername(username) {
 }
 
 async function saveParticipantOtp(participantId, otp, expiresAt) {
-  const participantClient = TableClient.fromConnectionString(
-    getConnectionString(),
-    "Participants"
-  );
+  const participantClient = getTableClient("Participants");
 
   await participantClient.updateEntity(
     {
@@ -169,10 +153,7 @@ async function saveParticipantOtp(participantId, otp, expiresAt) {
 }
 
 async function clearParticipantOtp(participantId) {
-  const participantClient = TableClient.fromConnectionString(
-    getConnectionString(),
-    "Participants"
-  );
+  const participantClient = getTableClient("Participants");
 
   await participantClient.updateEntity(
     {

@@ -1,3 +1,4 @@
+const { getTableClient } = require("./tableHelper");
 const UNLOCK_VALUE_HIERARCHY = [
   {
     name: "Markets & Customers",
@@ -318,24 +319,12 @@ async function getOrCreateCategory(
 }
 
 async function seedUnlockValueCategories(connectionString, createdBy = "Admin") {
-  const { TableClient } = require("@azure/data-tables");
+  
 
-  const topClient = TableClient.fromConnectionString(
-    connectionString,
-    "QuestionnaireTopCategory"
-  );
-  const middleClient = TableClient.fromConnectionString(
-    connectionString,
-    "QuestionnaireMiddleCategory"
-  );
-  const parentClient = TableClient.fromConnectionString(
-    connectionString,
-    "QuestionnaireParentCategory"
-  );
-  const categoryClient = TableClient.fromConnectionString(
-    connectionString,
-    "QuestionnaireCategory"
-  );
+  const topClient = getTableClient("QuestionnaireTopCategory");
+  const middleClient = getTableClient("QuestionnaireMiddleCategory");
+  const parentClient = getTableClient("QuestionnaireParentCategory");
+  const categoryClient = getTableClient("QuestionnaireCategory");
 
   const stats = {
     topCreated: 0,

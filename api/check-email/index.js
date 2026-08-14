@@ -1,4 +1,4 @@
-const { TableClient } = require("@azure/data-tables");
+const { getTableClient } = require("../shared/tableHelper");
 
 module.exports = async function (context, req) {
   try {
@@ -40,10 +40,7 @@ module.exports = async function (context, req) {
       return;
     }
 
-    const client = TableClient.fromConnectionString(
-      connectionString,
-      "User"
-    );
+    const client = getTableClient("User");
 
     context.log("User TableClient created");
 

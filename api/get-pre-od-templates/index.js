@@ -1,11 +1,9 @@
-const { TableClient } = require("@azure/data-tables");
+const { getTableClient } = require("../shared/tableHelper");
+
 
 module.exports = async function (context) {
   try {
-    const client = TableClient.fromConnectionString(
-      process.env.AZURE_STORAGE_CONNECTION_STRING,
-      "PreODTemplate"
-    );
+    const client = getTableClient("PreODTemplate");
 
     const templates = [];
 

@@ -1,35 +1,22 @@
-const { TableClient } = require("@azure/data-tables");
+const { getTableClient } = require("../shared/tableHelper");
+
 
 module.exports = async function (context, req) {
 
     try {
 
-        const connectionString =
-            process.env.AZURE_STORAGE_CONNECTION_STRING;
 
 
-        const topCategoryTable = TableClient.fromConnectionString(
-            connectionString,
-            "QuestionnaireTopCategory"
-        );
+        const topCategoryTable = getTableClient("QuestionnaireTopCategory");
 
 
-        const middleCategoryTable = TableClient.fromConnectionString(
-            connectionString,
-            "QuestionnaireMiddleCategory"
-        );
+        const middleCategoryTable = getTableClient("QuestionnaireMiddleCategory");
 
 
-        const parentCategoryTable = TableClient.fromConnectionString(
-            connectionString,
-            "QuestionnaireParentCategory"
-        );
+        const parentCategoryTable = getTableClient("QuestionnaireParentCategory");
 
 
-        const categoryTable = TableClient.fromConnectionString(
-            connectionString,
-            "QuestionnaireCategory"
-        );
+        const categoryTable = getTableClient("QuestionnaireCategory");
 
 
 

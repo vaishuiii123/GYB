@@ -1,4 +1,5 @@
-const { TableClient } = require("@azure/data-tables");
+const { getTableClient } = require("../shared/tableHelper");
+
 const { PRE_OD_QUESTIONS } = require("../shared/preOdQuestions");
 
 module.exports = async function (context, req) {
@@ -48,10 +49,7 @@ module.exports = async function (context, req) {
       return;
     }
 
-    const client = TableClient.fromConnectionString(
-      process.env.AZURE_STORAGE_CONNECTION_STRING,
-      "PreODTemplate"
-    );
+    const client = getTableClient("PreODTemplate");
 
     try {
       await client.createTable();

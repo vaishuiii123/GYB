@@ -1,4 +1,5 @@
-const { TableClient } = require("@azure/data-tables");
+const { getTableClient } = require("../shared/tableHelper");
+
 const { isValidEmail } = require("../shared/validation");
 
 module.exports = async function (context, req) {
@@ -36,10 +37,7 @@ module.exports = async function (context, req) {
       return;
     }
 
-    const client = TableClient.fromConnectionString(
-      process.env.AZURE_STORAGE_CONNECTION_STRING,
-      "Organization"
-    );
+    const client = getTableClient("Organization");
 
     const organizationId = Date.now().toString();
 

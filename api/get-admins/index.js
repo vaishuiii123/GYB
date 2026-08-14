@@ -1,13 +1,11 @@
-const { TableClient } = require("@azure/data-tables");
+const { getTableClient } = require("../shared/tableHelper");
+
 
 const ADMIN_ROLES = new Set(["admin", "organizer"]);
 
 module.exports = async function (context, req) {
   try {
-    const client = TableClient.fromConnectionString(
-      process.env.AZURE_STORAGE_CONNECTION_STRING,
-      "User"
-    );
+    const client = getTableClient("User");
 
     const admins = [];
 

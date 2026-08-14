@@ -1,14 +1,10 @@
-const { TableClient } = require("@azure/data-tables");
+const { getTableClient } = require("../shared/tableHelper");
+
 
 module.exports = async function (context, req) {
     try {
-        const connectionString =
-            process.env.AZURE_STORAGE_CONNECTION_STRING;
 
-        const tableClient = TableClient.fromConnectionString(
-            connectionString,
-            "QuestionnaireMiddleCategory"
-        );
+        const tableClient = getTableClient("QuestionnaireMiddleCategory");
         const id = req.query.id;
         const {
             middleCategoryName,

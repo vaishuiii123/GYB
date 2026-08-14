@@ -1,9 +1,5 @@
-const { TableClient } = require("@azure/data-tables");
+const { getTableClient } = require("./tableHelper");
 const { normalizePhone } = require("./smsProvider");
-
-function getConnectionString() {
-  return process.env.AZURE_STORAGE_CONNECTION_STRING;
-}
 
 /**
  * Returns an existing participant entity if the phone number is already used.
@@ -15,10 +11,7 @@ async function findParticipantWithPhone(phone, excludeRowKey) {
     return null;
   }
 
-  const client = TableClient.fromConnectionString(
-    getConnectionString(),
-    "Participants"
-  );
+  const client = getTableClient("Participants");
 
   for await (const entity of client.listEntities({
     queryOptions: { filter: "PartitionKey eq 'Participant'" },
@@ -44,10 +37,7 @@ async function findParticipantWithUsername(username, excludeRowKey) {
     return null;
   }
 
-  const client = TableClient.fromConnectionString(
-    getConnectionString(),
-    "Participants"
-  );
+  const client = getTableClient("Participants");
 
   for await (const entity of client.listEntities({
     queryOptions: { filter: "PartitionKey eq 'Participant'" },
