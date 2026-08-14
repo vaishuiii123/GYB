@@ -4,21 +4,11 @@ module.exports = async function (context, req) {
   try {
     context.log("========== CHECK EMAIL START ==========");
 
-    context.log("Node version:", process.version);
-
-    context.log(
-      "Storage connection exists:",
-      !!process.env.AZURE_STORAGE_CONNECTION_STRING
-    );
-
-    context.log(
-      "Request body:",
-      JSON.stringify(req.body)
-    );
-
     const email = String(req.body?.email || "")
       .trim()
       .toLowerCase();
+
+    context.log("Email received:", email);
 
     if (!email) {
       context.res = {
@@ -31,33 +21,39 @@ module.exports = async function (context, req) {
       return;
     }
 
-    context.log("Email:", email);
-
     const connectionString =
       process.env.AZURE_STORAGE_CONNECTION_STRING;
 
-    if (!connectionString) {
-      throw new Error(
-        "AZURE_STORAGE_CONNECTION_STRING is missing"
-      );
-    }
+    context.log(
+      "Storage connection exists:",
+      !!connectionString
+    );
 
-    context.log("Creating TableClient...");
+    if (!connectionString) {
+      context.res = {
+        status: 500,
+        body: {
+          success: false,
+          message: "Storage connection string is missing",
+        },
+      };
+      return;
+    }
 
     const client = TableClient.fromConnectionString(
       connectionString,
       "User"
     );
 
-    context.log("TableClient created successfully");
+    context.log("User TableClient created");
 
     let found = false;
     let role = "";
     let name = "";
 
-    context.log("Starting table query...");
+    const entities = client.listEntities();
 
-    for await (const entity of client.listEntities()) {
+    for await (const entity of entities) {
       if (
         entity.Email &&
         String(entity.Email).trim().toLowerCase() === email
@@ -71,13 +67,17 @@ module.exports = async function (context, req) {
       }
     }
 
-    context.log(
-      "Search completed. Found:",
-      found
-    );
+    context.log("Search completed:", {
+      found,
+      role,
+      name,
+    });
 
     context.res = {
       status: 200,
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: {
         success: true,
         found,
@@ -92,6 +92,9 @@ module.exports = async function (context, req) {
 
     context.res = {
       status: 500,
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: {
         success: false,
         message: "Unable to validate email.",
