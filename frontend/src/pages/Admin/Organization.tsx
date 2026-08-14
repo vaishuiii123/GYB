@@ -27,7 +27,7 @@ const emptyOrgForm: OrganizationForm = {
 };
 
 export default function Organization({ user }: PageProps) {
-  const hasFetchedOrganizations = useRef(false);
+
 
   const [organizations, setOrganizations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,14 +69,34 @@ export default function Organization({ user }: PageProps) {
   const [newParticipantError, setNewParticipantError] = useState("");
   const [savingNewParticipant, setSavingNewParticipant] = useState(false);
 
-  useEffect(() => {
-  if (hasFetchedOrganizations.current) {
-    return;
+ const ORGANIZATIONS_CACHE_KEY = "organizations_cache";
+
+useEffect(() => {
+  const cachedOrganizations = sessionStorage.getItem(
+    ORGANIZATIONS_CACHE_KEY
+  );
+
+  if (cachedOrganizations) {
+    try {
+      const parsedOrganizations = JSON.parse(cachedOrganizations);
+
+      if (Array.isArray(parsedOrganizations)) {
+        setOrganizations(parsedOrganizations);
+        setLoading(false);
+
+        // Refresh in the background.
+        fetchOrganizations(true);
+        return;
+      }
+    } catch (error) {
+      console.error("Invalid organization cache:", error);
+      sessionStorage.removeItem(ORGANIZATIONS_CACHE_KEY);
+    }
   }
 
-  hasFetchedOrganizations.current = true;
-  fetchOrganizations();
+  fetchOrganizations(false);
 }, []);
+
   const getCurrentUser = () => {
     if (user?.email) return user;
     try {
@@ -90,35 +110,56 @@ export default function Organization({ user }: PageProps) {
     appAlert(message);
   };
 
-  const fetchOrganizations = async () => {
-    try {
+ const fetchOrganizations = async (
+  backgroundRefresh = false
+) => {
+  try {
+    if (!backgroundRefresh) {
       setLoading(true);
-      setFetchError("");
+    }
 
-      const res = await fetch("/api/get-organizations");
-      const raw = await res.text();
+    setFetchError("");
 
-      if (!raw.trim()) {
-        throw new Error(
-          "Empty response from /api/get-organizations. Make sure the API is running (func start in the api folder)."
-        );
-      }
+    const res = await fetch("/api/get-organizations");
 
-      const data = JSON.parse(raw);
+    if (!res.ok) {
+      throw new Error(
+        `Request failed (${res.status})`
+      );
+    }
 
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || data.message || `Request failed (${res.status})`);
-      }
+    const data = await res.json();
 
-      setOrganizations(data.organizations || []);
-    } catch (err: any) {
-      console.error(err);
-      setOrganizations([]);
-      setFetchError(err?.message || "Failed to load organizations");
-    } finally {
+    if (!data.success) {
+      throw new Error(
+        data.error ||
+        data.message ||
+        "Failed to load organizations"
+      );
+    }
+
+    const organizationList = data.organizations || [];
+
+    setOrganizations(organizationList);
+
+    // Save latest data
+    sessionStorage.setItem(
+      ORGANIZATIONS_CACHE_KEY,
+      JSON.stringify(organizationList)
+    );
+  } catch (err: any) {
+    console.error("Failed to load organizations:", err);
+
+    setFetchError(
+      err?.message ||
+      "Failed to load organizations"
+    );
+  } finally {
+    if (!backgroundRefresh) {
       setLoading(false);
     }
-  };
+  }
+};
 
   const isOrgFormValid = (form: {
     organizationName?: string;
@@ -199,18 +240,23 @@ const handleCreateOrganization = async () => {
       createdBy,
     };
 
-    setOrganizations((previousOrganizations) => {
-      const updatedOrganizations = [
-        ...previousOrganizations,
-        newOrganization,
-      ];
+   setOrganizations((previousOrganizations) => {
+  const updatedOrganizations = [
+    ...previousOrganizations,
+    newOrganization,
+  ].sort((a, b) =>
+    String(a.organizationName || "").localeCompare(
+      String(b.organizationName || "")
+    )
+  );
 
-      return updatedOrganizations.sort((a, b) =>
-        String(a.organizationName || "").localeCompare(
-          String(b.organizationName || "")
-        )
-      );
-    });
+  sessionStorage.setItem(
+    ORGANIZATIONS_CACHE_KEY,
+    JSON.stringify(updatedOrganizations)
+  );
+
+  return updatedOrganizations;
+});
 
     // Close modal
     setShowOrgModal(false);
@@ -280,18 +326,26 @@ const handleCreateOrganization = async () => {
     if (data.success) {
       // Update UI immediately.
       // Do NOT call fetchOrganizations().
-      setOrganizations((previousOrganizations) =>
-        previousOrganizations.map((organization) =>
-          organization.id === payload.id
-            ? {
-                ...organization,
-                organizationName: payload.organizationName,
-                contactPerson: payload.contactPerson,
-                email: payload.email,
-              }
-            : organization
-        )
-      );
+     setOrganizations((previousOrganizations) => {
+  const updated = previousOrganizations.map(
+    (organization) =>
+      organization.id === payload.id
+        ? {
+            ...organization,
+            organizationName: payload.organizationName,
+            contactPerson: payload.contactPerson,
+            email: payload.email,
+          }
+        : organization
+  );
+
+  sessionStorage.setItem(
+    ORGANIZATIONS_CACHE_KEY,
+    JSON.stringify(updated)
+  );
+
+  return updated;
+});
 
       showToast("Organization updated successfully");
       setShowEditModal(false);
@@ -337,10 +391,18 @@ const handleCreateOrganization = async () => {
     }
 
     // Remove immediately from the screen
-    setOrganizations((prev) =>
-      prev.filter((item) => item.id !== org.id)
-    );
+    setOrganizations((prev) => {
+      const updated = prev.filter(
+        (item) => item.id !== org.id
+      );
 
+      sessionStorage.setItem(
+        ORGANIZATIONS_CACHE_KEY,
+        JSON.stringify(updated)
+      );
+
+      return updated;
+    });
     showToast("Organization deleted successfully");
   } catch (error) {
     console.error("Delete organization error:", error);
