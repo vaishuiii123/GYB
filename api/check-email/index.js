@@ -2,61 +2,101 @@ const { TableClient } = require("@azure/data-tables");
 
 module.exports = async function (context, req) {
   try {
-    const email = req.body.email;
+    context.log("========== CHECK EMAIL START ==========");
+
+    context.log("Node version:", process.version);
+
+    context.log(
+      "Storage connection exists:",
+      !!process.env.AZURE_STORAGE_CONNECTION_STRING
+    );
+
+    context.log(
+      "Request body:",
+      JSON.stringify(req.body)
+    );
+
+    const email = String(req.body?.email || "")
+      .trim()
+      .toLowerCase();
 
     if (!email) {
-      return {
+      context.res = {
         status: 400,
         body: {
           success: false,
-          message: "Email is required"
-        }
+          message: "Email is required",
+        },
       };
+      return;
     }
 
+    context.log("Email:", email);
+
+    const connectionString =
+      process.env.AZURE_STORAGE_CONNECTION_STRING;
+
+    if (!connectionString) {
+      throw new Error(
+        "AZURE_STORAGE_CONNECTION_STRING is missing"
+      );
+    }
+
+    context.log("Creating TableClient...");
+
     const client = TableClient.fromConnectionString(
-      process.env.AZURE_STORAGE_CONNECTION_STRING,
+      connectionString,
       "User"
     );
 
-    const entities = client.listEntities();
+    context.log("TableClient created successfully");
 
-let found = false;
-let role = null;
-let name = null;
+    let found = false;
+    let role = "";
+    let name = "";
 
-for await (const entity of entities) {
-  console.log(entity);
+    context.log("Starting table query...");
 
-  if (
-    entity.Email &&
-    entity.Email.toLowerCase() === email.toLowerCase()
-  ) {
-    found = true;
-    role = entity.Role || "";
-    name = entity.Name || "";
-    break;
-  }
-}
-    
-    return {
+    for await (const entity of client.listEntities()) {
+      if (
+        entity.Email &&
+        String(entity.Email).trim().toLowerCase() === email
+      ) {
+        found = true;
+        role = entity.Role || "";
+        name = entity.Name || "";
+
+        context.log("Matching user found");
+        break;
+      }
+    }
+
+    context.log(
+      "Search completed. Found:",
+      found
+    );
+
+    context.res = {
       status: 200,
       body: {
         success: true,
         found,
         role,
-        name
-      }
+        name,
+      },
     };
   } catch (error) {
-    context.log("Error:", error);
+    context.log("========== CHECK EMAIL ERROR ==========");
+    context.log(error);
+    context.log(error.stack);
 
-    return {
+    context.res = {
       status: 500,
       body: {
         success: false,
-        error: error.message
-      }
+        message: "Unable to validate email.",
+        error: error.message,
+      },
     };
   }
 };
