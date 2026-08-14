@@ -1,6 +1,6 @@
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   DeleteIconBtn,
   EditIconBtn,
@@ -59,9 +59,16 @@ export default function Participants({ user }: PageProps) {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editParticipant, setEditParticipant] = useState<any>(null);
 
-  useEffect(() => {
-    fetchParticipants();
-  }, []);
+  const hasFetchedParticipants = useRef(false);
+
+ useEffect(() => {
+  if (hasFetchedParticipants.current) {
+    return;
+  }
+
+  hasFetchedParticipants.current = true;
+  fetchParticipants();
+}, []);
 
   const fetchParticipants = async () => {
     try {
@@ -321,7 +328,9 @@ export default function Participants({ user }: PageProps) {
       }),
     });
 
-    fetchParticipants();
+    setParticipants((prev) =>
+  prev.filter((participant) => participant.id !== participantId)
+);
   };
 
   const formatParticipantName = (p: any) =>

@@ -37,14 +37,28 @@ export default function AdminLogin({ onLogin }: LoginProps) {
     navigate("/dashboard");
   };
 
-  const verifyAdminEmail = async (emailToCheck: string) => {
+ const verifyAdminEmail = async (emailToCheck: string) => {
+  const controller = new AbortController();
+
+  const timeout = setTimeout(() => {
+    controller.abort();
+  }, 10000);
+
+  try {
     const response = await fetch("/api/check-email", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ email: emailToCheck }),
+      body: JSON.stringify({
+        email: emailToCheck.trim().toLowerCase(),
+      }),
+      signal: controller.signal,
     });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
 
     const data = await response.json();
 
@@ -61,57 +75,70 @@ export default function AdminLogin({ onLogin }: LoginProps) {
     }
 
     setMessage("Email verified.");
+
     completeAdminLogin({
       name: data.name,
       role: data.role,
-      email: emailToCheck,
+      email: emailToCheck.trim().toLowerCase(),
     });
+
     return true;
-  };
+  } finally {
+    clearTimeout(timeout);
+  }
+};
 
-  useEffect(() => {
-    if (handledRedirect.current) {
-      return;
-    }
+ useEffect(() => {
+  if (handledRedirect.current) {
+    return;
+  }
 
-    if (inProgress !== InteractionStatus.None) {
-      return;
-    }
+  if (inProgress !== InteractionStatus.None) {
+    return;
+  }
 
-    if (sessionStorage.getItem(MSAL_LOGIN_TARGET_KEY) !== "admin") {
-      return;
-    }
+  const loginTarget = sessionStorage.getItem(MSAL_LOGIN_TARGET_KEY);
 
-    if (accounts.length === 0) {
-      sessionStorage.removeItem(MSAL_LOGIN_TARGET_KEY);
-      setMessage("Microsoft sign-in failed.");
-      setLoading(false);
-      return;
-    }
+  if (loginTarget !== "admin") {
+    return;
+  }
 
-    handledRedirect.current = true;
+  if (accounts.length === 0) {
     sessionStorage.removeItem(MSAL_LOGIN_TARGET_KEY);
+    setMessage("Microsoft sign-in failed.");
+    setLoading(false);
+    return;
+  }
 
-    const microsoftEmail = accounts[0].username;
+  handledRedirect.current = true;
+  sessionStorage.removeItem(MSAL_LOGIN_TARGET_KEY);
 
-    if (!microsoftEmail) {
-      setMessage("Unable to retrieve your Microsoft account.");
-      setLoading(false);
-      return;
+  const account = accounts[0];
+  const microsoftEmail = account.username?.trim().toLowerCase();
+
+  if (!microsoftEmail) {
+    setMessage("Unable to retrieve your Microsoft account.");
+    setLoading(false);
+    return;
+  }
+
+  setEmail(microsoftEmail);
+  setLoading(true);
+  setMessage("Verifying admin access...");
+
+  verifyAdminEmail(microsoftEmail)
+    .catch((err) => {
+      console.error("Admin verification failed:", err);
+      if (err.name === "AbortError") {
+      setMessage("Admin verification is taking too long. Please try again.");
+    } else {
+      setMessage("Unable to validate email.");
     }
-
-    setEmail(microsoftEmail);
-    setLoading(true);
-
-    verifyAdminEmail(microsoftEmail)
-      .catch((err) => {
-        console.error(err);
-        setMessage("Unable to validate email.");
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, [accounts, inProgress]);
+    })
+    .finally(() => {
+      setLoading(false);
+    });
+}, [accounts, inProgress]);
 
   const checkEmail = async () => {
     if (!email.trim()) {

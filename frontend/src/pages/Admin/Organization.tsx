@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import {
@@ -27,6 +27,8 @@ const emptyOrgForm: OrganizationForm = {
 };
 
 export default function Organization({ user }: PageProps) {
+  const hasFetchedOrganizations = useRef(false);
+
   const [organizations, setOrganizations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");
@@ -68,9 +70,13 @@ export default function Organization({ user }: PageProps) {
   const [savingNewParticipant, setSavingNewParticipant] = useState(false);
 
   useEffect(() => {
-    fetchOrganizations();
-  }, [user?.email, user?.role]);
+  if (hasFetchedOrganizations.current) {
+    return;
+  }
 
+  hasFetchedOrganizations.current = true;
+  fetchOrganizations();
+}, []);
   const getCurrentUser = () => {
     if (user?.email) return user;
     try {
@@ -125,168 +131,290 @@ export default function Organization({ user }: PageProps) {
         isValidEmail(String(form.email || ""))
     );
 
-  const handleCreateOrganization = async () => {
+const handleCreateOrganization = async () => {
+  const organizationName = orgForm.organizationName.trim();
+  const contactPerson = orgForm.contactPerson.trim();
+  const email = orgForm.email.trim();
+
+  if (!organizationName) {
+    appAlert("Organization name is required.");
+    return;
+  }
+
+  if (!contactPerson) {
+    appAlert("Contact person is required.");
+    return;
+  }
+
+  if (!email) {
+    appAlert("Email is required.");
+    return;
+  }
+
+  if (!isValidEmail(email)) {
+    appAlert("Enter a valid email address.");
+    return;
+  }
+
+  try {
+    const currentUser = getCurrentUser();
+
+    const createdBy =
+      currentUser?.email ||
+      currentUser?.username ||
+      "";
+
     const payload = {
-      organizationName: orgForm.organizationName.trim(),
-      contactPerson: orgForm.contactPerson.trim(),
-      email: orgForm.email.trim(),
+      organizationName,
+      contactPerson,
+      email,
+      createdBy,
     };
 
-    if (!payload.organizationName || !payload.contactPerson) {
-      alert("Organization Name, Contact Person, and Email are all required.");
-      return;
+    const response = await fetch("/api/create-organization", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(
+        data.message ||
+          data.error ||
+          "Failed to create organization."
+      );
     }
 
-    const emailError = getEmailError(payload.email);
-    if (emailError) {
-      alert(emailError);
-      return;
-    }
+    // Add the newly created organization directly to the table.
+    // No second /api/get-organizations call is required.
+    const newOrganization = {
+      id: data.organizationId,
+      organizationName,
+      contactPerson,
+      email,
+      createdBy,
+    };
 
-    try {
-      const response = await fetch("/api/create-organization", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...payload,
-          createdBy: user?.email || "",
-        }),
-      });
+    setOrganizations((previousOrganizations) => {
+      const updatedOrganizations = [
+        ...previousOrganizations,
+        newOrganization,
+      ];
 
-      const data = await response.json();
+      return updatedOrganizations.sort((a, b) =>
+        String(a.organizationName || "").localeCompare(
+          String(b.organizationName || "")
+        )
+      );
+    });
 
-      if (data.success) {
-        if (selectedParticipantIds.length > 0) {
-          await fetch("/api/save-organization-participants", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              organizationId: data.organizationId,
-              participantIds: selectedParticipantIds,
-              createdBy: user?.email,
-            }),
-          });
-        }
-      
-        showToast("Organization created successfully");
-        setOrgForm(emptyOrgForm);
-        setSelectedParticipantIds([]);
-        setSearchText("");
-        setShowOrgModal(false);
-        fetchOrganizations();
-      } else {
-        alert(data.message || data.error || "Something went wrong");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Failed to create organization");
-    }
-  };
+    // Close modal
+    setShowOrgModal(false);
+
+    // Reset form
+    setOrgForm(emptyOrgForm);
+
+    appAlert("Organization created successfully.");
+  } catch (error: any) {
+    console.error(
+      "Error creating organization:",
+      error
+    );
+
+    appAlert(
+      error?.message ||
+        "Failed to create organization."
+    );
+  }
+};
 
   const handleEdit = (org: any) => {
     setEditOrganization(org);
     setShowEditModal(true);
   };
 
+  
   const handleUpdateOrganization = async () => {
-    const payload = {
-      ...editOrganization,
-      organizationName: String(editOrganization.organizationName || "").trim(),
-      contactPerson: String(editOrganization.contactPerson || "").trim(),
-      email: String(editOrganization.email || "").trim(),
-    };
-
-    if (!payload.organizationName || !payload.contactPerson) {
-      alert("Organization Name, Contact Person, and Email are all required.");
-      return;
-    }
-
-    const emailError = getEmailError(payload.email);
-    if (emailError) {
-      alert(emailError);
-      return;
-    }
-
-    try {
-      const response = await fetch("/api/update-organization", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        showToast("Organization updated successfully");
-        setShowEditModal(false);
-        fetchOrganizations();
-      } else {
-        alert(data.message || data.error);
-      }
-    } catch (error) {
-      console.error(error);
-      alert("Failed to update organization");
-    }
+  const payload = {
+    ...editOrganization,
+    organizationName: String(
+      editOrganization.organizationName || ""
+    ).trim(),
+    contactPerson: String(
+      editOrganization.contactPerson || ""
+    ).trim(),
+    email: String(
+      editOrganization.email || ""
+    ).trim(),
   };
+
+  if (!payload.organizationName || !payload.contactPerson) {
+    alert(
+      "Organization Name, Contact Person, and Email are all required."
+    );
+    return;
+  }
+
+  const emailError = getEmailError(payload.email);
+
+  if (emailError) {
+    alert(emailError);
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/update-organization", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      // Update UI immediately.
+      // Do NOT call fetchOrganizations().
+      setOrganizations((previousOrganizations) =>
+        previousOrganizations.map((organization) =>
+          organization.id === payload.id
+            ? {
+                ...organization,
+                organizationName: payload.organizationName,
+                contactPerson: payload.contactPerson,
+                email: payload.email,
+              }
+            : organization
+        )
+      );
+
+      showToast("Organization updated successfully");
+      setShowEditModal(false);
+    } else {
+      alert(data.message || data.error);
+    }
+  } catch (error) {
+    console.error(error);
+    alert("Failed to update organization");
+  }
+};
 
   const handleDelete = async (org: any) => {
-    if (!(await appConfirm(`Delete ${org.organizationName}?`, {
+  if (
+    !(await appConfirm(`Delete ${org.organizationName}?`, {
       title: "Delete organization",
       confirmLabel: "Delete",
       variant: "error",
-    }))) return;
+    }))
+  ) {
+    return;
+  }
 
-    try {
-      const response = await fetch("/api/delete-organization", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ organizationId: org.id }),
-      });
+  try {
+    const response = await fetch("/api/delete-organization", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        organizationId: org.id,
+      }),
+    });
 
-      const data = await response.json();
+    const data = await response.json();
 
-      if (data.success) {
-        showToast("Organization deleted successfully");
-        fetchOrganizations();
-      } else {
-        alert(data.message || data.error);
-      }
-    } catch (error) {
-      console.error(error);
-      alert("Failed to delete organization");
+    if (!response.ok || !data.success) {
+      throw new Error(
+        data.message ||
+          data.error ||
+          "Failed to delete organization"
+      );
     }
-  };
+
+    // Remove immediately from the screen
+    setOrganizations((prev) =>
+      prev.filter((item) => item.id !== org.id)
+    );
+
+    showToast("Organization deleted successfully");
+  } catch (error) {
+    console.error("Delete organization error:", error);
+    alert(
+      error instanceof Error
+        ? error.message
+        : "Failed to delete organization"
+    );
+  }
+};
 
   const handleDeleteFromModal = async () => {
-    if (!selectedOrganization) return;
-    if (!(await appConfirm(`Delete ${selectedOrganization.organizationName}?`, {
-      title: "Delete organization",
-      confirmLabel: "Delete",
-      variant: "error",
-    }))) return;
+  if (!selectedOrganization) {
+    return;
+  }
 
-    try {
-      const response = await fetch("/api/delete-organization", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ organizationId: selectedOrganization.id }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        showToast("Organization deleted successfully");
-        setShowViewModal(false);
-        setSelectedOrganization(null);
-        fetchOrganizations();
-      } else {
-        alert(data.message || data.error);
+  if (
+    !(await appConfirm(
+      `Delete ${selectedOrganization.organizationName}?`,
+      {
+        title: "Delete organization",
+        confirmLabel: "Delete",
+        variant: "error",
       }
-    } catch (error) {
-      console.error(error);
-      alert("Failed to delete organization");
+    ))
+  ) {
+    return;
+  }
+
+  const organizationId = selectedOrganization.id;
+
+  try {
+    const response = await fetch("/api/delete-organization", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        organizationId,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(
+        data.message ||
+          data.error ||
+          "Failed to delete organization"
+      );
     }
-  };
+
+    // Remove immediately from the table
+    setOrganizations((prev) =>
+      prev.filter((item) => item.id !== organizationId)
+    );
+
+    setShowViewModal(false);
+    setSelectedOrganization(null);
+
+    showToast("Organization deleted successfully");
+  } catch (error) {
+    console.error(
+      "Delete organization error:",
+      error
+    );
+
+    alert(
+      error instanceof Error
+        ? error.message
+        : "Failed to delete organization"
+    );
+  }
+};
 
   const handleView = async (org: any) => {
     setSelectedOrganization(org);

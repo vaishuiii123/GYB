@@ -1,23 +1,32 @@
 const { TableClient } = require("@azure/data-tables");
 
+const client = TableClient.fromConnectionString(
+  process.env.AZURE_STORAGE_CONNECTION_STRING,
+  "Participants"
+);
+
 module.exports = async function (context, req) {
+  const startTime = Date.now();
+
   try {
-
-    const organization = req.query.organization;
-
-    const client = TableClient.fromConnectionString(
-      process.env.AZURE_STORAGE_CONNECTION_STRING,
-      "Participants"
-    );
+    const organization = String(
+      req.query.organization || ""
+    ).trim();
 
     const participants = [];
 
-    // Shared admin view: return all participants (optional organization filter only).
-    for await (const entity of client.listEntities()) {
-      if (organization && entity.Organisation !== organization) {
-        continue;
-      }
+    const queryOptions = organization
+      ? {
+          filter: `Organisation eq '${organization.replace(
+            /'/g,
+            "''"
+          )}'`,
+        }
+      : undefined;
 
+    for await (const entity of client.listEntities({
+      queryOptions,
+    })) {
       participants.push({
         id: entity.rowKey,
         organization: entity.Organisation || "",
@@ -27,21 +36,36 @@ module.exports = async function (context, req) {
         email: entity.Email || "",
         username: entity.Username || "",
         phoneNo: entity.Phone_No || "",
-        password: entity.Password || "",
       });
     }
 
+    participants.sort((a, b) =>
+      `${a.firstName} ${a.lastName}`.localeCompare(
+        `${b.firstName} ${b.lastName}`
+      )
+    );
+
+    context.log(
+      `get-participants completed in ${
+        Date.now() - startTime
+      } ms`
+    );
+
     context.res = {
       status: 200,
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: {
         success: true,
         participants,
       },
     };
-
   } catch (error) {
-
-    context.log(error);
+    context.log.error(
+      "get-participants error:",
+      error
+    );
 
     context.res = {
       status: 500,
