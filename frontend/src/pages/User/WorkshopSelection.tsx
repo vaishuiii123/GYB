@@ -329,15 +329,6 @@ export default function WorkshopSelection() {
           </div>
         )}
       </main>
-
-      <footer className="workshop-selection-footer">
-        <div className="workshop-selection-footer-badge" aria-hidden>
-          <Users size={28} strokeWidth={1.8} />
-        </div>
-        <h3>Grow Your Business</h3>
-        <p>Organization Development Workshop</p>
-        <span className="workshop-selection-footer-rule" aria-hidden />
-      </footer>
     </div>
   );
 }

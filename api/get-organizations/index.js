@@ -1,19 +1,30 @@
 const { TableClient } = require("@azure/data-tables");
 
+const client = TableClient.fromConnectionString(
+  process.env.AZURE_STORAGE_CONNECTION_STRING,
+  "Organization"
+);
+
 module.exports = async function (context, req) {
-  const totalStart = Date.now();
+  // ...
 
   try {
-    const client = TableClient.fromConnectionString(
-      process.env.AZURE_STORAGE_CONNECTION_STRING,
-      "Organization"
-    );
-
+    
     const dbStart = Date.now();
 
     const organizations = [];
 
-    for await (const entity of client.listEntities()) {
+    for await (const entity of client.listEntities({
+      queryOptions: {
+        select: [
+          "rowKey",
+          "Organization_Name",
+          "Contact_Person",
+          "Email",
+          "Created_By",
+        ],
+      },
+    })) {
       organizations.push({
         id: entity.rowKey,
         organizationName: entity.Organization_Name || "",
@@ -29,10 +40,7 @@ module.exports = async function (context, req) {
       a.organizationName.localeCompare(b.organizationName)
     );
 
-    const totalTime = Date.now() - totalStart;
-
-    context.log(`Organization DB time: ${dbTime} ms`);
-    context.log(`Organization total time: ${totalTime} ms`);
+    
 
     context.res = {
       status: 200,

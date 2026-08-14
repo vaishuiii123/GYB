@@ -112,6 +112,25 @@ export default function Dashboard({ user }: PageProps) {
     loadWorkshops();
   }, [loadWorkshops]);
 
+  useEffect(() => {
+  const prefetchOrganizations = async () => {
+    try {
+      const res = await fetch("/api/get-organizations");
+      const data = await res.json();
+      if (res.ok && data.success) {
+        sessionStorage.setItem(
+          "organizations_cache",
+          JSON.stringify(data.organizations || [])
+        );
+      }
+    } catch {
+      // ignore — Organization page will fetch itself
+    }
+  };
+
+  prefetchOrganizations();
+}, []);
+
   const { upcoming, inProgress, completed } = useMemo(() => {
     const buckets = {
       upcoming: [] as WorkshopRecord[],
