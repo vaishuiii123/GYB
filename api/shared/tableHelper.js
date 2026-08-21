@@ -111,6 +111,7 @@ function groupOptionsByQuestionIds(allOptions, questionIds) {
 
 async function listAnswersForWorkshop(answerTable, participantId, workshopId) {
   const answers = {};
+  const attachments = {};
   let organizationId = "";
   let templateId = "";
   let submittedDate = "";
@@ -125,6 +126,18 @@ async function listAnswersForWorkshop(answerTable, participantId, workshopId) {
     })) {
       if (entity.QuestionId) {
         answers[entity.QuestionId] = entity.AnswerText || entity.OptionId || "";
+
+        const blobPath = String(entity.AttachmentBlobPath || "").trim();
+        if (blobPath) {
+          attachments[entity.QuestionId] = {
+            fileName: String(entity.AttachmentName || "attachment"),
+            blobPath,
+            contentType: String(
+              entity.AttachmentContentType || "application/octet-stream"
+            ),
+            size: Number(entity.AttachmentSize || 0),
+          };
+        }
       }
 
       organizationId = entity.OrganizationId || organizationId;
@@ -137,6 +150,7 @@ async function listAnswersForWorkshop(answerTable, participantId, workshopId) {
 
   return {
     answers,
+    attachments,
     organizationId,
     templateId,
     submittedDate,

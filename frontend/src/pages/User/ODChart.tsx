@@ -36,6 +36,7 @@ export type Question = {
   tagId?: string;
   tagName?: string;
   tagColor?: string;
+  attachmentsApplicable?: "Y" | "N";
 };
 
 export type Leaf = {

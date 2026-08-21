@@ -35,6 +35,7 @@ module.exports = async function (context, req) {
       organizationId,
       templateId,
       answers,
+      attachments,
       participantName: participantNameFromClient,
     } = req.body || {};
 
@@ -83,12 +84,23 @@ module.exports = async function (context, req) {
       String(participantNameFromClient || "").trim() ||
       (await loadParticipantDisplayName(participantId));
 
+    const attachmentMap =
+      attachments && typeof attachments === "object" ? attachments : {};
+
+    const questionIds = new Set([
+      ...Object.keys(answers),
+      ...Object.keys(attachmentMap),
+    ]);
+
     const savedAnswers = {};
+    const savedAttachments = {};
     const now = new Date().toISOString();
 
-    for (const [questionId, answerValue] of Object.entries(answers)) {
-      const answerText = String(answerValue || "").trim();
-      if (!answerText) {
+    for (const questionId of questionIds) {
+      const answerText = String(answers[questionId] || "").trim();
+      const attachmentMeta = attachmentMap[questionId];
+
+      if (!answerText && !attachmentMeta) {
         continue;
       }
 
@@ -105,12 +117,34 @@ module.exports = async function (context, req) {
         return;
       }
 
-      const optionId =
-        optionLookup.get(
-          `${questionId}::${answerText.trim().toLowerCase()}`
-        ) || "";
+      const optionId = answerText
+        ? optionLookup.get(`${questionId}::${answerText.trim().toLowerCase()}`) ||
+          ""
+        : "";
 
       const rowKey = `${workshopId}_${questionId}`;
+      let existing = null;
+      try {
+        existing = await answerTable.getEntity(String(participantId), rowKey);
+      } catch {
+        existing = null;
+      }
+
+      const nextAttachmentName = attachmentMeta
+        ? String(attachmentMeta.fileName || attachmentMeta.name || "").trim()
+        : String(existing?.AttachmentName || "").trim();
+      const nextAttachmentBlobPath = attachmentMeta
+        ? String(attachmentMeta.blobPath || "").trim()
+        : String(existing?.AttachmentBlobPath || "").trim();
+      const nextAttachmentContentType = attachmentMeta
+        ? String(
+            attachmentMeta.contentType || "application/octet-stream"
+          ).trim()
+        : String(existing?.AttachmentContentType || "").trim();
+      const nextAttachmentSize = attachmentMeta
+        ? Number(attachmentMeta.size || 0)
+        : Number(existing?.AttachmentSize || 0);
+
       const entity = {
         partitionKey: String(participantId),
         rowKey,
@@ -120,19 +154,33 @@ module.exports = async function (context, req) {
         OrganizationId: organizationId || "",
         TemplateId: templateId || "",
         QuestionId: questionId,
-        OptionId: optionId,
-        AnswerText: answerText,
+        OptionId: optionId || existing?.OptionId || "",
+        AnswerText: answerText || existing?.AnswerText || "",
+        AttachmentName: nextAttachmentName,
+        AttachmentBlobPath: nextAttachmentBlobPath,
+        AttachmentContentType: nextAttachmentContentType,
+        AttachmentSize: nextAttachmentSize || 0,
         SubmittedDate: now,
       };
 
-      try {
-        await answerTable.getEntity(String(participantId), rowKey);
+      if (existing) {
         await answerTable.updateEntity(entity, "Replace");
-      } catch {
+      } else {
         await answerTable.createEntity(entity);
       }
 
-      savedAnswers[questionId] = answerText;
+      if (entity.AnswerText) {
+        savedAnswers[questionId] = entity.AnswerText;
+      }
+
+      if (entity.AttachmentBlobPath) {
+        savedAttachments[questionId] = {
+          fileName: entity.AttachmentName,
+          blobPath: entity.AttachmentBlobPath,
+          contentType: entity.AttachmentContentType,
+          size: entity.AttachmentSize,
+        };
+      }
     }
 
     context.res = {
@@ -146,6 +194,7 @@ module.exports = async function (context, req) {
           workshopId,
           participantName,
           answers: savedAnswers,
+          attachments: savedAttachments,
           submittedDate: now,
         },
       },

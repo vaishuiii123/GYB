@@ -25,6 +25,7 @@ export default function QuestionManagement({ user }: PageProps) {
     const [selectedQuestionId, setSelectedQuestionId] = useState("");
     const [questionText, setQuestionText] = useState("");
     const [questionType, setQuestionType] = useState("");
+    const [attachmentsApplicable, setAttachmentsApplicable] = useState("N");
     const [options, setOptions] = useState<string[]>(["", ""]);
     const [selectedTag, setSelectedTag] = useState("");
     const [questions, setQuestions] = useState<any[]>([]);
@@ -775,6 +776,7 @@ const handleImportQuestions = async () => {
     const resetForm = () => {
         setQuestionText("");
         setQuestionType("");
+        setAttachmentsApplicable("N");
         setOptions(["", ""]);
         setSelectedTag("");
         setEditMode(false);
@@ -791,6 +793,11 @@ const handleImportQuestions = async () => {
         setSelectedQuestionId(question.id);
         setQuestionText(question.questionText);
         setQuestionType(question.questionType);
+        setAttachmentsApplicable(
+            String(question.attachmentsApplicable || "N").toUpperCase() === "Y"
+                ? "Y"
+                : "N"
+        );
         setSelectedTag(question.tagId || "");
         setOptions(
             question.options?.length > 0
@@ -854,6 +861,7 @@ const handleImportQuestions = async () => {
                         questionText,
                         questionType,
                         tagId: selectedTag,
+                        attachmentsApplicable,
                         modifiedBy: user?.name || "Admin",
                     }),
                 });
@@ -885,6 +893,7 @@ const handleImportQuestions = async () => {
                         questionText,
                         questionType,
                         tagId: selectedTag,
+                        attachmentsApplicable,
                         createdBy: user?.name || "Admin",
                     }),
                 });
@@ -962,6 +971,7 @@ const handleImportQuestions = async () => {
                                     <th>#</th>
                                     <th>Question</th>
                                     <th>Type</th>
+                                    <th>Attachment Applicable</th>
                                     <th>Tag</th>
                                     <th>Options</th>
                                     <th>Actions</th>
@@ -971,7 +981,7 @@ const handleImportQuestions = async () => {
                                 {questions.length === 0 ? (
                                     <tr>
                                         <td
-                                            colSpan={6}
+                                            colSpan={7}
                                             className="empty-question"
                                         >
                                             No questions found.
@@ -986,6 +996,14 @@ const handleImportQuestions = async () => {
                                             <td>{index + 1}</td>
                                             <td>{question.questionText}</td>
                                             <td>{question.questionType}</td>
+                                            <td>
+                                                {String(
+                                                    question.attachmentsApplicable ||
+                                                        "N"
+                                                ).toUpperCase() === "Y"
+                                                    ? "Yes"
+                                                    : "No"}
+                                            </td>
                                             <td>
                                                 {question.tagId ? (
                                                     <span
@@ -1088,6 +1106,19 @@ const handleImportQuestions = async () => {
                                 </option>
                                 <option value="Text">Text</option>
                                 <option value="Rating">Rating</option>
+                            </select>
+                        </div>
+
+                        <div className="form-group">
+                            <label>Attachments Applicable</label>
+                            <select
+                                value={attachmentsApplicable}
+                                onChange={(e) =>
+                                    setAttachmentsApplicable(e.target.value)
+                                }
+                            >
+                                <option value="N">N</option>
+                                <option value="Y">Y</option>
                             </select>
                         </div>
 

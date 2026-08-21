@@ -35,12 +35,15 @@ export default function TemplateDetails({ user }: PageProps) {
   const groupedQuestions = useMemo(() => {
     if (!template?.questions) return {};
 
-    return template.questions.reduce((groups: Record<string, any[]>, question: any) => {
-      const key = question.categoryName || "General";
-      if (!groups[key]) groups[key] = [];
-      groups[key].push(question);
-      return groups;
-    }, {});
+    return template.questions.reduce(
+      (groups: Record<string, any[]>, question: any) => {
+        const key = question.categoryName || "General";
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(question);
+        return groups;
+      },
+      {}
+    );
   }, [template]);
 
   if (!template) {
@@ -100,28 +103,62 @@ export default function TemplateDetails({ user }: PageProps) {
                   <th>Sr. No.</th>
                   <th>Question</th>
                   <th>Question Category</th>
+                  <th>Tag</th>
                   <th>Answer Type</th>
+                  <th>Attachment Applicable</th>
                 </tr>
               </thead>
               <tbody>
-                {Object.entries(groupedQuestions).map(([categoryName, questions]) => (
-                  <Fragment key={categoryName}>
-                    <tr className="category-header-row">
-                      <td colSpan={4}>{categoryName}</td>
-                    </tr>
-                    {(questions as any[]).map((q) => {
-                      rowIndex += 1;
-                      return (
-                        <tr key={q.id}>
-                          <td>{rowIndex}</td>
-                          <td>{q.question}</td>
-                          <td>{categoryName}</td>
-                          <td>{q.answerType}</td>
-                        </tr>
-                      );
-                    })}
-                  </Fragment>
-                ))}
+                {Object.entries(groupedQuestions).map(
+                  ([categoryName, questions]) => (
+                    <Fragment key={categoryName}>
+                      <tr className="category-header-row">
+                        <td colSpan={6}>{categoryName}</td>
+                      </tr>
+                      {(questions as any[]).map((q) => {
+                        rowIndex += 1;
+                        const tagColor = String(q.tagColor || "").trim();
+                        return (
+                          <tr
+                            key={q.id}
+                            className={tagColor ? "tag-colored-row" : undefined}
+                            style={
+                              tagColor
+                                ? {
+                                    color: tagColor,
+                                    borderLeft: `4px solid ${tagColor}`,
+                                  }
+                                : undefined
+                            }
+                          >
+                            <td>{rowIndex}</td>
+                            <td>{q.question}</td>
+                            <td>{categoryName}</td>
+                            <td>
+                              {q.tagName ? (
+                                <span
+                                  className="template-tag-label"
+                                  style={{ color: tagColor || undefined }}
+                                >
+                                  {q.tagName}
+                                </span>
+                              ) : (
+                                "-"
+                              )}
+                            </td>
+                            <td>{q.answerType}</td>
+                            <td>
+                              {String(q.attachmentsApplicable || "N").toUpperCase() ===
+                              "Y"
+                                ? "Yes"
+                                : "No"}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </Fragment>
+                  )
+                )}
               </tbody>
             </table>
 

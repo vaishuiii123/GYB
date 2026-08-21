@@ -1,10 +1,14 @@
 const { getTableClient } = require("../shared/tableHelper");
-
 const { PRE_OD_QUESTIONS } = require("../shared/preOdQuestions");
+const {
+  normalizeQuestionAttachments,
+  serializeQuestionAttachments,
+} = require("../shared/preOdAttachments");
 
 module.exports = async function (context, req) {
   try {
-    const { templateName, questionSrNos, createdBy } = req.body || {};
+    const { templateName, questionSrNos, questionAttachments, createdBy } =
+      req.body || {};
 
     if (!templateName || !String(templateName).trim()) {
       context.res = {
@@ -49,6 +53,11 @@ module.exports = async function (context, req) {
       return;
     }
 
+    const attachmentsMap = normalizeQuestionAttachments(
+      questionAttachments,
+      filteredSrNos
+    );
+
     const client = getTableClient("PreODTemplate");
 
     try {
@@ -66,6 +75,7 @@ module.exports = async function (context, req) {
       rowKey: templateId,
       TemplateName: String(templateName).trim(),
       QuestionSrNos: filteredSrNos.join(","),
+      QuestionAttachments: serializeQuestionAttachments(attachmentsMap),
       CreatedBy: createdBy || "Admin",
       CreatedDate: new Date().toISOString(),
     });
@@ -78,7 +88,9 @@ module.exports = async function (context, req) {
         template: {
           id: templateId,
           templateName: String(templateName).trim(),
+          templateType: "Pre OD",
           questionSrNos: filteredSrNos,
+          questionAttachments: attachmentsMap,
           questionCount: filteredSrNos.length,
         },
       },

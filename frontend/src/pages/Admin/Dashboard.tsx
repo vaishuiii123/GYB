@@ -178,7 +178,7 @@ export default function Dashboard({ user }: PageProps) {
       navigate(`/workshop-responses/${workshop.id}`);
       return;
     }
-    navigate(`/pre-od-responses/${workshop.id}`);
+    navigate("/export");
   };
 
   const renderWorkshopCard = (

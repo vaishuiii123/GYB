@@ -2,12 +2,32 @@ const { ensureTableClient, escapeODataValue } = require("./tableHelper");
 
 const LEGACY_PARTITION = "Participant";
 
+function parseJsonObject(raw) {
+  if (!raw) {
+    return {};
+  }
+
+  if (typeof raw === "object" && !Array.isArray(raw)) {
+    return raw;
+  }
+
+  try {
+    const parsed = JSON.parse(String(raw));
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? parsed
+      : {};
+  } catch {
+    return {};
+  }
+}
+
 function buildEntity({
   workshopId,
   participantId,
   organizationId,
   workshopName,
   answers,
+  attachments,
   submittedDate,
   participantName,
 }) {
@@ -19,22 +39,10 @@ function buildEntity({
     WorkshopId: String(workshopId),
     WorkshopName: workshopName || "",
     ParticipantName: participantName || "",
-    AnswersJson: JSON.stringify(answers),
+    AnswersJson: JSON.stringify(answers || {}),
+    AttachmentsJson: JSON.stringify(attachments || {}),
     SubmittedDate: submittedDate,
   };
-}
-
-function parseAnswers(raw) {
-  if (!raw) {
-    return {};
-  }
-
-  try {
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch {
-    return {};
-  }
 }
 
 function normalizeResponse(entity) {
@@ -48,7 +56,8 @@ function normalizeResponse(entity) {
     workshopId: entity.WorkshopId || entity.partitionKey || "",
     workshopName: entity.WorkshopName || "",
     participantName: entity.ParticipantName || "",
-    answers: parseAnswers(entity.AnswersJson),
+    answers: parseJsonObject(entity.AnswersJson),
+    attachments: parseJsonObject(entity.AttachmentsJson),
     submittedDate: entity.SubmittedDate || "",
   };
 }
@@ -157,7 +166,10 @@ async function listPreOdResponsesForWorkshop(workshopId) {
     }
 
     const normalized = normalizeResponse(entity);
-    if (!normalized?.participantId || seenParticipants.has(normalized.participantId)) {
+    if (
+      !normalized?.participantId ||
+      seenParticipants.has(normalized.participantId)
+    ) {
       continue;
     }
 
@@ -219,5 +231,5 @@ module.exports = {
   savePreOdResponse,
   listPreOdResponsesForWorkshop,
   listPreOdWorkshopSummaries,
-  parseAnswers,
+  parseAnswers: parseJsonObject,
 };

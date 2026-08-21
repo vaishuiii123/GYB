@@ -27,8 +27,11 @@ type ExportRow = {
   workshop: string;
   category: string;
   question: string;
+  questionId?: string;
+  questionType?: string;
   response: string;
   attachment: string;
+  source: "preod" | "od";
 };
 
 type ResponseData = {
@@ -43,6 +46,7 @@ type ResponseData = {
     question: string;
   }>;
   questionLabels?: Record<string, string>;
+  questionTypes?: Record<string, string>;
 };
 
 type Category = {
@@ -52,15 +56,282 @@ type Category = {
   questions?: Array<{
     id: string;
     question: string;
+    answerType?: string;
   }>;
 };
+
+const PIE_COLORS = [
+  "#9B304A",
+  "#00A88F",
+  "#2563EB",
+  "#CA8A04",
+  "#7C3AED",
+  "#DC2626",
+  "#0891B2",
+  "#EA580C",
+  "#4F46E5",
+  "#059669",
+  "#DB2777",
+  "#64748B",
+];
+
+const KNOWN_CHOICE_ANSWERS = new Set([
+  "yes",
+  "no",
+  "y",
+  "n",
+  "true",
+  "false",
+  "red",
+  "yellow",
+  "green",
+  "r",
+  "ye",
+  "g",
+  "agree",
+  "disagree",
+  "neutral",
+  "na",
+  "n/a",
+  "not applicable",
+]);
+
+function normalizeAnswerToken(value: string) {
+  const trimmed = String(value || "").trim();
+  if (!trimmed) {
+    return "";
+  }
+
+  const lower = trimmed.toLowerCase();
+  if (lower === "yes" || lower === "y") return "Yes";
+  if (lower === "no" || lower === "n") return "No";
+  if (lower === "true") return "True";
+  if (lower === "false") return "False";
+  if (lower === "red" || lower === "r") return "Red";
+  if (lower === "yellow") return "Yellow";
+  if (lower === "green" || lower === "g") return "Green";
+  if (lower === "agree") return "Agree";
+  if (lower === "disagree") return "Disagree";
+  if (lower === "neutral") return "Neutral";
+  if (lower === "na" || lower === "n/a" || lower === "not applicable") {
+    return "N/A";
+  }
+
+  return trimmed;
+}
+
+function expandAnswerTokens(response: string) {
+  return String(response || "")
+    .split("|")
+    .map((part) => normalizeAnswerToken(part))
+    .filter(Boolean);
+}
+
+/** True when values look like choice/rating answers, not free text. */
+function isLikelyCategoricalForPie(values: string[]) {
+  const cleaned = values
+    .map((value) => normalizeAnswerToken(value))
+    .filter(Boolean);
+
+  if (cleaned.length < 2) {
+    return false;
+  }
+
+  const unique = Array.from(new Set(cleaned));
+  if (unique.length < 2 || unique.length > 12) {
+    return false;
+  }
+
+  if (unique.some((value) => value.length > 60)) {
+    return false;
+  }
+
+  const allKnown = unique.every((value) =>
+    KNOWN_CHOICE_ANSWERS.has(value.toLowerCase())
+  );
+  if (allKnown) {
+    return true;
+  }
+
+  // Short repeated options (Single / Multiple / Rating labels).
+  const avgLength =
+    unique.reduce((sum, value) => sum + value.length, 0) / unique.length;
+  if (avgLength <= 24 && unique.length <= 8) {
+    return true;
+  }
+
+  // Mostly unique long answers → free text, skip pie.
+  if (unique.length >= cleaned.length * 0.85 && avgLength > 20) {
+    return false;
+  }
+
+  return avgLength <= 30;
+}
+
+function isChoiceQuestionType(questionType?: string) {
+  const type = String(questionType || "").trim().toLowerCase();
+  return (
+    type.includes("multiple") ||
+    type.includes("single") ||
+    type.includes("rating")
+  );
+}
+
+function buildAnswerSlices(
+  responses: string[],
+  options?: { forceCategorical?: boolean }
+) {
+  const tokens = responses.flatMap((response) => expandAnswerTokens(response));
+  if (tokens.length === 0) {
+    return null;
+  }
+
+  if (!options?.forceCategorical && !isLikelyCategoricalForPie(tokens)) {
+    return null;
+  }
+
+  // Forced choice types: need at least one answer; prefer 2+ distinct for a real pie.
+  const counts = new Map<string, number>();
+  tokens.forEach((token) => {
+    counts.set(token, (counts.get(token) || 0) + 1);
+  });
+
+  const slices = Array.from(counts.entries())
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => b.value - a.value);
+
+  if (slices.length < 1) {
+    return null;
+  }
+
+  // Skip free-text noise accidentally forced; keep single-slice for unanimous Yes/No.
+  if (!options?.forceCategorical && slices.length < 2) {
+    return null;
+  }
+
+  return slices;
+}
+
+function polarToCartesian(cx: number, cy: number, radius: number, angleDeg: number) {
+  const angleRad = ((angleDeg - 90) * Math.PI) / 180;
+  return {
+    x: cx + radius * Math.cos(angleRad),
+    y: cy + radius * Math.sin(angleRad),
+  };
+}
+
+function describeSlice(
+  cx: number,
+  cy: number,
+  radius: number,
+  startAngle: number,
+  endAngle: number
+) {
+  const start = polarToCartesian(cx, cy, radius, endAngle);
+  const end = polarToCartesian(cx, cy, radius, startAngle);
+  const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+
+  return [
+    `M ${cx} ${cy}`,
+    `L ${start.x} ${start.y}`,
+    `A ${radius} ${radius} 0 ${largeArc} 0 ${end.x} ${end.y}`,
+    "Z",
+  ].join(" ");
+}
+
+function SummaryPieChart({
+  title,
+  slices,
+}: {
+  title: string;
+  slices: Array<{ label: string; value: number }>;
+}) {
+  const total = slices.reduce((sum, item) => sum + item.value, 0);
+  if (total <= 0 || slices.length < 1) {
+    return null;
+  }
+
+  const size = 220;
+  const cx = size / 2;
+  const cy = size / 2;
+  const radius = 96;
+  let angle = 0;
+
+  const arcs = slices.map((slice, index) => {
+    const sweep = (slice.value / total) * 360;
+    const startAngle = angle;
+    const endAngle = angle + sweep;
+    angle = endAngle;
+
+    return {
+      ...slice,
+      path:
+        sweep >= 359.999
+          ? undefined
+          : describeSlice(cx, cy, radius, startAngle, endAngle),
+      fullCircle: sweep >= 359.999,
+      color: PIE_COLORS[index % PIE_COLORS.length],
+      percent: Math.round((slice.value / total) * 100),
+    };
+  });
+
+  return (
+    <div className="export-pie-panel">
+      <h3 className="export-pie-title">{title}</h3>
+      <div className="export-pie-layout">
+        <svg
+          className="export-pie-svg"
+          width={size}
+          height={size}
+          viewBox={`0 0 ${size} ${size}`}
+          role="img"
+          aria-label={title}
+        >
+          {arcs.map((arc) =>
+            arc.fullCircle ? (
+              <circle
+                key={arc.label}
+                cx={cx}
+                cy={cy}
+                r={radius}
+                fill={arc.color}
+              />
+            ) : (
+              <path
+                key={arc.label}
+                d={arc.path}
+                fill={arc.color}
+                stroke="#ffffff"
+                strokeWidth={1.5}
+              />
+            )
+          )}
+        </svg>
+        <ul className="export-pie-legend">
+          {arcs.map((arc) => (
+            <li key={arc.label}>
+              <span
+                className="export-pie-swatch"
+                style={{ background: arc.color }}
+              />
+              <span className="export-pie-label">{arc.label}</span>
+              <span className="export-pie-meta">
+                {arc.value} ({arc.percent}%)
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
 
 export default function Export({ user }: PageProps) {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [workshops, setWorkshops] = useState<Workshop[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [assignedCategoryIds, setAssignedCategoryIds] =  useState<string[]>([]);
-  const [exportType, setExportType] = useState<"preod" | "od">("preod");
+  const [exportType, setExportType] = useState<"preod" | "od">("od");
 
   const [selectedOrganization, setSelectedOrganization] =
     useState("");
@@ -250,40 +521,42 @@ export default function Export({ user }: PageProps) {
             if (participant.preOd) {
               preOdQuestions.forEach(
                 (question) => {
+                  const key = String(question.srNo);
                   const answer =
-                    participant.preOd.answers[
-                      String(question.srNo)
-                    ];
+                    participant.preOd.answers?.[key] ??
+                    participant.preOd.answers?.[question.srNo];
+                  const attachmentMeta =
+                    participant.preOd.attachments?.[key] ||
+                    participant.preOd.attachments?.[question.srNo];
+                  const hasAnswer =
+                    answer !== undefined && String(answer).trim() !== "";
+                  const hasAttachment = Boolean(attachmentMeta?.blobPath);
 
-                  if (
-                    answer !== undefined &&
-                    answer !== ""
-                  ) {
-                    rows.push({
-                      participant:
-                        participantName,
-
-                      organization:
-                        data.workshop
-                          ?.organizationName || "",
-
-                      workshop:
-                        data.workshop
-                          ?.workshopName || "",
-
-                      category:
-                        question.category ||
-                        "Pre Organization Development",
-
-                      question:
-                        question.question,
-
-                      response:
-                        String(answer),
-
-                      attachment: "-",
-                    });
+                  if (!hasAnswer && !hasAttachment) {
+                    return;
                   }
+
+                  const attachmentUrl = hasAttachment
+                    ? `/api/get-pre-od-attachment?participantId=${encodeURIComponent(
+                        participant.participantId
+                      )}&workshopId=${encodeURIComponent(
+                        selectedWorkshop
+                      )}&questionSrNo=${encodeURIComponent(key)}`
+                    : "-";
+
+                  rows.push({
+                    participant: participantName,
+                    organization:
+                      data.workshop?.organizationName || "",
+                    workshop: data.workshop?.workshopName || "",
+                    category:
+                      question.category ||
+                      "Pre Organization Development",
+                    question: question.question,
+                    response: hasAnswer ? String(answer) : "",
+                    attachment: attachmentUrl,
+                    source: "preod",
+                  });
                 }
               );
             }
@@ -299,6 +572,16 @@ export default function Export({ user }: PageProps) {
                 participant.odChart.answers || {}
               ).forEach(
                 ([questionId, answer]) => {
+                  const attachmentMeta =
+                    participant.odChart.attachments?.[questionId];
+                  const attachmentUrl = attachmentMeta?.blobPath
+                    ? `/api/get-od-attachment?participantId=${encodeURIComponent(
+                        participant.participantId
+                      )}&workshopId=${encodeURIComponent(
+                        selectedWorkshop
+                      )}&questionId=${encodeURIComponent(questionId)}`
+                    : "-";
+
                   rows.push({
                     participant:
                       participantName,
@@ -321,10 +604,18 @@ export default function Export({ user }: PageProps) {
                         questionId
                       ] || questionId,
 
+                    questionId,
+                    questionType:
+                      data.questionTypes?.[questionId] ||
+                      getQuestionTypeForQuestion(
+                        questionId
+                      ),
+
                     response:
                       String(answer || ""),
 
-                    attachment: "-",
+                    attachment: attachmentUrl,
+                    source: "od",
                   });
                 }
               );
@@ -332,7 +623,7 @@ export default function Export({ user }: PageProps) {
 
             /*
              * ----------------------------------------
-             * Vision & Mission
+             * Vision & Mission (OD workshop module)
              * ----------------------------------------
              */
 
@@ -365,6 +656,7 @@ export default function Export({ user }: PageProps) {
                     vm.visionText,
 
                   attachment: "-",
+                  source: "od",
                 });
               }
 
@@ -391,6 +683,7 @@ export default function Export({ user }: PageProps) {
                     vm.missionText,
 
                   attachment: "-",
+                  source: "od",
                 });
               }
             }
@@ -413,7 +706,7 @@ export default function Export({ user }: PageProps) {
     };
 
     loadResponses();
-  }, [selectedWorkshop]);
+  }, [selectedWorkshop, categories]);
 
   /*
    * --------------------------------------------------
@@ -443,6 +736,21 @@ export default function Export({ user }: PageProps) {
     return "OD Chart";
   };
 
+  const getQuestionTypeForQuestion = (
+    questionId: string
+  ) => {
+    for (const category of categories) {
+      const match = category.questions?.find(
+        (question) =>
+          String(question.id) === String(questionId)
+      );
+      if (match?.answerType) {
+        return String(match.answerType);
+      }
+    }
+    return "";
+  };
+
   /*
    * --------------------------------------------------
    * Available categories
@@ -450,10 +758,28 @@ export default function Export({ user }: PageProps) {
    */
 
 const availableCategories = useMemo(() => {
-  if (
-    !selectedWorkshop ||
-    assignedCategoryIds.length === 0
-  ) {
+  if (!selectedWorkshop) {
+    return [];
+  }
+
+  // Pre-OD: categories come from Pre OD bank questions in the loaded rows.
+  if (exportType === "preod") {
+    const names = Array.from(
+      new Set(
+        responses
+          .filter((item) => item.source === "preod")
+          .map((item) => String(item.category || "").trim())
+          .filter(Boolean)
+      )
+    ).sort((a, b) => a.localeCompare(b));
+
+    return names.map((name) => ({
+      id: name,
+      name,
+    }));
+  }
+
+  if (assignedCategoryIds.length === 0) {
     return [];
   }
 
@@ -488,6 +814,8 @@ const availableCategories = useMemo(() => {
   categories,
   assignedCategoryIds,
   selectedWorkshop,
+  exportType,
+  responses,
 ]);
 
   /*
@@ -498,6 +826,21 @@ const availableCategories = useMemo(() => {
 const availableQuestions = useMemo(() => {
   if (!selectedCategory) {
     return [];
+  }
+
+  if (exportType === "preod") {
+    return Array.from(
+      new Set(
+        responses
+          .filter(
+            (item) =>
+              item.source === "preod" &&
+              item.category === selectedCategory
+          )
+          .map((item) => item.question)
+          .filter(Boolean)
+      )
+    ).sort();
   }
 
   const selectedCategoryData =
@@ -524,6 +867,8 @@ const availableQuestions = useMemo(() => {
 }, [
   categories,
   selectedCategory,
+  exportType,
+  responses,
 ]);
 
   /*
@@ -533,9 +878,16 @@ const availableQuestions = useMemo(() => {
    */
 
   const filteredResponses = useMemo(() => {
-    let data = responses;
+    let data = responses.filter(
+      (item) => item.source === exportType
+    );
 
    if (selectedCategory) {
+  if (exportType === "preod") {
+    data = data.filter(
+      (item) => item.category === selectedCategory
+    );
+  } else {
   const selectedCategoryData =
     categories.find(
       (category) =>
@@ -545,6 +897,9 @@ const availableQuestions = useMemo(() => {
 
   const selectedCategoryName =
     selectedCategoryData?.categoryName ||
+    availableCategories.find(
+      (item) => item.id === selectedCategory
+    )?.name ||
     "";
 
   data = data.filter((item) => {
@@ -559,6 +914,7 @@ const availableQuestions = useMemo(() => {
       selectedCategoryName
     );
   });
+  }
 }
 
     if (selectedQuestion) {
@@ -591,9 +947,12 @@ const availableQuestions = useMemo(() => {
     return data;
   }, [
     responses,
+    exportType,
     selectedCategory,
     selectedQuestion,
     search,
+    categories,
+    availableCategories,
   ]);
 
   /*
@@ -798,6 +1157,66 @@ const availableQuestions = useMemo(() => {
     );
   }, [filteredResponses]);
 
+  /** Answer pies for Multiple/Single Choice & Rating across all participants. */
+  const answerPieCharts = useMemo(() => {
+    const byQuestion = new Map<
+      string,
+      { questionType: string; responses: string[] }
+    >();
+
+    filteredResponses.forEach((item) => {
+      const question = String(item.question || "").trim();
+      if (!question) {
+        return;
+      }
+      if (selectedQuestion && question !== selectedQuestion) {
+        return;
+      }
+      if (!String(item.response || "").trim()) {
+        return;
+      }
+
+      const existing = byQuestion.get(question) || {
+        questionType: item.questionType || "",
+        responses: [],
+      };
+      if (!existing.questionType && item.questionType) {
+        existing.questionType = item.questionType;
+      }
+      existing.responses.push(String(item.response || ""));
+      byQuestion.set(question, existing);
+    });
+
+    const charts: Array<{
+      title: string;
+      slices: Array<{ label: string; value: number }>;
+    }> = [];
+
+    byQuestion.forEach((entry, question) => {
+      const forceCategorical = isChoiceQuestionType(entry.questionType);
+      // Only chart real choice questions (or clearly categorical answers).
+      if (!forceCategorical && !isLikelyCategoricalForPie(
+        entry.responses.flatMap((r) => expandAnswerTokens(r))
+      )) {
+        return;
+      }
+
+      const slices = buildAnswerSlices(entry.responses, {
+        forceCategorical,
+      });
+      if (!slices || slices.length < 1) {
+        return;
+      }
+      // Need at least 2 slices OR a forced choice type with answers.
+      if (slices.length < 2 && !forceCategorical) {
+        return;
+      }
+      charts.push({ title: question, slices });
+    });
+
+    return charts;
+  }, [filteredResponses, selectedQuestion]);
+
    return (
   <div className="export-page">
     <Header user={user} />
@@ -826,11 +1245,8 @@ const availableQuestions = useMemo(() => {
             checked={exportType === "preod"}
             onChange={() => {
               setExportType("preod");
-              setSelectedOrganization("");
-              setSelectedWorkshop("");
               setSelectedCategory("");
               setSelectedQuestion("");
-              setResponses([]);
             }}
           />
 
@@ -846,11 +1262,8 @@ const availableQuestions = useMemo(() => {
             checked={exportType === "od"}
             onChange={() => {
               setExportType("od");
-              setSelectedOrganization("");
-              setSelectedWorkshop("");
               setSelectedCategory("");
               setSelectedQuestion("");
-              setResponses([]);
             }}
           />
 
@@ -1161,6 +1574,18 @@ const availableQuestions = useMemo(() => {
         ========================================= */
         <section className="export-table-card">
 
+          {answerPieCharts.length > 0 ? (
+            <div className="export-pie-list">
+              {answerPieCharts.map((chart) => (
+                <SummaryPieChart
+                  key={chart.title}
+                  title={chart.title}
+                  slices={chart.slices}
+                />
+              ))}
+            </div>
+          ) : null}
+
           <table className="export-table">
 
             <thead>
@@ -1366,10 +1791,12 @@ const availableQuestions = useMemo(() => {
                               className="export-attachment-button"
                               title="Download attachment"
                               onClick={() => {
-                                // Attachment download
-                                // will be connected
-                                // when attachment API
-                                // is available.
+                                if (
+                                  item.attachment &&
+                                  item.attachment !== "-"
+                                ) {
+                                  window.open(item.attachment, "_blank");
+                                }
                               }}
                             >
                               ↓

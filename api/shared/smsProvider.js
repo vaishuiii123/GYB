@@ -250,25 +250,54 @@ async function sendViaBulkSmsLink(phone, message, templateId) {
       (statusCode && !["900", "200", "0"].includes(statusCode)) ||
       reason.includes("fail") ||
       reason.includes("invalid") ||
-      reason.includes("reject")
+      reason.includes("reject") ||
+      reason.includes("blocked")
     ) {
-      throw new Error(
+      const providerMessage =
         parsed.message ||
-          parsed.Message ||
-          parsed.reason ||
-          parsed.Reason ||
-          parsed.error ||
-          parsed.Error ||
-          raw
-      );
+        parsed.Message ||
+        parsed.reason ||
+        parsed.Reason ||
+        parsed.error ||
+        parsed.Error ||
+        raw;
+
+      if (String(providerMessage).toLowerCase().includes("ip blocked")) {
+        throw new Error(
+          `${providerMessage}. BulkSMSLink is blocking this machine's public IP. For local login set SMS_DEV_BYPASS=true in api/local.settings.json (Values), or whitelist the IP from GET /api/get-outbound-ip in BulkSMSLink.`
+        );
+      }
+
+      throw new Error(providerMessage);
     }
   }
 
   return { provider: "bulksmslink", response: parsed || raw };
 }
 
+async function sendViaMock(phone, message) {
+  const mobile = normalizePhone(phone);
+  console.log(
+    `[SMS_DEV_BYPASS] Skipping real SMS provider. phone=${mobile} message=${message}`
+  );
+  return {
+    provider: "mock",
+    response: {
+      status: "success",
+      message: "SMS skipped in local/dev mode. Check Functions logs for OTP.",
+    },
+  };
+}
+
 async function sendSms(phone, message, options = {}) {
   const provider = (process.env.SMS_PROVIDER || "bulksmslink").toLowerCase();
+  const bypass =
+    String(process.env.SMS_DEV_BYPASS || "").toLowerCase() === "true" ||
+    provider === "mock";
+
+  if (bypass) {
+    return sendViaMock(phone, message);
+  }
 
   switch (provider) {
     case "fast2sms":

@@ -34,6 +34,8 @@ module.exports = async function (context, req) {
           templateName:
             entity.TemplateName || "",
 
+          templateType: "OD",
+
           categoryId:
             entity.CategoryId || "",
 

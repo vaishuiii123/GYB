@@ -196,7 +196,11 @@ export default function UserLogin() {
       }
       
       setStep("otp");
-      setInfoMessage(otpData.message || "OTP sent to your mobile number.");
+      setInfoMessage(
+        otpData.devOtp
+          ? `Local OTP: ${otpData.devOtp}`
+          : otpData.message || "OTP sent to your mobile number."
+      );
 
       
 
@@ -235,7 +239,11 @@ export default function UserLogin() {
       }
 
       setStep("otp");
-      setInfoMessage(data.message || "OTP sent successfully.");
+      setInfoMessage(
+        data.devOtp
+          ? `Local OTP: ${data.devOtp}`
+          : data.message || "OTP sent successfully."
+      );
     } catch (error) {
       console.error(error);
       setErrorMessage("Unable to send OTP.");

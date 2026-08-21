@@ -1312,3 +1312,193 @@
   color: #111111 !important;
   border-color: #ed1c24 !important;
 }
+.question-attachment {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed #d1d5db;
+}
+
+.question-attachment-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.question-attachment-hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.question-attachment-file {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: #111827;
+}
+
+.question-attachment-link {
+  color: #9b304a;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.question-attachment-link:hover {
+  text-decoration: underline;
+}
+
+.od-questions-panel {
+  width: 100%;
+}
+
+.od-questions-title {
+  margin: 8px 0 4px;
+  font-size: 28px;
+  color: #111827;
+}
+
+.od-questions-path {
+  margin: 0 0 20px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.question-block {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-bottom: 14px;
+}
+
+.question-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  line-height: 1.45;
+  margin-bottom: 8px;
+}
+
+.question-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.question-type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.question-tag {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.question-block textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 96px;
+  background: #ffffff;
+}
+
+.question-block textarea:focus {
+  outline: none;
+  border-color: #9b304a;
+  box-shadow: 0 0 0 3px rgba(155, 48, 74, 0.12);
+}
+
+.option-buttons,
+.status-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.option-btn,
+.status-btn {
+  border: 1.5px solid #d1d5db;
+  background: #ffffff;
+  color: #111827;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.option-btn:hover:not(:disabled),
+.status-btn:hover:not(:disabled) {
+  border-color: #9b304a;
+}
+
+.option-btn.selected,
+.status-btn.selected {
+  background: #9b304a;
+  border-color: #9b304a;
+  color: #ffffff;
+}
+
+.option-btn:disabled,
+.status-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.status-btn.status-red.selected {
+  background: #dc2626;
+  border-color: #dc2626;
+}
+
+.status-btn.status-yellow.selected {
+  background: #ca8a04;
+  border-color: #ca8a04;
+}
+
+.status-btn.status-green.selected {
+  background: #16a34a;
+  border-color: #16a34a;
+}
+
+.od-chart-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+.od-chart-error {
+  margin-top: 12px;
+  color: #b91c1c;
+  font-size: 14px;
+}
+
+.od-chart-success {
+  margin-top: 12px;
+  color: #15803d;
+  font-size: 14px;
+}
+
+.od-no-questions,
+.od-chart-status {
+  color: #6b7280;
+  font-size: 14px;
+}

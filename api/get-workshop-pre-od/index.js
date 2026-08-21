@@ -6,6 +6,10 @@ const {
 const { getPreOdFillStatus } = require("../shared/preOdAccess");
 const { getPreOdResponse } = require("../shared/preOdResponseStore");
 const { parseCustomQuestions } = require("../shared/preOdCustomQuestions");
+const {
+  getAttachmentFlag,
+  resolveWorkshopPreOdAttachments,
+} = require("../shared/preOdAttachments");
 
 function parseSrNos(value) {
   if (!value) {
@@ -54,6 +58,11 @@ module.exports = async function (context, req) {
 
     const fillStatus = getPreOdFillStatus(workshop);
     const assignedSrNos = parseSrNos(workshop.preOdQuestionSrNos);
+    const questionAttachments = await resolveWorkshopPreOdAttachments(
+      workshop,
+      assignedSrNos
+    );
+
     const questionMap = new Map(
       PRE_OD_QUESTIONS.map((item) => [item.srNo, item])
     );
@@ -69,6 +78,10 @@ module.exports = async function (context, req) {
           workshop.organizationName
         ),
         section: item.srNo <= 33 ? "A" : "B",
+        attachmentsApplicable: getAttachmentFlag(
+          questionAttachments,
+          item.srNo
+        ),
       }));
 
     const customQuestions = parseCustomQuestions(
@@ -78,11 +91,13 @@ module.exports = async function (context, req) {
       category: item.category,
       question: personalizeQuestion(item.question, workshop.organizationName),
       section: "B",
+      attachmentsApplicable: "N",
     }));
 
     const questions = [...bankQuestions, ...customQuestions];
 
     let answers = {};
+    let attachments = {};
     let submittedDate = "";
 
     if (participantId) {
@@ -90,6 +105,7 @@ module.exports = async function (context, req) {
 
       if (saved) {
         answers = saved.answers || {};
+        attachments = saved.attachments || {};
         submittedDate = saved.submittedDate || "";
       }
     }
@@ -110,6 +126,7 @@ module.exports = async function (context, req) {
         message: fillStatus.message,
         questions,
         answers,
+        attachments,
         submittedDate,
       },
     };

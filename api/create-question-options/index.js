@@ -1,168 +1,90 @@
-const { getTableClient } = require("../shared/tableHelper");
-
-
-
-module.exports = async function(context, req){
-
-    try{
-
-
-        const tableClient =
-            getTableClient("QuestionOptions");
-
-
-
-        const {
-            questionId,
-            options,
-            createdBy
-        } = req.body;
-
-
-
-        if(!questionId || !options || options.length === 0){
-
-            context.res={
-                status:400,
-                body:{
-                    success:false,
-                    message:"QuestionId and options are required."
-                }
-            };
-
-            return;
-
-        }
-
-
-
-        let maxNumber = 0;
-
-
-
-        const existingOptions =
-            tableClient.listEntities({
-
-                queryOptions:{
-                    filter:"PartitionKey eq 'QuestionOption'"
-                }
-
-            });
-
-
-
-        for await(const option of existingOptions){
-
-
-            const number =
-                parseInt(
-                    option.rowKey.replace("OPT","")
-                );
-
-
-            if(number > maxNumber){
-
-                maxNumber = number;
-
-            }
-
-        }
-
-
-
-
-        const createdOptions=[];
-
-
-
-        for(const optionText of options){
-
-
-            maxNumber++;
-
-
-
-            const optionId =
-                `OPT${String(maxNumber).padStart(3,"0")}`;
-
-
-
-            const entity={
-
-
-                partitionKey:"QuestionOption",
-
-                rowKey:optionId,
-
-
-                QuestionId:questionId,
-
-
-                OptionText:optionText,
-
-
-                CreatedBy:createdBy || "Admin",
-
-
-                CreatedDate:new Date().toISOString()
-
-
-            };
-
-
-
-            await tableClient.createEntity(entity);
-
-
-
-            createdOptions.push(entity);
-
-
-        }
-
-
-
-
-
-        context.res={
-
-            status:201,
-
-            body:{
-
-                success:true,
-
-                message:"Options saved successfully.",
-
-                data:createdOptions
-
-            }
-
-        };
-
-
-
-    }
-    catch(error){
-
-
-        context.log(error);
-
-
-        context.res={
-
-            status:500,
-
-            body:{
-
-                success:false,
-
-                message:error.message
-
-            }
-
-        };
-
+const { getTableClient, escapeODataValue } = require("../shared/tableHelper");
+
+module.exports = async function (context, req) {
+  try {
+    const tableClient = getTableClient("QuestionOptions");
+
+    const { questionId, options, createdBy, replaceExisting } = req.body || {};
+
+    if (!questionId || !options || options.length === 0) {
+      context.res = {
+        status: 400,
+        body: {
+          success: false,
+          message: "QuestionId and options are required.",
+        },
+      };
+      return;
     }
 
+    if (replaceExisting) {
+      for await (const option of tableClient.listEntities({
+        queryOptions: {
+          filter: `PartitionKey eq 'QuestionOption' and QuestionId eq '${escapeODataValue(
+            String(questionId)
+          )}'`,
+        },
+      })) {
+        await tableClient.deleteEntity(option.partitionKey, option.rowKey);
+      }
+    }
+
+    let maxNumber = 0;
+
+    const existingOptions = tableClient.listEntities({
+      queryOptions: {
+        filter: "PartitionKey eq 'QuestionOption'",
+      },
+    });
+
+    for await (const option of existingOptions) {
+      const number = parseInt(String(option.rowKey || "").replace("OPT", ""), 10);
+      if (!Number.isNaN(number) && number > maxNumber) {
+        maxNumber = number;
+      }
+    }
+
+    const createdOptions = [];
+
+    for (const optionText of options) {
+      const text = String(optionText || "").trim();
+      if (!text) {
+        continue;
+      }
+
+      maxNumber += 1;
+      const optionId = `OPT${String(maxNumber).padStart(3, "0")}`;
+
+      const entity = {
+        partitionKey: "QuestionOption",
+        rowKey: optionId,
+        QuestionId: questionId,
+        OptionText: text,
+        CreatedBy: createdBy || "Admin",
+        CreatedDate: new Date().toISOString(),
+      };
+
+      await tableClient.createEntity(entity);
+      createdOptions.push(entity);
+    }
+
+    context.res = {
+      status: 201,
+      body: {
+        success: true,
+        message: "Options saved successfully.",
+        data: createdOptions,
+      },
+    };
+  } catch (error) {
+    context.log(error);
+
+    context.res = {
+      status: 500,
+      body: {
+        success: false,
+        message: error.message,
+      },
+    };
+  }
 };

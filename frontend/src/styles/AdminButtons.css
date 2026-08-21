@@ -168,6 +168,16 @@
   color: #047857 !important;
 }
 
+.admin-icon-download {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+}
+
+.admin-icon-upload {
+  background: #f5f3ff !important;
+  color: #6d28d9 !important;
+}
+
 .admin-icon-delete,
 .delete-btn,
 .org-btn-delete,

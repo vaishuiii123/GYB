@@ -10,9 +10,9 @@ export default function Sidebar() {
     { name: "Question Management", path: "/question-management", icon: "❓" },
     { name: "Template", path: "/template", icon: "📄" },
     { name: "Workshop", path: "/workshop", icon: "🎓" },
-    { name: "Pre Organization Development", path: "/pre-od", icon: "📋" },
-    { name: "Admin Management", path: "/admin-management", icon: "🛡️" },
     {name: "Export", path: "/export", icon: "📤"},
+    { name: "Admin Management", path: "/admin-management", icon: "🛡️" },
+   
   ];
 
   return (

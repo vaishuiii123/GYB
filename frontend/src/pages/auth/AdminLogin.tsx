@@ -20,6 +20,14 @@ type LoginProps = {
 
 const ADMIN_ROLES = ["organizer", "admin"];
 
+const getCheckEmailUrl = () => {
+  // Bypass Vite proxy locally — it can return intermittent 502s after MSAL redirect.
+  if (import.meta.env.DEV) {
+    return "http://127.0.0.1:7071/api/check-email";
+  }
+  return "/api/check-email";
+};
+
 export default function AdminLogin({ onLogin }: LoginProps) {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
@@ -38,54 +46,78 @@ export default function AdminLogin({ onLogin }: LoginProps) {
   };
 
  const verifyAdminEmail = async (emailToCheck: string) => {
-  const controller = new AbortController();
+  const payload = JSON.stringify({
+    email: emailToCheck.trim().toLowerCase(),
+  });
 
-  const timeout = setTimeout(() => {
-    controller.abort();
-  }, 10000);
+  let response: Response | null = null;
+  let lastError: unknown = null;
 
-  try {
-    const response = await fetch("/api/check-email", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email: emailToCheck.trim().toLowerCase(),
-      }),
-      signal: controller.signal,
-    });
+  // Retry briefly: Vite proxy can return transient 502s right after MSAL redirect.
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+    try {
+      response = await fetch(getCheckEmailUrl(), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: payload,
+        signal: controller.signal,
+      });
+
+      if (response.ok || (response.status !== 502 && response.status !== 503)) {
+        break;
+      }
+
+      lastError = new Error(`HTTP ${response.status}`);
+    } catch (error) {
+      lastError = error;
+      response = null;
+    } finally {
+      clearTimeout(timeout);
     }
 
-    const data = await response.json();
-
-    if (!data.found) {
-      setMessage("Email not registered for admin access.");
-      return false;
+    if (attempt < 3) {
+      await new Promise((resolve) => setTimeout(resolve, 500 * attempt));
     }
-
-    const role = String(data.role || "").toLowerCase();
-
-    if (!ADMIN_ROLES.includes(role)) {
-      setMessage("This account does not have admin access.");
-      return false;
-    }
-
-    setMessage("Email verified.");
-
-    completeAdminLogin({
-      name: data.name,
-      role: data.role,
-      email: emailToCheck.trim().toLowerCase(),
-    });
-
-    return true;
-  } finally {
-    clearTimeout(timeout);
   }
+
+  if (!response) {
+    throw lastError instanceof Error
+      ? lastError
+      : new Error("Unable to reach email validation API.");
+  }
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  const data = await response.json();
+
+  if (!data.found) {
+    setMessage("Email not registered for admin access.");
+    return false;
+  }
+
+  const role = String(data.role || "").toLowerCase();
+
+  if (!ADMIN_ROLES.includes(role)) {
+    setMessage("This account does not have admin access.");
+    return false;
+  }
+
+  setMessage("Email verified.");
+
+  completeAdminLogin({
+    name: data.name,
+    role: data.role,
+    email: emailToCheck.trim().toLowerCase(),
+  });
+
+  return true;
 };
 
  useEffect(() => {
@@ -129,11 +161,15 @@ export default function AdminLogin({ onLogin }: LoginProps) {
   verifyAdminEmail(microsoftEmail)
     .catch((err) => {
       console.error("Admin verification failed:", err);
-      if (err.name === "AbortError") {
-      setMessage("Admin verification is taking too long. Please try again.");
-    } else {
-      setMessage("Unable to validate email.");
-    }
+      if (err?.name === "AbortError") {
+        setMessage("Admin verification is taking too long. Please try again.");
+      } else {
+        const detail =
+          err instanceof Error && err.message
+            ? ` (${err.message})`
+            : "";
+        setMessage(`Unable to validate email.${detail}`);
+      }
     })
     .finally(() => {
       setLoading(false);

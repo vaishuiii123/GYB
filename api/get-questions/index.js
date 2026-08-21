@@ -29,6 +29,7 @@ module.exports = async function (context, req) {
                         "QuestionText",
                         "QuestionType",
                         "TagId",
+                        "AttachmentsApplicable",
                         "CreatedBy",
                         "CreatedDate",
                         "ModifiedBy",
@@ -52,6 +53,12 @@ module.exports = async function (context, req) {
                 questionType: entity.QuestionType,
 
                 tagId: entity.TagId,
+
+                attachmentsApplicable:
+                    String(entity.AttachmentsApplicable || "N").toUpperCase() ===
+                    "Y"
+                        ? "Y"
+                        : "N",
 
                 createdBy: entity.CreatedBy,
 

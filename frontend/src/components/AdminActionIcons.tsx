@@ -1,4 +1,4 @@
-import { Copy, Eye, Pencil, Trash2 } from "lucide-react";
+import { Copy, Download, Eye, Pencil, Trash2, Upload } from "lucide-react";
 
 type IconBtnProps = {
   onClick?: () => void;
@@ -63,6 +63,46 @@ export function CopyIconBtn({
       disabled={disabled}
     >
       <Copy size={16} strokeWidth={2} />
+    </button>
+  );
+}
+
+export function DownloadIconBtn({
+  onClick,
+  disabled,
+  title = "Download template",
+  className = "",
+}: IconBtnProps) {
+  return (
+    <button
+      type="button"
+      className={`admin-icon-btn admin-icon-download ${className}`.trim()}
+      title={title}
+      aria-label={title}
+      onClick={onClick}
+      disabled={disabled}
+    >
+      <Download size={16} strokeWidth={2} />
+    </button>
+  );
+}
+
+export function UploadIconBtn({
+  onClick,
+  disabled,
+  title = "Upload template",
+  className = "",
+}: IconBtnProps) {
+  return (
+    <button
+      type="button"
+      className={`admin-icon-btn admin-icon-upload ${className}`.trim()}
+      title={title}
+      aria-label={title}
+      onClick={onClick}
+      disabled={disabled}
+    >
+      <Upload size={16} strokeWidth={2} />
     </button>
   );
 }

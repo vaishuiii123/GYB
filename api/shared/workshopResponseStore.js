@@ -60,6 +60,7 @@ async function listOdResponsesForWorkshop(workshopId) {
         participantId,
         participantName: "",
         answers: {},
+        attachments: {},
         submittedDate: "",
         templateId: "",
       };
@@ -67,6 +68,18 @@ async function listOdResponsesForWorkshop(workshopId) {
       if (entity.QuestionId) {
         current.answers[entity.QuestionId] =
           entity.AnswerText || entity.OptionId || "";
+
+        const blobPath = String(entity.AttachmentBlobPath || "").trim();
+        if (blobPath) {
+          current.attachments[entity.QuestionId] = {
+            fileName: String(entity.AttachmentName || "attachment"),
+            blobPath,
+            contentType: String(
+              entity.AttachmentContentType || "application/octet-stream"
+            ),
+            size: Number(entity.AttachmentSize || 0),
+          };
+        }
       }
 
       if (
@@ -226,9 +239,10 @@ function safeJsonArray(value) {
 
 async function loadQuestionLabels(questionIds) {
   const labels = {};
+  const types = {};
   const unique = [...new Set(questionIds.filter(Boolean))];
   if (unique.length === 0) {
-    return labels;
+    return { labels, types };
   }
 
   const client = getTableClient("Questions");
@@ -238,13 +252,15 @@ async function loadQuestionLabels(questionIds) {
         const entity = await client.getEntity("Question", questionId);
         labels[questionId] =
           entity.QuestionText || entity.Question || questionId;
+        types[questionId] = entity.QuestionType || "";
       } catch {
         labels[questionId] = questionId;
+        types[questionId] = "";
       }
     })
   );
 
-  return labels;
+  return { labels, types };
 }
 
 async function buildWorkshopResponsePayload(workshop) {
@@ -303,7 +319,8 @@ async function buildWorkshopResponsePayload(workshop) {
   const questionIds = odResponses.flatMap((item) =>
     Object.keys(item.answers || {})
   );
-  const questionLabels = await loadQuestionLabels(questionIds);
+  const { labels: questionLabels, types: questionTypes } =
+    await loadQuestionLabels(questionIds);
 
   const participants = [...allParticipantIds]
     .map((rawId) => {
@@ -349,12 +366,14 @@ async function buildWorkshopResponsePayload(workshop) {
         preOd: preOd
           ? {
               answers: preOd.answers || {},
+              attachments: preOd.attachments || {},
               submittedDate: preOd.submittedDate || "",
             }
           : null,
         odChart: od
           ? {
               answers: od.answers || {},
+              attachments: od.attachments || {},
               submittedDate: od.submittedDate || "",
             }
           : null,
@@ -411,6 +430,7 @@ async function buildWorkshopResponsePayload(workshop) {
     },
     preOdQuestions,
     questionLabels,
+    questionTypes,
     participants,
     counts: {
       participants: participants.length,

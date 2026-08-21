@@ -1,4 +1,7 @@
 const { getTableClient } = require("../shared/tableHelper");
+const {
+  normalizeAttachmentsApplicable,
+} = require("../shared/attachmentHelper");
 
 
 
@@ -18,6 +21,7 @@ questionId,
 questionText,
 questionType,
 tagId,
+attachmentsApplicable,
 modifiedBy
 }=req.body;
 
@@ -35,6 +39,10 @@ QuestionText:questionText,
 QuestionType:questionType,
 
 TagId:tagId,
+
+AttachmentsApplicable: normalizeAttachmentsApplicable(
+  attachmentsApplicable
+),
 
 
 ModifiedBy:modifiedBy || "Admin",

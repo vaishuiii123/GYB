@@ -161,6 +161,10 @@ module.exports = async function (context, req) {
           tagId,
           tagName: tagId ? tagNameById.get(tagId) || "" : "",
           tagColor: tagId ? tagColorById.get(tagId) || "#9B304A" : "",
+          attachmentsApplicable:
+            String(question.AttachmentsApplicable || "N").toUpperCase() === "Y"
+              ? "Y"
+              : "N",
           options: optionsByQuestionId.get(questionId) || [],
         };
       })
@@ -177,6 +181,7 @@ module.exports = async function (context, req) {
 
     if (answerPayload) {
       responseBody.answers = answerPayload.answers;
+      responseBody.attachments = answerPayload.attachments || {};
       responseBody.responseMeta = {
         organizationId: answerPayload.organizationId,
         templateId: answerPayload.templateId,

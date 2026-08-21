@@ -13,7 +13,9 @@ import Organization from "./pages/Admin/Organization";
 import Participants from "./pages/Admin/Participants";
 import Template from "./pages/Admin/Template";
 import CreateTemplate from "./pages/Admin/CreateTemplate";
+import CreatePreOdTemplate from "./pages/Admin/CreatePreOdTemplate";
 import TemplateDetails from "./pages/Admin/TemplateDetails";
+import PreODTemplateDetails from "./pages/Admin/PreODTemplateDetails";
 import Workshop from "./pages/Admin/Workshop";
 import UserLogin from "./pages/User/UserLogin";
 import UserDashboard from "./pages/User/UserDashboard";
@@ -30,8 +32,6 @@ import Category from "./pages/Admin/Category";
 import CategoryQuestions from "./pages/Admin/CategoryQuestions";
 import TagManagement from "./pages/Admin/TagManagement";
 import QuestionManagement from "./pages/Admin/QuestionManagement";
-import PreOD from "./pages/Admin/PreOD";
-import PreODResponses from "./pages/Admin/PreODResponses";
 import WorkshopResponses from "./pages/Admin/WorkshopResponses";
 import AdminManagement from "./pages/Admin/AdminManagement";
 import PreODForm from "./pages/User/PreODForm";
@@ -173,16 +173,6 @@ function App() {
     />
 
       <Route
-        path="/pre-od"
-        element={<PreOD user={currentUser} />}
-      />
-
-      <Route
-        path="/pre-od-responses/:workshopId"
-        element={<PreODResponses user={currentUser} />}
-      />
-
-      <Route
         path="/workshop-responses/:workshopId"
         element={<WorkshopResponses user={currentUser} />}
       />
@@ -203,8 +193,18 @@ function App() {
         />
 
        <Route
+          path="/create-pre-od-template"
+          element={<CreatePreOdTemplate user={currentUser} />}
+        />
+
+       <Route
           path="/template-details/:id"
-          element={<TemplateDetails />}
+          element={<TemplateDetails user={currentUser} />}
+        />
+
+       <Route
+          path="/pre-od-template-details/:id"
+          element={<PreODTemplateDetails user={currentUser} />}
         />
 
        <Route

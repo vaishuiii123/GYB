@@ -6,10 +6,15 @@ const {
   normalizeCustomQuestions,
   serializeCustomQuestions,
 } = require("../shared/preOdCustomQuestions");
+const {
+  normalizeQuestionAttachments,
+  serializeQuestionAttachments,
+} = require("../shared/preOdAttachments");
 
 module.exports = async function (context, req) {
   try {
-    const { workshopId, questionSrNos, customQuestions } = req.body || {};
+    const { workshopId, questionSrNos, customQuestions, questionAttachments, preOdTemplateId, preOdTemplateName } =
+      req.body || {};
 
     if (!workshopId) {
       context.res = {
@@ -34,13 +39,18 @@ module.exports = async function (context, req) {
     );
     const filteredSrNos = srNos.filter((srNo) => validSrNos.has(String(srNo)));
     const normalizedCustom = normalizeCustomQuestions(customQuestions);
+    const attachmentsMap = normalizeQuestionAttachments(
+      questionAttachments,
+      filteredSrNos
+    );
 
     if (filteredSrNos.length === 0 && normalizedCustom.length === 0) {
       context.res = {
         status: 400,
         body: {
           success: false,
-          message: "Select at least one Pre OD question or add a custom question.",
+          message:
+            "Select at least one Pre OD question or add a custom question.",
         },
       };
       return;
@@ -82,9 +92,16 @@ module.exports = async function (context, req) {
         rowKey: workshopId,
         PreOdQuestionSrNos: filteredSrNos.join(","),
         PreOdCustomQuestions: serializeCustomQuestions(normalizedCustom),
+        PreOdQuestionAttachments: serializeQuestionAttachments(attachmentsMap),
         PreOdQuestionCount: questionCount,
-        PreOdTemplateId: "",
-        PreOdTemplateName: "",
+        PreOdTemplateId:
+          preOdTemplateId !== undefined
+            ? String(preOdTemplateId || "")
+            : workshop.PreOdTemplateId || "",
+        PreOdTemplateName:
+          preOdTemplateName !== undefined
+            ? String(preOdTemplateName || "")
+            : workshop.PreOdTemplateName || "",
       },
       "Merge"
     );
@@ -97,6 +114,7 @@ module.exports = async function (context, req) {
         workshopId,
         workshopName: workshop.WorkshopName || "",
         questionSrNos: filteredSrNos,
+        questionAttachments: attachmentsMap,
         customQuestions: normalizedCustom,
         questionCount,
       },

@@ -63,15 +63,24 @@ module.exports = async function (context, req) {
     await saveParticipantOtp(loginContext.participant.rowKey, otp, expiresAt);
 
     const message = buildWorkshopSmsMessage({ verificationCode: otp });
+    const smsBypass =
+      String(process.env.SMS_DEV_BYPASS || "").toLowerCase() === "true" ||
+      String(process.env.SMS_PROVIDER || "").toLowerCase() === "mock";
 
     context.log("Login OTP SMS:", message);
+    if (smsBypass) {
+      context.log(`[DEV] OTP for ${phoneResult.normalizedPhone}: ${otp}`);
+    }
 
     await sendSms(phoneResult.normalizedPhone, message);
 
     context.res = jsonResponse(200, {
       success: true,
-      message: "OTP sent to your mobile number.",
+      message: smsBypass
+        ? "OTP generated locally (SMS bypass). Check Functions console for the code."
+        : "OTP sent to your mobile number.",
       expiresInMinutes: validityMinutes,
+      ...(smsBypass ? { devOtp: otp } : {}),
     });
   } catch (error) {
     context.log("Error in send-login-otp:", error);

@@ -38,6 +38,8 @@ module.exports = async function (context, req) {
 
         const optionClient = getTableClient("QuestionOptions");
 
+        const tagClient = getTableClient("Tags");
+
         let template = null;
 
         for await (const entity of templateClient.listEntities()) {
@@ -94,18 +96,27 @@ module.exports = async function (context, req) {
                 ? tops.find((t) => t.rowKey === middle.TopCategoryId)
                 : null;
 
+            const topCategoryName = top?.TopCategoryName || "";
+            const middleCategoryName = middle?.MiddleCategoryName || "";
+            const parentCategoryName = parent?.ParentCategoryName || "";
+            const categoryName = category.CategoryName || "";
+
             const fullPath = [
-                top?.TopCategoryName,
-                middle?.MiddleCategoryName,
-                parent?.ParentCategoryName,
-                category.CategoryName
+                topCategoryName,
+                middleCategoryName,
+                parentCategoryName,
+                categoryName
             ]
                 .filter(Boolean)
                 .join(" > ");
 
             categories.push({
                 id: category.rowKey,
-                categoryName: category.CategoryName || "",
+                categoryName,
+                topCategoryName,
+                middleCategoryName,
+                parentCategoryName,
+                tagId: category.TagId || "",
                 fullPath,
                 questionIds: parseQuestionIds(category.QuestionId)
             });
@@ -132,6 +143,19 @@ module.exports = async function (context, req) {
             allOptions.push(opt);
         }
 
+        const tagNameById = new Map();
+        const tagColorById = new Map();
+        try {
+            for await (const tag of tagClient.listEntities({
+                queryOptions: { filter: "PartitionKey eq 'Tag'" }
+            })) {
+                tagNameById.set(tag.rowKey, tag.TagName || "");
+                tagColorById.set(tag.rowKey, tag.TagColor || "");
+            }
+        } catch {
+            // Tags table may be empty
+        }
+
         const questions = [];
 
         for (const questionId of questionIds) {
@@ -148,14 +172,35 @@ module.exports = async function (context, req) {
                     .map((opt) => opt.OptionText)
                     .join(", ");
 
+                const questionTagId =
+                    question.TagId ||
+                    question.tagId ||
+                    categoryInfo?.tagId ||
+                    "";
+
                 questions.push({
                     id: question.rowKey,
                     question: question.QuestionText,
                     answerType: question.QuestionType,
+                    tagId: questionTagId,
+                    tagName: questionTagId
+                        ? tagNameById.get(questionTagId) || ""
+                        : "",
+                    tagColor: questionTagId
+                        ? tagColorById.get(questionTagId) || ""
+                        : "",
+                    attachmentsApplicable:
+                        String(question.AttachmentsApplicable || "N").toUpperCase() ===
+                        "Y"
+                            ? "Y"
+                            : "N",
                     required: false,
                     options,
                     categoryId: categoryInfo?.id || "",
                     categoryName: categoryInfo?.categoryName || "",
+                    topCategoryName: categoryInfo?.topCategoryName || "",
+                    middleCategoryName: categoryInfo?.middleCategoryName || "",
+                    parentCategoryName: categoryInfo?.parentCategoryName || "",
                     categoryPath: categoryInfo?.fullPath || ""
                 });
             } catch {

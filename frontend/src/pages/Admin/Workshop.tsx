@@ -326,7 +326,10 @@ export default function Workshop({ user }: PageProps) {
       body: JSON.stringify({
         workshopId,
         questionSrNos: selectedPreOd.questionSrNos || [],
+        questionAttachments: selectedPreOd.questionAttachments || {},
         customQuestions: [],
+        preOdTemplateId: selectedPreOd.id || "",
+        preOdTemplateName: selectedPreOd.templateName || "",
       }),
     });
 

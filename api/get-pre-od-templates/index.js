@@ -1,10 +1,11 @@
 const { getTableClient } = require("../shared/tableHelper");
-
+const {
+  normalizeQuestionAttachments,
+} = require("../shared/preOdAttachments");
 
 module.exports = async function (context) {
   try {
     const client = getTableClient("PreODTemplate");
-
     const templates = [];
 
     for await (const entity of client.listEntities({
@@ -14,6 +15,7 @@ module.exports = async function (context) {
           "RowKey",
           "TemplateName",
           "QuestionSrNos",
+          "QuestionAttachments",
           "CreatedBy",
           "CreatedDate",
         ],
@@ -27,7 +29,12 @@ module.exports = async function (context) {
       templates.push({
         id: entity.rowKey,
         templateName: entity.TemplateName || "",
+        templateType: "Pre OD",
         questionSrNos,
+        questionAttachments: normalizeQuestionAttachments(
+          entity.QuestionAttachments,
+          questionSrNos
+        ),
         questionCount: questionSrNos.length,
         createdBy: entity.CreatedBy || "",
         createdDate: entity.CreatedDate || "",

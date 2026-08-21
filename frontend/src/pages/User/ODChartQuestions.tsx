@@ -20,6 +20,22 @@ const STATUS_OPTIONS = [
   { value: "Green", label: "Green", className: "status-green" },
 ];
 
+const ATTACHMENT_ACCEPT =
+  ".xlsx,.xls,.csv,.doc,.docx,.pdf,.ppt,.pptx,.txt,.png,.jpg,.jpeg,.gif,.webp,.bmp";
+
+type AttachmentMeta = {
+  fileName: string;
+  blobPath?: string;
+  contentType?: string;
+  size?: number;
+};
+
+type PendingFile = {
+  file: File;
+  fileName: string;
+  contentType: string;
+};
+
 function loadNavState(
   location: ReturnType<typeof useLocation>
 ): ODQuestionsNavState | null {
@@ -36,12 +52,31 @@ function loadNavState(
   }
 }
 
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result || "");
+      const commaIndex = result.indexOf(",");
+      resolve(commaIndex >= 0 ? result.slice(commaIndex + 1) : result);
+    };
+    reader.onerror = () => reject(reader.error || new Error("File read failed"));
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function ODChartQuestions() {
   const navigate = useNavigate();
   const location = useLocation();
   const [navState, setNavState] = useState<ODQuestionsNavState | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [savedAttachments, setSavedAttachments] = useState<
+    Record<string, AttachmentMeta>
+  >({});
+  const [pendingFiles, setPendingFiles] = useState<
+    Record<string, PendingFile>
+  >({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -73,9 +108,11 @@ export default function ODChartQuestions() {
         tagId?: string;
         tagName?: string;
         tagColor?: string;
+        attachmentsApplicable?: string;
         options: { optionText: string }[] | string[];
       }>;
       answers?: Record<string, string>;
+      attachments?: Record<string, AttachmentMeta>;
     }) => {
       setQuestions(
         (data.data || []).map((item) => ({
@@ -85,12 +122,18 @@ export default function ODChartQuestions() {
           tagId: item.tagId,
           tagName: item.tagName,
           tagColor: item.tagColor,
+          attachmentsApplicable:
+            String(item.attachmentsApplicable || "N").toUpperCase() === "Y"
+              ? "Y"
+              : "N",
           options: (item.options || []).map((option) =>
             typeof option === "string" ? option : option.optionText
           ),
         }))
       );
       setAnswers(data.answers || {});
+      setSavedAttachments(data.attachments || {});
+      setPendingFiles({});
     };
 
     const loadPageData = async () => {
@@ -114,9 +157,11 @@ export default function ODChartQuestions() {
             tagId?: string;
             tagName?: string;
             tagColor?: string;
+            attachmentsApplicable?: string;
             options: { optionText: string }[] | string[];
           }>;
           answers?: Record<string, string>;
+          attachments?: Record<string, AttachmentMeta>;
         }>(cacheKey);
 
         if (cached?.success) {
@@ -124,11 +169,17 @@ export default function ODChartQuestions() {
           setLoading(false);
         }
 
+        const activeWorkshop = getActiveWorkshopContext().workshop;
+        const templateId =
+          String(activeWorkshop?.templateId || state.workshop.templateId || "").trim();
+        const workshopId =
+          String(activeWorkshop?.id || state.workshop.id || "").trim();
+
         const query = new URLSearchParams({
           categoryId: state.leaf.id,
           participantId: participant.id,
-          workshopId: state.workshop.id,
-          templateId: state.workshop.templateId,
+          workshopId,
+          templateId,
         });
 
         const questionsRes = await fetch(
@@ -139,6 +190,11 @@ export default function ODChartQuestions() {
         if (questionsData.success) {
           mapQuestions(questionsData);
           setCachedPageData(cacheKey, questionsData);
+        } else {
+          setErrorMessage(
+            questionsData.message ||
+              "Unable to load questions for this workshop template."
+          );
         }
       } catch (error) {
         console.error(error);
@@ -157,6 +213,36 @@ export default function ODChartQuestions() {
     }
 
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
+  };
+
+  const handleAttachmentChange = (
+    questionId: string,
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    if (!canEdit) {
+      return;
+    }
+
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setErrorMessage("Attachment exceeds the 10 MB size limit.");
+      event.target.value = "";
+      return;
+    }
+
+    setPendingFiles((prev) => ({
+      ...prev,
+      [questionId]: {
+        file,
+        fileName: file.name,
+        contentType: file.type || "application/octet-stream",
+      },
+    }));
+    setErrorMessage("");
   };
 
   const handleSave = async () => {
@@ -178,6 +264,43 @@ export default function ODChartQuestions() {
       setErrorMessage("");
       setSuccessMessage("");
 
+      const uploadedAttachments: Record<string, AttachmentMeta> = {
+        ...savedAttachments,
+      };
+
+      for (const [questionId, pending] of Object.entries(pendingFiles)) {
+        const base64 = await fileToBase64(pending.file);
+        const uploadResponse = await fetch("/api/upload-od-attachment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            participantId: participant.id,
+            workshopId: navState.workshop.id,
+            organizationId: participant.organizationId || "",
+            questionId,
+            fileName: pending.fileName,
+            contentType: pending.contentType,
+            base64,
+          }),
+        });
+        const uploadResult = await uploadResponse.json();
+
+        if (!uploadResponse.ok || !uploadResult.success) {
+          setErrorMessage(
+            uploadResult.message ||
+              `Failed to upload attachment for question ${questionId}.`
+          );
+          return;
+        }
+
+        uploadedAttachments[questionId] = {
+          fileName: uploadResult.data.fileName,
+          blobPath: uploadResult.data.blobPath,
+          contentType: uploadResult.data.contentType,
+          size: uploadResult.data.size,
+        };
+      }
+
       const response = await fetch("/api/save-od-responses", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -194,6 +317,7 @@ export default function ODChartQuestions() {
             .filter(Boolean)
             .join(" "),
           answers,
+          attachments: uploadedAttachments,
         }),
       });
 
@@ -203,6 +327,9 @@ export default function ODChartQuestions() {
         setErrorMessage(result.message || "Failed to save responses.");
         return;
       }
+
+      setSavedAttachments(uploadedAttachments);
+      setPendingFiles({});
 
       if (navState) {
         clearCachedPageData(
@@ -221,33 +348,54 @@ export default function ODChartQuestions() {
 
   const renderQuestionInput = (question: Question) => {
     const currentValue = answers[question.id] || "";
-    const type = question.answerType.toLowerCase();
+    const type = String(question.answerType || "Text").trim().toLowerCase();
     const disabled = !canEdit;
+    const options = (question.options || [])
+      .map((option) => String(option || "").trim())
+      .filter(Boolean);
 
-    if (type.includes("rating") || type.includes("single")) {
+    const isMultiple = type.includes("multiple");
+    const isSingle = type.includes("single");
+    const isRating = type.includes("rating");
+    const isText = type.includes("text") || (!isMultiple && !isSingle && !isRating && options.length === 0);
+
+    if (isMultiple && options.length > 0) {
+      const selected = currentValue
+        ? currentValue
+            .split("|")
+            .map((part) => part.trim())
+            .filter(Boolean)
+        : [];
+
       return (
-        <div className="status-buttons">
-          {STATUS_OPTIONS.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              className={`status-btn ${option.className} ${
-                currentValue === option.value ? "selected" : ""
-              }`}
-              onClick={() => setAnswer(question.id, option.value)}
-              disabled={disabled}
-            >
-              {option.label}
-            </button>
-          ))}
+        <div className="option-buttons option-buttons-multi" role="group">
+          {options.map((option) => {
+            const checked = selected.includes(option);
+            return (
+              <button
+                key={option}
+                type="button"
+                className={`option-btn ${checked ? "selected" : ""}`}
+                onClick={() => {
+                  const next = checked
+                    ? selected.filter((item) => item !== option)
+                    : [...selected, option];
+                  setAnswer(question.id, next.join(" | "));
+                }}
+                disabled={disabled}
+              >
+                {option}
+              </button>
+            );
+          })}
         </div>
       );
     }
 
-    if (question.options.length > 0) {
+    if ((isSingle || (options.length > 0 && !isText && !isRating)) && options.length > 0) {
       return (
-        <div className="option-buttons">
-          {question.options.map((option) => (
+        <div className="option-buttons" role="radiogroup">
+          {options.map((option) => (
             <button
               key={option}
               type="button"
@@ -264,6 +412,36 @@ export default function ODChartQuestions() {
       );
     }
 
+    if (isRating) {
+      const ratingOptions =
+        options.length > 0
+          ? options
+          : STATUS_OPTIONS.map((option) => option.value);
+
+      return (
+        <div className="status-buttons" role="radiogroup">
+          {ratingOptions.map((option) => {
+            const preset = STATUS_OPTIONS.find(
+              (item) => item.value.toLowerCase() === option.toLowerCase()
+            );
+            return (
+              <button
+                key={option}
+                type="button"
+                className={`status-btn ${preset?.className || ""} ${
+                  currentValue === option ? "selected" : ""
+                }`}
+                onClick={() => setAnswer(question.id, option)}
+                disabled={disabled}
+              >
+                {preset?.label || option}
+              </button>
+            );
+          })}
+        </div>
+      );
+    }
+
     return (
       <textarea
         value={currentValue}
@@ -272,6 +450,50 @@ export default function ODChartQuestions() {
         rows={4}
         disabled={disabled}
       />
+    );
+  };
+
+  const renderAttachmentInput = (question: Question) => {
+    if (question.attachmentsApplicable !== "Y") {
+      return null;
+    }
+
+    const pending = pendingFiles[question.id];
+    const saved = savedAttachments[question.id];
+    const displayName = pending?.fileName || saved?.fileName || "";
+
+    return (
+      <div className="question-attachment">
+        <label className="question-attachment-label">Attachment</label>
+        <input
+          type="file"
+          accept={ATTACHMENT_ACCEPT}
+          disabled={!canEdit || saving}
+          onChange={(event) => handleAttachmentChange(question.id, event)}
+        />
+        <p className="question-attachment-hint">
+          Excel, Word, PowerPoint, PDF, text, or images (max 10 MB)
+        </p>
+        {displayName ? (
+          <div className="question-attachment-file">
+            <span>{displayName}</span>
+            {saved?.blobPath && !pending && navState && participant.id ? (
+              <a
+                className="question-attachment-link"
+                href={`/api/get-od-attachment?participantId=${encodeURIComponent(
+                  participant.id
+                )}&workshopId=${encodeURIComponent(
+                  navState.workshop.id
+                )}&questionId=${encodeURIComponent(question.id)}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Download
+              </a>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
     );
   };
 
@@ -324,6 +546,9 @@ export default function ODChartQuestions() {
             >
               <div className="question-text">{question.question}</div>
               <div className="question-meta">
+                <span className="question-type-badge">
+                  {question.answerType || "Text"}
+                </span>
                 {question.tagName ? (
                   <span
                     className="question-tag"
@@ -332,10 +557,9 @@ export default function ODChartQuestions() {
                     {question.tagName}
                   </span>
                 ) : null}
-                {question.tagName ? " · " : ""}
-                {question.answerType}
               </div>
               {renderQuestionInput(question)}
+              {renderAttachmentInput(question)}
             </div>
           ))
         )}

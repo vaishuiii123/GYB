@@ -48,7 +48,7 @@ module.exports = async function (context, req) {
     let role = "";
     let name = "";
 
-    // Select only needed columns; compare email in code (case-insensitive).
+    // Scan all User-table rows (older records may use different partition keys).
     const entities = client.listEntities({
       queryOptions: {
         select: ["Email", "Role", "Name"],
