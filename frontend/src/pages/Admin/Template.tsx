@@ -400,7 +400,8 @@ export default function Template({ user }: PageProps) {
             .map((tag: any) => String(tag.tagName || "").trim())
             .filter(Boolean)
         )
-      ).sort((a, b) => a.localeCompare(b));
+      ) as string[];
+      tagValues.sort((a, b) => a.localeCompare(b));
 
       const defaultQuestionTypes = [
         "Multiple Choice",
@@ -936,7 +937,8 @@ export default function Template({ user }: PageProps) {
           .map((item: any) => String(item.topCategoryName || "").trim())
           .filter(Boolean)
       )
-    ).sort((a, b) => a.localeCompare(b));
+    ) as string[];
+    topmostCategories.sort((a, b) => a.localeCompare(b));
 
     const topmostSet = new Set(
       topmostCategories.map((name) => normalizeText(name))
