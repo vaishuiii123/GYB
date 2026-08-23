@@ -1,10 +1,13 @@
 const { getTableClient } = require("../shared/tableHelper");
-
 const { sendSms } = require("../shared/smsProvider");
+const { sendEmail } = require("../shared/emailProvider");
 const {
   buildVerificationCode,
   buildWorkshopSmsMessage,
 } = require("../shared/workshopSmsMessage");
+const {
+  buildWorkshopEmailContent,
+} = require("../shared/workshopEmailMessage");
 
 async function updateParticipantPassword(participantId, password) {
   const client = getTableClient("Participants");
@@ -40,9 +43,7 @@ async function getWorkshop(workshopId) {
 
 async function getOrganizationParticipants(organizationId) {
   const mappingClient = getTableClient("OrganizationParticipants");
-
   const participantClient = getTableClient("Participants");
-
   const participantIds = [];
 
   for await (const entity of mappingClient.listEntities()) {
@@ -72,9 +73,39 @@ async function getOrganizationParticipants(organizationId) {
   return participants;
 }
 
+function normalizeParticipantIds(value) {
+  if (!value) {
+    return null;
+  }
+  const list = Array.isArray(value) ? value : [value];
+  const ids = list.map((item) => String(item || "").trim()).filter(Boolean);
+  return ids.length ? new Set(ids) : null;
+}
+
+function formatDate(value) {
+  if (!value) {
+    return "";
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+  return date.toLocaleString();
+}
+
 module.exports = async function (context, req) {
   try {
-    const { workshopId, loginUrl } = req.body || {};
+    const {
+      workshopId,
+      loginUrl,
+      participantIds,
+      channel = "email",
+    } = req.body || {};
+
+    const sendEmailChannel =
+      channel === "email" || channel === "both" || channel === "all";
+    const sendSmsChannel =
+      channel === "sms" || channel === "both" || channel === "all";
 
     if (!workshopId) {
       context.res = {
@@ -82,6 +113,17 @@ module.exports = async function (context, req) {
         body: {
           success: false,
           message: "workshopId is required",
+        },
+      };
+      return;
+    }
+
+    if (!sendEmailChannel && !sendSmsChannel) {
+      context.res = {
+        status: 400,
+        body: {
+          success: false,
+          message: 'channel must be "email", "sms", or "both"',
         },
       };
       return;
@@ -116,16 +158,23 @@ module.exports = async function (context, req) {
       process.env.APP_LOGIN_URL ||
       "https://gentle-sea-0636fbe10.7.azurestaticapps.net";
 
-    const participants = await getOrganizationParticipants(
+    let participants = await getOrganizationParticipants(
       workshop.organizationId
     );
+
+    const filterIds = normalizeParticipantIds(participantIds);
+    if (filterIds) {
+      participants = participants.filter((item) => filterIds.has(item.id));
+    }
 
     if (participants.length === 0) {
       context.res = {
         status: 400,
         body: {
           success: false,
-          message: "No participants found for this organization",
+          message: filterIds
+            ? "No matching participants found for this workshop"
+            : "No participants found for this organization",
         },
       };
       return;
@@ -139,66 +188,114 @@ module.exports = async function (context, req) {
         participant.email ||
         participant.id;
 
-      if (!participant.phoneNo) {
-        results.push({
-          participantId: participant.id,
-          name: displayName,
-          success: false,
-          error: "Phone number missing",
-        });
-        continue;
-      }
+      const baseResult = {
+        participantId: participant.id,
+        name: displayName,
+        email: participant.email || "",
+        phone: participant.phoneNo || "",
+      };
 
-      if (!participant.email) {
+      if (sendEmailChannel && !participant.email) {
         results.push({
-          participantId: participant.id,
-          name: displayName,
+          ...baseResult,
           success: false,
+          channel: "email",
           error: "Email missing for participant",
         });
-        continue;
+        if (!sendSmsChannel) {
+          continue;
+        }
       }
 
-      let message = "";
+      if (sendSmsChannel && !participant.phoneNo) {
+        results.push({
+          ...baseResult,
+          success: false,
+          channel: "sms",
+          error: "Phone number missing",
+        });
+        if (!sendEmailChannel || !participant.email) {
+          continue;
+        }
+      }
 
+      let verificationCode = "";
       try {
-        const verificationCode = buildVerificationCode(participant.password);
-
+        verificationCode = buildVerificationCode(participant.password);
         if (verificationCode !== participant.password) {
           await updateParticipantPassword(participant.id, verificationCode);
           participant.password = verificationCode;
         }
-
-        message = buildWorkshopSmsMessage({ verificationCode });
-
-        context.log("Workshop SMS message:", message);
-        context.log("Workshop SMS length:", message.length);
-
-        const smsResult = await sendSms(participant.phoneNo, message);
-
-        context.log(
-          "BulkSMSLink response:",
-          JSON.stringify(smsResult.response)
-        );
-
-        results.push({
-          participantId: participant.id,
-          name: displayName,
-          phone: participant.phoneNo,
-          success: true,
-          messageSent: message,
-          provider: smsResult.provider,
-          providerResponse: smsResult.response,
-        });
       } catch (error) {
         results.push({
-          participantId: participant.id,
-          name: displayName,
-          phone: participant.phoneNo,
+          ...baseResult,
           success: false,
-          messageSent: message,
           error: error.message,
         });
+        continue;
+      }
+
+      if (sendEmailChannel && participant.email) {
+        try {
+          const emailContent = buildWorkshopEmailContent({
+            workshopName: workshop.workshopName,
+            organizationName: workshop.organizationName,
+            participantName: displayName,
+            verificationCode,
+            loginUrl: appLoginUrl,
+            startDate: formatDate(workshop.startDate),
+            endDate: formatDate(workshop.endDate),
+          });
+
+          const emailResult = await sendEmail({
+            to: participant.email,
+            subject: emailContent.subject,
+            text: emailContent.text,
+            html: emailContent.html,
+          });
+
+          results.push({
+            ...baseResult,
+            success: true,
+            channel: "email",
+            provider: emailResult.provider,
+            providerResponse: emailResult.response,
+          });
+        } catch (error) {
+          results.push({
+            ...baseResult,
+            success: false,
+            channel: "email",
+            error: error.message,
+          });
+        }
+      }
+
+      if (sendSmsChannel && participant.phoneNo) {
+        let message = "";
+        try {
+          message = buildWorkshopSmsMessage({ verificationCode });
+          context.log("Workshop SMS message:", message);
+
+          const smsResult = await sendSms(participant.phoneNo, message);
+
+          results.push({
+            ...baseResult,
+            success: true,
+            channel: "sms",
+            messageSent: message,
+            provider: smsResult.provider,
+            providerResponse: smsResult.response,
+          });
+        } catch (error) {
+          results.push({
+            ...baseResult,
+            success: false,
+            channel: "sms",
+            messageSent: message,
+            error: error.message,
+          });
+        }
       }
     }
 
@@ -212,14 +309,14 @@ module.exports = async function (context, req) {
         sentCount,
         failedCount,
         total: results.length,
-        provider: process.env.SMS_PROVIDER || "bulksmslink",
+        channel,
         results,
         message:
           sentCount === results.length
-            ? "Workshop notifications sent to all participants"
+            ? "Workshop notifications sent successfully"
             : sentCount > 0
               ? `Sent ${sentCount} of ${results.length} notifications`
-              : "Failed to send notifications to all participants",
+              : "Failed to send notifications",
       },
     };
   } catch (error) {

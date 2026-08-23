@@ -217,7 +217,7 @@
 
   overflow: auto;
 
-  padding: 18px 18px 24px;
+  padding: 0 18px 24px;
 
   background: linear-gradient(
     180deg,
@@ -235,22 +235,26 @@
 
 .od-dash-content {
   --od-col-count: 4;
+  --od-top-tab-w: 240px;
+  --od-link: #111111;
+  --od-link-w: 2px;
+  --od-link-gap: 18px;
 
-  display: grid;
+  display: flex;
 
-  grid-template-columns:
-    repeat(
-      var(--od-col-count),
-      minmax(240px, 1fr)
-    );
+  flex-direction: column;
 
-  gap: 0;
+  align-items: center;
+
+  justify-content: flex-start;
 
   width: max-content;
 
   min-width: 100%;
 
-  align-items: start;
+  padding: 0 16px 8px;
+
+  box-sizing: border-box;
 
   transform-origin: top left;
 }
@@ -265,11 +269,39 @@
 
   flex-direction: column;
 
-  min-width: 240px;
+  align-items: center;
 
-  padding: 0 10px 12px;
+  flex: 0 0 auto;
 
-  border-right: 1px solid #d7dee7;
+  width: 100%;
+
+  min-width: 0;
+
+  max-width: none;
+
+  padding: 0 0 12px;
+
+  border: none;
+
+  box-sizing: border-box;
+
+  position: relative;
+
+  background: transparent;
+}
+
+.od-dash-column.is-top-expanded {
+  width: 100%;
+
+  min-width: 0;
+
+  align-items: center;
+}
+
+.od-dash-column + .od-dash-column {
+  border-left: none;
+
+  padding-left: 0;
 }
 
 .od-dash-column:last-child {
@@ -287,11 +319,27 @@
 
   padding: 10px 12px;
 
+  width: var(--od-top-tab-w);
+
+  min-width: var(--od-top-tab-w);
+
+  max-width: var(--od-top-tab-w);
+
+  min-height: 56px;
+
+  box-sizing: border-box;
+
   background: #4f7d3a;
 
   color: #ffffff;
 
+  border: none;
+
   border-radius: 8px;
+
+  cursor: pointer;
+
+  font: inherit;
 
   box-shadow:
     0 2px 8px rgba(79, 125, 58, 0.22);
@@ -322,6 +370,8 @@
   text-align: center;
 
   text-transform: none;
+
+  overflow-wrap: anywhere;
 }
 
 .od-dash-column-icon {
@@ -344,22 +394,115 @@
 
 .od-dash-column-body {
   --od-link: #111111;
-
-  --od-link-w: 3px;
-
-  --od-link-gap: 18px;
-
+  --od-link-w: 2px;
+  --od-link-gap: 16px;
   min-height: 0;
 }
 
 .od-dash-empty {
   margin: 0;
-
   color: #94a3b8;
-
   font-size: 12px;
-
   text-align: center;
+}
+
+/* =========================================================
+   FORK CONNECTORS (real DOM — siblings always horizontal)
+   ========================================================= */
+
+.od-fork {
+  --od-n: 1;
+  --od-col-w: 170px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: max-content;
+  max-width: none;
+  flex-shrink: 0;
+}
+
+/* Root fork: stem attaches under UNLOCK VALUE banner */
+.od-fork.od-fork-root > .od-fork-stem {
+  height: 22px;
+}
+
+.od-fork.od-fork-root > .od-fork-stem.is-long {
+  height: 28px;
+}
+
+.od-fork-stem {
+  width: var(--od-link-w);
+  height: var(--od-link-gap);
+  background: var(--od-link);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 0;
+}
+
+.od-fork-stem.is-long {
+  height: calc(var(--od-link-gap) + 6px);
+}
+
+.od-fork-bus {
+  height: var(--od-link-w);
+  background: var(--od-link);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 0;
+}
+
+.od-fork-row {
+  display: grid !important;
+  grid-auto-flow: column !important;
+  align-items: start;
+  justify-items: center;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+}
+
+.od-fork-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 0 0 auto;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.od-fork-drop {
+  width: var(--od-link-w);
+  height: var(--od-link-gap);
+  background: var(--od-link);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 0;
+}
+
+.od-fork-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.od-fork-leaf {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  max-width: 100%;
+  padding: 0 8px;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 2;
+}
+
+.od-fork-leaf .od-dash-leaf,
+.od-fork-block > .od-dash-node {
+  position: relative;
+  z-index: 3;
 }
 
 
@@ -374,129 +517,93 @@
 
   align-items: center;
 
-  width: 100%;
+  width: max-content;
+
+  max-width: none;
 }
 
 .od-stem {
-  width: 2px;
+  width: var(--od-link-w);
 
-  height: 18px;
+  height: var(--od-link-gap);
 
-  background: #111111;
+  background: var(--od-link);
 
   flex-shrink: 0;
+
+  /* overlap 1px to kill zoom/subpixel gaps */
+  margin-bottom: -1px;
+}
+
+.od-stem-to-bus {
+  height: calc(var(--od-link-gap) / 2 + 1px);
 }
 
 .od-row {
-  display: flex;
+  --od-n: 1;
 
-  justify-content: center;
+  --od-col-w: 170px;
 
-  align-items: flex-start;
+  position: relative;
 
-  width: 100%;
+  display: grid;
+
+  grid-template-columns: repeat(var(--od-n), var(--od-col-w));
+
+  width: calc(var(--od-n) * var(--od-col-w));
+
+  max-width: none;
 
   gap: 0;
+
+  padding-top: calc(var(--od-link-gap) / 2);
+
+  box-sizing: border-box;
+
+  overflow: visible;
+}
+
+/* Legacy tree connectors disabled — chart uses .od-fork only */
+.od-row:not(.is-single)::before,
+.od-branch::before,
+.od-leaf-stack::before,
+.od-leaf-stack::after,
+.od-leaf-wrap::before {
+  content: none !important;
+  display: none !important;
 }
 
 .od-branch {
+  position: relative;
+
   display: flex;
 
   flex-direction: column;
 
   align-items: center;
 
-  flex: 1 1 0;
+  width: 100%;
 
   min-width: 0;
 
+  max-width: 100%;
+
   padding: 0;
+
+  box-sizing: border-box;
+
+  overflow: visible;
 }
 
+.od-branch-parent {
+  min-width: 0;
+}
 
 /* =========================================================
-   STANDARD TREE CONNECTORS
+   LEGACY JOIN (unused — kept harmless)
    ========================================================= */
 
 .od-join {
-  position: relative;
-
-  width: 100%;
-
-  height: var(--od-link-gap);
-
-  flex-shrink: 0;
-}
-
-.od-join-h {
-  position: absolute;
-
-  top: 0;
-
-  height: var(--od-link-w);
-
-  background: var(--od-link);
-}
-
-.od-join-h-left {
-  left: 0;
-
-  right: 50%;
-}
-
-.od-join-h-right {
-  left: 50%;
-
-  right: 0;
-}
-
-.od-join-v {
-  position: absolute;
-
-  top: 0;
-
-  left: 50%;
-
-  width: var(--od-link-w);
-
-  height: 100%;
-
-  background: var(--od-link);
-
-  transform: translateX(-50%);
-}
-
-
-/* First / last branch endings */
-
-.od-row > .od-branch:first-child
-  > .od-join
-  .od-join-h-left,
-
-.od-row > .od-branch:last-child
-  > .od-join
-  .od-join-h-right {
-  display: none;
-}
-
-
-/* Single branch */
-
-.od-row.is-single
-  > .od-branch
-  > .od-join
-  .od-join-h-left,
-
-.od-row.is-single
-  > .od-branch
-  > .od-join
-  .od-join-h-right {
-  display: none;
-}
-
-.od-row.is-single
-  > .od-branch
-  > .od-join {
   display: none;
 }
 
@@ -536,11 +643,23 @@
 
   line-height: 1.25;
 
-  width: calc(100% - 8px);
+  width: 152px;
 
-  max-width: 150px;
+  min-width: 0;
 
-  margin: 0 4px;
+  max-width: 152px;
+
+  margin: 0;
+
+  flex-shrink: 0;
+
+  position: relative;
+
+  z-index: 3;
+
+  overflow-wrap: anywhere;
+
+  overflow-wrap: anywhere;
 
   transition:
     transform 0.15s ease,
@@ -553,11 +672,11 @@
    ========================================================= */
 
 .od-dash-middle {
-  background: #00aa85;
+  background: #ffffff;
 
-  color: #ffffff;
+  color: #111111;
 
-  border: 1px solid #008f70;
+  border: 1.5px solid #ed1c24;
 
   font-size: 11px;
 
@@ -567,8 +686,12 @@
 
   min-height: 38px;
 
+  cursor: pointer;
+
+  font-family: inherit;
+
   box-shadow:
-    0 2px 5px rgba(0, 0, 0, 0.08);
+    0 1px 4px rgba(15, 23, 42, 0.05);
 }
 
 .od-dash-middle:hover {
@@ -579,12 +702,14 @@
 }
 
 .od-dash-middle.is-assigned {
-  background: #9b304a;
+  background: #fff1f3;
 
-  border-color: #7b0f2c;
+  border-color: #9b304a;
+
+  color: #7b0f2c;
 
   box-shadow:
-    0 3px 8px rgba(123, 15, 44, 0.20);
+    0 2px 6px rgba(155, 48, 74, 0.10);
 }
 
 
@@ -606,6 +731,10 @@
   padding: 8px 9px;
 
   min-height: 35px;
+
+  cursor: pointer;
+
+  font-family: inherit;
 
   box-shadow:
     0 1px 4px rgba(15, 23, 42, 0.05);
@@ -718,131 +847,145 @@
    ========================================================= */
 
 .od-leaf-stack {
+  --od-n: 1;
+
+  --od-col-w: 170px;
+
+  --od-leaf-gap: 22px;
+
   position: relative;
 
-  display: flex;
+  display: grid;
 
-  flex-direction: row;
+  grid-template-columns: repeat(var(--od-n), var(--od-col-w));
 
-  align-items: flex-start;
+  width: calc(var(--od-n) * var(--od-col-w));
 
-  justify-content: center;
+  max-width: none;
 
-  width: 314px;
-
-  max-width: 100%;
-
-  gap: 24px;
+  gap: 0;
 
   margin: 0 auto;
 
-  /*
-   * This creates a dedicated area between
-   * the horizontal branch and the child boxes.
-   */
-  padding-top: 48px;
+  margin-top: -1px;
+
+  padding-top: var(--od-leaf-gap);
 
   box-sizing: border-box;
+
+  overflow: visible;
 }
 
+/* Center stem from parent down to the bus / leaf */
+.od-leaf-stack::after {
+  content: "";
 
-/* =========================================================
-   VERTICAL LINE FROM PARENT
-   ========================================================= */
-
-.od-leaf-stack > .od-stem {
   position: absolute;
 
   top: 0;
 
   left: 50%;
 
-  width: 2px;
+  width: var(--od-link-w, 2px);
 
-  height: 24px;
+  height: calc(var(--od-leaf-gap) / 2 + 1px);
 
   transform: translateX(-50%);
 
-  background: #111111;
+  background: var(--od-link, #111111);
 
-  z-index: 1;
+  z-index: 2;
 }
 
-
-/* =========================================================
-   HORIZONTAL CHILD BRANCH
-   ========================================================= */
-
-.od-leaf-stack::before {
+.od-leaf-stack:not(.is-single)::before {
   content: "";
 
   position: absolute;
 
-  top: 24px;
+  top: calc(var(--od-leaf-gap) / 2);
 
-  left: 50%;
+  left: calc(var(--od-col-w) / 2 - 1px);
 
-  width: 169px;
+  right: calc(var(--od-col-w) / 2 - 1px);
 
-  height: 2px;
+  height: var(--od-link-w, 2px);
 
-  transform: translateX(-50%);
-
-  background: #111111;
+  background: var(--od-link, #111111);
 
   z-index: 1;
 }
 
-
-/* =========================================================
-   CHILD WRAPPER
-   ========================================================= */
+.od-leaf-stack > .od-stem,
+.od-leaf-spine {
+  display: none;
+}
 
 .od-leaf-wrap {
   position: relative;
 
-  width: 145px;
+  width: var(--od-col-w);
 
-  min-width: 145px;
+  max-width: var(--od-col-w);
 
-  max-width: 145px;
+  min-width: 0;
 
   display: flex;
 
   justify-content: center;
 
+  align-items: flex-start;
+
   margin: 0;
 
-  padding: 0;
+  padding: 0 9px;
 
   background: transparent;
 
   z-index: 2;
+
+  box-sizing: border-box;
+
+  overflow: hidden;
 }
-
-
-/* =========================================================
-   VERTICAL DROP TO CHILD
-   ========================================================= */
 
 .od-leaf-wrap::before {
   content: "";
 
   position: absolute;
 
-  top: -24px;
+  top: calc(var(--od-leaf-gap) / -2 - 1px);
 
   left: 50%;
 
-  width: 2px;
+  width: var(--od-link-w, 2px);
 
-  height: 24px;
+  height: calc(var(--od-leaf-gap) / 2 + 2px);
 
   transform: translateX(-50%);
 
-  background: #111111;
+  background: var(--od-link, #111111);
 
   z-index: 1;
+}
+
+.od-leaf-stack.is-single {
+  width: var(--od-col-w);
+
+  grid-template-columns: var(--od-col-w);
+
+  justify-content: center;
+}
+
+.od-leaf-stack.is-single::before {
+  display: none;
+}
+
+.od-leaf-stack.is-single::after {
+  height: calc(var(--od-leaf-gap) + 1px);
+}
+
+.od-leaf-stack.is-single .od-leaf-wrap::before {
+  display: none;
 }
 
 
@@ -855,9 +998,11 @@
 
   z-index: 3;
 
-  width: 145px;
+  width: 100%;
 
-  max-width: 145px;
+  min-width: 0;
+
+  max-width: 152px;
 
   margin: 0;
 
@@ -1034,37 +1179,11 @@
   }
 
   .od-leaf-stack {
-    width: 284px;
-
-    gap: 14px;
-
-    padding-top: 42px;
-  }
-
-  .od-leaf-stack::before {
-    top: 21px;
-
-    width: 149px;
-  }
-
-  .od-leaf-stack > .od-stem {
-    top: 0;
-
-    height: 21px;
+    width: calc(var(--od-n) * var(--od-col-w));
   }
 
   .od-leaf-wrap {
-    width: 135px;
-
-    min-width: 135px;
-
-    max-width: 135px;
-  }
-
-  .od-leaf-wrap::before {
-    top: -21px;
-
-    height: 21px;
+    min-width: 0;
   }
 
   .od-leaf-wrap .od-dash-leaf {
@@ -1119,15 +1238,15 @@
 
 /* =========================================================
    SECOND HIERARCHY
-   Volume
+   Volume — white (only top 4 tabs are green)
    ========================================================= */
 
 .od-dash-middle {
-  background: #00a88f;
+  background: #ffffff;
 
-  color: #ffffff;
+  color: #111111;
 
-  border: 1px solid #008f79;
+  border: 1.5px solid #ed1c24;
 
   font-size: 11px;
 
@@ -1138,20 +1257,19 @@
   min-height: 38px;
 
   box-shadow:
-    0 2px 6px rgba(0, 168, 143, 0.18);
+    0 1px 4px rgba(15, 23, 42, 0.05);
 }
 
 
-/* Do NOT turn Volume maroon when assigned */
 .od-dash-middle.is-assigned {
-  background: #00a88f;
+  background: #fff1f3;
 
-  color: #ffffff;
+  color: #7b0f2c;
 
-  border-color: #008f79;
+  border-color: #9b304a;
 
   box-shadow:
-    0 2px 6px rgba(0, 168, 143, 0.18);
+    0 2px 6px rgba(155, 48, 74, 0.10);
 }
 
 
@@ -1174,6 +1292,10 @@
   padding: 8px 9px;
 
   min-height: 35px;
+
+  cursor: pointer;
+
+  font-family: inherit;
 
   box-shadow:
     0 1px 4px rgba(15, 23, 42, 0.05);
@@ -1261,11 +1383,10 @@
 /* =========================================================
    FINAL OD CHART COLOR OVERRIDES
    Hierarchy:
-   1. Markets & Customers       = GREEN
-   2. Volume                    = GREEN
-   3. Acquire New Customers     = WHITE
-   4. Marketing & Sales         = WHITE
-   5. Product & Service Innovation = WHITE
+   1. Top 4 tabs (Markets, Costs, Assets, Planning) = GREEN
+   2. Middles (Volume, etc.)                        = WHITE
+   3. Parents                                       = WHITE
+   4. Leaves                                        = WHITE
    ========================================================= */
 
 /* First hierarchy - GREEN */
@@ -1276,12 +1397,19 @@
   border-color: #008f79 !important;
 }
 
-/* Second hierarchy - GREEN */
+/* Second hierarchy - WHITE (only top 4 stay green) */
 .od-dash-middle,
 .od-dash-middle.is-assigned {
-  background: #00a88f !important;
-  color: #ffffff !important;
-  border-color: #008f79 !important;
+  background: #ffffff !important;
+  color: #111111 !important;
+  border: 1.5px solid #ed1c24 !important;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.05) !important;
+}
+
+.od-dash-middle.is-assigned {
+  background: #fff1f3 !important;
+  color: #7b0f2c !important;
+  border-color: #9b304a !important;
 }
 
 /* Third hierarchy - WHITE */

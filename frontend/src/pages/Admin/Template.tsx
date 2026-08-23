@@ -689,7 +689,7 @@ export default function Template({ user }: PageProps) {
         }
       });
 
-      const maxValidationRows = Math.max(rows.length + 50, 100);
+      const maxValidationRows = Math.max(rows.length + 200, 500);
       const middleKeyEnd = Math.max(middleKeyRow - 1, 2);
       const parentKeyEnd = Math.max(parentKeyRow - 1, 2);
       const categoryKeyEnd = Math.max(categoryKeyRow - 1, 2);
@@ -707,7 +707,33 @@ export default function Template({ user }: PageProps) {
           ? `'Lists'!$A$2:$A$${topValues.length + 1}`
           : "";
 
+      // Cascading lists embed VLOOKUP inside INDIRECT so they do not depend on
+      // helper cells O/Q/S (those often break when Excel inserts a row).
+      const middleListFormulaFor = (rowNumber: number) =>
+        `INDIRECT(IFERROR(VLOOKUP(A${rowNumber},MiddleKeys!$A$2:$B$${middleKeyEnd},2,FALSE),"${emptyListAddress}"))`;
+      const parentListFormulaFor = (rowNumber: number) =>
+        `INDIRECT(IFERROR(VLOOKUP(A${rowNumber}&"|"&B${rowNumber},ParentKeys!$A$2:$B$${parentKeyEnd},2,FALSE),"${emptyListAddress}"))`;
+      const categoryListFormulaFor = (rowNumber: number) =>
+        `INDIRECT(IFERROR(VLOOKUP(A${rowNumber}&"|"&B${rowNumber}&"|"&C${rowNumber},CategoryKeys!$A$2:$B$${categoryKeyEnd},2,FALSE),"${emptyListAddress}"))`;
+
+      const applyListValidation = (
+        cell: ExcelJS.Cell,
+        formulae: string[],
+        errorTitle: string,
+        error: string
+      ) => {
+        cell.dataValidation = {
+          type: "list",
+          allowBlank: true,
+          formulae,
+          showErrorMessage: true,
+          errorTitle,
+          error,
+        };
+      };
+
       for (let rowNumber = 2; rowNumber <= maxValidationRows; rowNumber++) {
+        // Keep helper columns for older workflows / debugging (optional).
         worksheet.getCell(rowNumber, 15).value = {
           formula: `IF(A${rowNumber}="","",IFERROR(VLOOKUP(A${rowNumber},MiddleKeys!$A$2:$B$${middleKeyEnd},2,FALSE),"${emptyListAddress}"))`,
         };
@@ -729,76 +755,59 @@ export default function Template({ user }: PageProps) {
         }
 
         if (topFormula) {
-          worksheet.getCell(rowNumber, 1).dataValidation = {
-            type: "list",
-            allowBlank: true,
-            formulae: [topFormula],
-            showErrorMessage: true,
-            errorTitle: "Invalid Topmost category",
-            error: "Please select a Topmost category from the dropdown.",
-          };
+          applyListValidation(
+            worksheet.getCell(rowNumber, 1),
+            [topFormula],
+            "Invalid Topmost category",
+            "Please select a Topmost category from the dropdown."
+          );
         }
 
-        worksheet.getCell(rowNumber, 2).dataValidation = {
-          type: "list",
-          allowBlank: true,
-          formulae: [`INDIRECT(O${rowNumber})`],
-          showErrorMessage: true,
-          errorTitle: "Invalid Middle Category",
-          error:
-            "Please select a Middle Category that belongs to the selected Topmost category.",
-        };
+        applyListValidation(
+          worksheet.getCell(rowNumber, 2),
+          [middleListFormulaFor(rowNumber)],
+          "Invalid Middle Category",
+          "Please select a Middle Category that belongs to the selected Topmost category."
+        );
 
-        worksheet.getCell(rowNumber, 3).dataValidation = {
-          type: "list",
-          allowBlank: true,
-          formulae: [`INDIRECT(Q${rowNumber})`],
-          showErrorMessage: true,
-          errorTitle: "Invalid Parent Category",
-          error:
-            "Please select a Parent Category that belongs to the selected Middle Category.",
-        };
+        applyListValidation(
+          worksheet.getCell(rowNumber, 3),
+          [parentListFormulaFor(rowNumber)],
+          "Invalid Parent Category",
+          "Please select a Parent Category that belongs to the selected Middle Category."
+        );
 
-        worksheet.getCell(rowNumber, 4).dataValidation = {
-          type: "list",
-          allowBlank: true,
-          formulae: [`INDIRECT(S${rowNumber})`],
-          showErrorMessage: true,
-          errorTitle: "Invalid Category",
-          error:
-            "Please select a Category that belongs to the selected Parent Category.",
-        };
+        applyListValidation(
+          worksheet.getCell(rowNumber, 4),
+          [categoryListFormulaFor(rowNumber)],
+          "Invalid Category",
+          "Please select a Category that belongs to the selected Parent Category."
+        );
 
         if (tagFormula) {
-          worksheet.getCell(rowNumber, 6).dataValidation = {
-            type: "list",
-            allowBlank: true,
-            formulae: [tagFormula],
-            showErrorMessage: true,
-            errorTitle: "Invalid Tag",
-            error: "Please select a Tag from the dropdown.",
-          };
+          applyListValidation(
+            worksheet.getCell(rowNumber, 6),
+            [tagFormula],
+            "Invalid Tag",
+            "Please select a Tag from the dropdown."
+          );
         }
 
         if (questionTypeFormula) {
-          worksheet.getCell(rowNumber, 7).dataValidation = {
-            type: "list",
-            allowBlank: true,
-            formulae: [questionTypeFormula],
-            showErrorMessage: true,
-            errorTitle: "Invalid Question type",
-            error: "Please select a Question type from the dropdown.",
-          };
+          applyListValidation(
+            worksheet.getCell(rowNumber, 7),
+            [questionTypeFormula],
+            "Invalid Question type",
+            "Please select a Question type from the dropdown."
+          );
         }
 
-        worksheet.getCell(rowNumber, 8).dataValidation = {
-          type: "list",
-          allowBlank: true,
-          formulae: [attachmentsFormula],
-          showErrorMessage: true,
-          errorTitle: "Invalid Attachments Applicable",
-          error: "Please select Y or N.",
-        };
+        applyListValidation(
+          worksheet.getCell(rowNumber, 8),
+          [attachmentsFormula],
+          "Invalid Attachments Applicable",
+          "Please select Y or N."
+        );
       }
 
       rows.forEach((row, index) => {
@@ -818,22 +827,8 @@ export default function Template({ user }: PageProps) {
         }
       });
 
-      await worksheet.protect("", {
-        selectLockedCells: true,
-        selectUnlockedCells: true,
-        formatCells: false,
-        formatColumns: false,
-        formatRows: false,
-        insertColumns: false,
-        insertRows: true,
-        insertHyperlinks: false,
-        deleteColumns: false,
-        deleteRows: false,
-        sort: true,
-        autoFilter: true,
-        pivotTables: false,
-      });
-
+      // Do not protect this sheet: inserted rows default to Locked and then
+      // block dropdown edits under protection.
       worksheet.autoFilter = {
         from: "A1",
         to: "M1",
@@ -1095,7 +1090,7 @@ export default function Template({ user }: PageProps) {
     });
 
     // Blank (and padding rows for filled downloads): empty editable rows with dropdowns.
-    const maxValidationRows = Math.max(questionsToExport.length + 50, 50);
+    const maxValidationRows = Math.max(questionsToExport.length + 200, 200);
     for (
       let rowNumber = questionsToExport.length + 2;
       rowNumber <= maxValidationRows + 1;
@@ -1104,22 +1099,7 @@ export default function Template({ user }: PageProps) {
       applyRowValidations(rowNumber);
     }
 
-    await worksheet.protect("", {
-      selectLockedCells: true,
-      selectUnlockedCells: true,
-      formatCells: false,
-      formatColumns: false,
-      formatRows: false,
-      insertColumns: false,
-      insertRows: true,
-      insertHyperlinks: false,
-      deleteColumns: false,
-      deleteRows: true,
-      sort: true,
-      autoFilter: true,
-      pivotTables: false,
-    });
-
+    // Avoid sheet protection so inserted/blank rows remain editable with dropdowns.
     worksheet.autoFilter = { from: "A1", to: "I1" };
     worksheet.views = [{ state: "frozen", ySplit: 1 }];
 

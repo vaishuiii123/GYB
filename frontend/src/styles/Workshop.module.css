@@ -328,9 +328,33 @@
 }
 
 .modalParticipantsTitle {
-  margin: 0 0 14px;
+  margin: 0;
   font-size: 18px;
   font-weight: 600;
+}
+
+.modalParticipantsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 14px;
+}
+
+.emailAllButton {
+  border: none;
+  border-radius: 8px;
+  background: #8f1738;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+
+.emailAllButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .selectedTemplateName {

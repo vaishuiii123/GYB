@@ -5,10 +5,11 @@ import Sidebar from "../../components/Sidebar";
 import {
   DeleteIconBtn,
   EditIconBtn,
+  MailIconBtn,
   ViewIconBtn,
 } from "../../components/AdminActionIcons";
 import styles from "../../styles/Workshop.module.css";
-import { appConfirm } from "../../utils/appDialog";
+import { appAlert, appConfirm } from "../../utils/appDialog";
 import {
   ADMIN_CACHE_KEYS,
   readAdminListCache,
@@ -42,6 +43,7 @@ export default function Workshop({ user }: PageProps) {
   const [viewWorkshopDetails, setViewWorkshopDetails] = useState<any>(null);
   const [viewParticipants, setViewParticipants] = useState<any[]>([]);
   const [loadingOrgView, setLoadingOrgView] = useState(false);
+  const [emailSendingKey, setEmailSendingKey] = useState("");
 
   const [formData, setFormData] = useState({
     workshopName: "",
@@ -273,6 +275,82 @@ export default function Workshop({ user }: PageProps) {
       };
 
     await handleViewOrganization(org, workshop);
+  };
+
+  const sendWorkshopEmails = async (participantIds?: string[]) => {
+    const workshopId = String(viewWorkshopDetails?.id || "").trim();
+    if (!workshopId) {
+      appAlert("Open a workshop to send invite emails.", "warning");
+      return;
+    }
+
+    const targets = participantIds?.length
+      ? viewParticipants.filter((item) =>
+          participantIds.includes(String(item.id))
+        )
+      : viewParticipants;
+
+    if (!targets.length) {
+      appAlert("No participants to email.", "warning");
+      return;
+    }
+
+    const missingEmail = targets.filter(
+      (item) => !String(item.email || "").trim()
+    );
+    if (missingEmail.length === targets.length) {
+      appAlert("Selected participants do not have email addresses.", "error");
+      return;
+    }
+
+    const isSingle = Boolean(participantIds?.length === 1);
+    const confirmMessage = isSingle
+      ? `Send workshop invite email to ${
+          targets[0].firstName || targets[0].email || "this participant"
+        }?`
+      : `Send workshop invite email to all ${targets.length} participants?`;
+
+    const confirmed = await appConfirm(confirmMessage, {
+      title: "Send email",
+      confirmLabel: "Send",
+    });
+    if (!confirmed) {
+      return;
+    }
+
+    const sendingKey = isSingle ? String(participantIds![0]) : "all";
+    setEmailSendingKey(sendingKey);
+
+    try {
+      const response = await fetch("/api/send-workshop-notification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workshopId,
+          channel: "email",
+          participantIds: targets.map((item) => item.id),
+          loginUrl: window.location.origin,
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success) {
+        throw new Error(
+          data.message || data.error || "Failed to send workshop emails."
+        );
+      }
+
+      appAlert(
+        data.message ||
+          `Sent ${data.sentCount || 0} of ${data.total || targets.length} emails.`,
+        "success"
+      );
+    } catch (error: any) {
+      console.error(error);
+      appAlert(error?.message || "Failed to send workshop emails.", "error");
+    } finally {
+      setEmailSendingKey("");
+    }
   };
 
   const openCreatePopup = () => {
@@ -910,6 +988,7 @@ export default function Workshop({ user }: PageProps) {
                       setSelectedOrgDetails(null);
                       setViewWorkshopDetails(null);
                       setViewParticipants([]);
+                      setEmailSendingKey("");
                     }}
                   >
                     ×
@@ -983,9 +1062,23 @@ export default function Workshop({ user }: PageProps) {
                   </div>
                 </div>
 
-                <h4 className={styles.modalParticipantsTitle}>
-                  Assigned Participants
-                </h4>
+                <div className={styles.modalParticipantsHeader}>
+                  <h4 className={styles.modalParticipantsTitle}>
+                    Assigned Participants
+                  </h4>
+                  {viewWorkshopDetails && viewParticipants.length > 0 ? (
+                    <button
+                      type="button"
+                      className={styles.emailAllButton}
+                      disabled={Boolean(emailSendingKey)}
+                      onClick={() => sendWorkshopEmails()}
+                    >
+                      {emailSendingKey === "all"
+                        ? "Sending..."
+                        : "Email All"}
+                    </button>
+                  ) : null}
+                </div>
 
                 {viewParticipants.length > 0 ? (
                   <table className={styles.table}>
@@ -995,6 +1088,7 @@ export default function Workshop({ user }: PageProps) {
                         <th className={styles.th}>Name</th>
                         <th className={styles.th}>Email</th>
                         <th className={styles.th}>Phone</th>
+                        <th className={styles.th}>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1007,6 +1101,25 @@ export default function Workshop({ user }: PageProps) {
                           <td className={styles.td}>{participant.email}</td>
                           <td className={styles.td}>
                             {participant.phoneNo || "-"}
+                          </td>
+                          <td className={styles.td}>
+                            <MailIconBtn
+                              title={
+                                emailSendingKey === String(participant.id)
+                                  ? "Sending..."
+                                  : participant.email
+                                    ? "Send invite email"
+                                    : "Email missing"
+                              }
+                              disabled={
+                                Boolean(emailSendingKey) ||
+                                !participant.email ||
+                                !viewWorkshopDetails?.id
+                              }
+                              onClick={() =>
+                                sendWorkshopEmails([String(participant.id)])
+                              }
+                            />
                           </td>
                         </tr>
                       ))}

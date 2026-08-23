@@ -1,4 +1,4 @@
-import { Copy, Download, Eye, Pencil, Trash2, Upload } from "lucide-react";
+import { Copy, Download, Eye, Mail, Pencil, Trash2, Upload } from "lucide-react";
 
 type IconBtnProps = {
   onClick?: () => void;
@@ -103,6 +103,26 @@ export function UploadIconBtn({
       disabled={disabled}
     >
       <Upload size={16} strokeWidth={2} />
+    </button>
+  );
+}
+
+export function MailIconBtn({
+  onClick,
+  disabled,
+  title = "Send email",
+  className = "",
+}: IconBtnProps) {
+  return (
+    <button
+      type="button"
+      className={`admin-icon-btn admin-icon-mail ${className}`.trim()}
+      title={title}
+      aria-label={title}
+      onClick={onClick}
+      disabled={disabled}
+    >
+      <Mail size={16} strokeWidth={2} />
     </button>
   );
 }
