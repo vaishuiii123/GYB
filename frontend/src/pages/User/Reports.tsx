@@ -105,7 +105,7 @@ export default function Reports() {
     }
 
     if (!selectedWorkshop?.id) {
-      navigate("/select-workshop", { replace: true });
+      navigate("/userdashboard", { replace: true });
       return;
     }
 

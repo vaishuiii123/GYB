@@ -2,7 +2,7 @@
   "name": "frontend",
   "homepage": "https://vaishuiii123.github.io/GYB",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -18,6 +18,7 @@
     "axios": "^1.16.1",
     "exceljs": "^4.4.0",
     "file-saver": "^2.0.5",
+    "jszip": "^3.10.1",
     "lucide-react": "^1.28.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",

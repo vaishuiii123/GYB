@@ -1,14 +1,11 @@
 const { getTableClient, listPartition } = require("../shared/tableHelper");
+const {
+  parseQuestionIds,
+  resolveOdTemplate,
+} = require("../shared/resolveOdTemplate");
 
 function parseIds(value) {
-  if (!value) {
-    return [];
-  }
-
-  return String(value)
-    .split(",")
-    .map((id) => id.trim())
-    .filter(Boolean);
+  return parseQuestionIds(value);
 }
 
 const DEFAULT_TAG_COLOR = "#9B304A";
@@ -40,15 +37,31 @@ function setMemoryCachedChart(cacheKey, body) {
 
 module.exports = async function (context, req) {
   try {
-    const templateId = req.query.templateId;
+    const templateIdQuery = String(req.query.templateId || "").trim();
+    const workshopId = String(req.query.workshopId || "").trim();
     const includeQuestions = req.query.includeQuestions === "true";
 
-    if (!templateId) {
+    if (!templateIdQuery && !workshopId) {
       context.res = {
         status: 400,
         body: {
           success: false,
-          message: "templateId is required.",
+          message: "templateId or workshopId is required.",
+        },
+      };
+      return;
+    }
+
+    const resolved = await resolveOdTemplate(workshopId, templateIdQuery);
+    const templateId = resolved.templateId;
+    const template = resolved.template;
+
+    if (!templateId || !template) {
+      context.res = {
+        status: 404,
+        body: {
+          success: false,
+          message: "Template not found.",
         },
       };
       return;
@@ -65,26 +78,10 @@ module.exports = async function (context, req) {
       return;
     }
 
-    const templateClient = getTableClient("Template");
     const categoryClient = getTableClient("QuestionnaireCategory");
     const parentClient = getTableClient("QuestionnaireParentCategory");
     const middleClient = getTableClient("QuestionnaireMiddleCategory");
     const topClient = getTableClient("QuestionnaireTopCategory");
-
-    let template;
-
-    try {
-      template = await templateClient.getEntity("Template", templateId);
-    } catch {
-      context.res = {
-        status: 404,
-        body: {
-          success: false,
-          message: "Template not found.",
-        },
-      };
-      return;
-    }
 
     const templateQuestionIds = new Set(parseIds(template.QuestionIds));
 

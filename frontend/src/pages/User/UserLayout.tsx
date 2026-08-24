@@ -28,7 +28,7 @@ export default function UserLayout({
     }
 
     if (!getSelectedWorkshop()?.id) {
-      navigate("/select-workshop", { replace: true });
+      navigate("/userdashboard", { replace: true });
     }
   }, [navigate]);
 

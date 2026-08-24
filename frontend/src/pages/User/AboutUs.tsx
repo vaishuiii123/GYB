@@ -13,6 +13,10 @@ export default function AboutUs() {
     }
   }, [navigate]);
 
+  const goToDashboard = () => {
+    navigate("/userdashboard");
+  };
+
   return (
     <div className="about-page">
       <header className="about-header">
@@ -20,7 +24,7 @@ export default function AboutUs() {
           <button
             type="button"
             className="menu-btn"
-            onClick={() => navigate("/select-workshop")}
+            onClick={goToDashboard}
             aria-label="Go to dashboard"
           >
             <span />
@@ -34,7 +38,7 @@ export default function AboutUs() {
           <button
             type="button"
             className="header-link"
-            onClick={() => navigate("/select-workshop")}
+            onClick={goToDashboard}
           >
             Home
           </button>
@@ -88,7 +92,7 @@ export default function AboutUs() {
         <button
           type="button"
           className="next-btn"
-          onClick={() => navigate("/select-workshop")}
+          onClick={goToDashboard}
         >
           Next
           <span className="next-arrow" aria-hidden="true">

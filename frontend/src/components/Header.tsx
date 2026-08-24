@@ -1,7 +1,9 @@
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, LogOut } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import logo from "../images/knav_white.png";
 import { appConfirm } from "../utils/appDialog";
+import AppVersionControl from "./AppVersionControl";
 import "../styles/AdminShell.css";
 
 type HeaderProps = {
@@ -10,6 +12,8 @@ type HeaderProps = {
 
 export default function Header({ user }: HeaderProps) {
   const navigate = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
   const displayName = user?.name || "Admin";
 
   const initials =
@@ -20,7 +24,22 @@ export default function Header({ user }: HeaderProps) {
       .map((word) => word[0]?.toUpperCase() || "")
       .join("") || "A";
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(event.target as Node)
+      ) {
+        setMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const handleLogout = async () => {
+    setMenuOpen(false);
     const confirmLogout = await appConfirm("Do you really want to logout?", {
       title: "Logout",
       confirmLabel: "Logout",
@@ -41,22 +60,31 @@ export default function Header({ user }: HeaderProps) {
       </div>
 
       <div className="admin-shell-header-right">
-        <div className="admin-shell-user">
-          <span className="admin-shell-avatar" aria-hidden>
-            {initials}
-          </span>
-          <span className="admin-shell-user-name">{displayName}</span>
-          <ChevronDown size={16} strokeWidth={2.2} />
-        </div>
+        <AppVersionControl variant="onDark" />
 
-        <button
-          type="button"
-          className="admin-shell-logout"
-          onClick={handleLogout}
-        >
-          <LogOut size={16} strokeWidth={2.2} />
-          Logout
-        </button>
+        <div className="admin-shell-user-menu" ref={menuRef}>
+          <button
+            type="button"
+            className="admin-shell-user-btn"
+            onClick={() => setMenuOpen((open) => !open)}
+            aria-expanded={menuOpen}
+            aria-haspopup="menu"
+          >
+            <span className="admin-shell-avatar" aria-hidden>
+              {initials}
+            </span>
+            <span className="admin-shell-user-name">{displayName}</span>
+            <ChevronDown size={16} strokeWidth={2.2} />
+          </button>
+
+          {menuOpen ? (
+            <div className="admin-shell-dropdown" role="menu">
+              <button type="button" role="menuitem" onClick={handleLogout}>
+                Logout
+              </button>
+            </div>
+          ) : null}
+        </div>
       </div>
     </header>
   );

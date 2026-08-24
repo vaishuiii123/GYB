@@ -77,6 +77,11 @@
   line-height: 1.45;
 }
 
+.ws-dash-empty-note {
+  color: #7b0f2c !important;
+  font-weight: 600;
+}
+
 .ws-dash-welcome strong {
   color: var(--ws-maroon);
 }

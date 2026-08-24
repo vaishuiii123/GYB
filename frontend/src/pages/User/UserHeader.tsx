@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown, Menu } from "lucide-react";
 import UserNavDrawer from "./UserNavDrawer";
+import AppVersionControl from "../../components/AppVersionControl";
 import {
   clearSelectedWorkshop,
   getParticipantDisplayName,
   getParticipantFromStorage,
 } from "../../utils/selectedWorkshop";
+import { clearAllCachedPageData } from "../../utils/workshopCache";
 import knavLogo from "../../images/KNAV logo1.png";
 import "../../styles/UserHeader.css";
 import { appConfirm } from "../../utils/appDialog";
@@ -49,6 +51,7 @@ export default function UserHeader() {
 
     if (confirmed) {
       clearSelectedWorkshop();
+      clearAllCachedPageData();
       localStorage.removeItem("participant");
       navigate("/");
     }
@@ -75,6 +78,7 @@ export default function UserHeader() {
           </div>
 
           <div className="user-header-right">
+            <AppVersionControl />
             <div className="user-header-user-menu" ref={menuRef}>
               <button
                 type="button"
@@ -99,7 +103,7 @@ export default function UserHeader() {
                     role="menuitem"
                     onClick={() => {
                       setMenuOpen(false);
-                      navigate("/select-workshop");
+                      navigate("/userdashboard");
                     }}
                   >
                     Home

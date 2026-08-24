@@ -22,12 +22,13 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import {
-  fetchWorkshopByOrganization,
+  fetchParticipantWorkshops,
   fetchOdChart,
   getActiveWorkshopContext,
   getCachedOdChart,
   getWorkshopModuleAccessStatus,
 } from "../../utils/workshopCache";
+import { setSelectedWorkshop } from "../../utils/selectedWorkshop";
 import ODChartShell from "./ODChartShell";
 import "../../styles/ODChart.css";
 
@@ -166,10 +167,12 @@ function matchesSearch(text: string, query: string) {
 function LeafNode({
   leaf,
   highlighted,
+  restoreFocus,
   onOpen,
 }: {
   leaf: Leaf;
   highlighted: boolean;
+  restoreFocus?: boolean;
   onOpen: () => void;
 }) {
   const assigned = leafHasAssignedQuestions(leaf);
@@ -178,9 +181,10 @@ function LeafNode({
   return (
     <button
       type="button"
+      data-od-leaf-id={leaf.id}
       className={`od-dash-node od-dash-leaf ${assignedClass(assigned)} ${
         highlighted ? "is-search-hit" : ""
-      }`}
+      } ${restoreFocus ? "is-restore-focus" : ""}`}
       style={
         assigned
           ? {
@@ -268,12 +272,74 @@ function TreeFork({
 }
 
 const OD_CHART_EXPAND_KEY = "gyb-od-chart-expand-v1";
+const OD_CHART_FOCUS_KEY = "gyb-od-chart-focus-v1";
 
 type TopExpandState = {
   open: boolean;
   middles: string[];
   parents: string[];
 };
+
+type ChartFocusState = {
+  leafId: string;
+  topId: string;
+  middleId: string;
+  parentId: string;
+};
+
+function readChartFocus(): ChartFocusState | null {
+  try {
+    const raw = sessionStorage.getItem(OD_CHART_FOCUS_KEY);
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw) as ChartFocusState;
+    if (!parsed?.leafId || !parsed?.topId) {
+      return null;
+    }
+    return {
+      leafId: String(parsed.leafId),
+      topId: String(parsed.topId),
+      middleId: String(parsed.middleId || ""),
+      parentId: String(parsed.parentId || ""),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeChartFocus(focus: ChartFocusState) {
+  try {
+    sessionStorage.setItem(OD_CHART_FOCUS_KEY, JSON.stringify(focus));
+  } catch {
+    // ignore
+  }
+}
+
+function clearChartFocus() {
+  try {
+    sessionStorage.removeItem(OD_CHART_FOCUS_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+function ensureFocusExpanded(focus: ChartFocusState) {
+  const saved = readTopExpandState(focus.topId);
+  const middles = new Set(saved.middles);
+  const parents = new Set(saved.parents);
+  if (focus.middleId) {
+    middles.add(focus.middleId);
+  }
+  if (focus.parentId) {
+    parents.add(focus.parentId);
+  }
+  writeTopExpandState(focus.topId, {
+    open: true,
+    middles: Array.from(middles),
+    parents: Array.from(parents),
+  });
+}
 
 function readTopExpandState(topId: string): TopExpandState {
   try {
@@ -350,11 +416,13 @@ function equalSiblingColWidth(widths: number[], floor = SLOT_PX) {
 function ColumnTree({
   top,
   search,
+  focusLeafId,
   onOpenLeaf,
   onBranchWidthChange,
 }: {
   top: Top;
   search: string;
+  focusLeafId?: string | null;
   onOpenLeaf: (
     top: Top,
     middle: Middle,
@@ -625,6 +693,7 @@ function ColumnTree({
                                           leaf.name,
                                           search
                                         )}
+                                        restoreFocus={focusLeafId === leaf.id}
                                         onOpen={() =>
                                           onOpenLeaf(
                                             top,
@@ -670,8 +739,18 @@ function DashboardChart({
 }) {
   const boardRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const restoreDoneRef = useRef(false);
   const [zoom, setZoom] = useState(DEFAULT_ZOOM);
   const [search, setSearch] = useState("");
+  const [focusLeafId, setFocusLeafId] = useState<string | null>(() => {
+    const focus = readChartFocus();
+    if (!focus) {
+      return null;
+    }
+    // Must run before ColumnTree mounts so expand state is already saved.
+    ensureFocusExpanded(focus);
+    return focus.leafId;
+  });
   const [topBranchWidths, setTopBranchWidths] = useState<
     Record<string, number>
   >({});
@@ -712,6 +791,8 @@ function DashboardChart({
   const resetView = useCallback(() => {
     setZoom(DEFAULT_ZOOM);
     setSearch("");
+    setFocusLeafId(null);
+    clearChartFocus();
     if (boardRef.current) {
       boardRef.current.scrollLeft = 0;
       boardRef.current.scrollTop = 0;
@@ -738,6 +819,45 @@ function DashboardChart({
     if (!content) return;
     content.style.zoom = String(zoom);
   }, [zoom, tops]);
+
+  useEffect(() => {
+    if (!focusLeafId || restoreDoneRef.current || tops.length === 0) {
+      return;
+    }
+
+    let attempts = 0;
+    let timer = 0;
+
+    const scrollToLeaf = () => {
+      const board = boardRef.current;
+      const leafEl = board?.querySelector(
+        `[data-od-leaf-id="${CSS.escape(focusLeafId)}"]`
+      ) as HTMLElement | null;
+
+      if (!board || !leafEl) {
+        attempts += 1;
+        if (attempts < 20) {
+          timer = window.setTimeout(scrollToLeaf, 50);
+        }
+        return;
+      }
+
+      restoreDoneRef.current = true;
+      leafEl.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "center",
+      });
+      clearChartFocus();
+
+      window.setTimeout(() => {
+        setFocusLeafId(null);
+      }, 1800);
+    };
+
+    timer = window.setTimeout(scrollToLeaf, 80);
+    return () => window.clearTimeout(timer);
+  }, [focusLeafId, tops, topBranchWidths]);
 
   const columnCount = Math.max(tops.length, 1);
 
@@ -769,6 +889,7 @@ function DashboardChart({
                 key={top.id}
                 top={top}
                 search={search}
+                focusLeafId={focusLeafId}
                 onOpenLeaf={onOpenLeaf}
                 onBranchWidthChange={reportTopBranchWidth}
               />
@@ -899,10 +1020,43 @@ export default function ODChart() {
         let activeWorkshop = selectedWorkshop;
         let workshopCanEdit = canEdit;
 
-        if (!activeWorkshop?.templateId) {
+        // Always refresh from server so a stale local templateId
+        // (e.g. Pre OD accidentally stored as OD) cannot hide chart branches.
+        if (participant?.id) {
+          const workshopData = await fetchParticipantWorkshops(
+            participant.id,
+            participant.organizationId || activeWorkshop?.organizationId || "",
+            { forceRefresh: true }
+          );
+
+          if (workshopData.success && workshopData.workshop) {
+            activeWorkshop = workshopData.workshop;
+            workshopCanEdit = Boolean(workshopData.canEdit);
+
+            const selected = getActiveWorkshopContext().selected;
+            if (selected?.id === activeWorkshop.id) {
+              setSelectedWorkshop({
+                ...selected,
+                templateId: activeWorkshop.templateId,
+                templateName: activeWorkshop.templateName,
+                workshopName: activeWorkshop.workshopName || selected.workshopName,
+                organizationName:
+                  activeWorkshop.organizationName || selected.organizationName,
+                organizationId:
+                  activeWorkshop.organizationId || selected.organizationId,
+                preOdStartDate: activeWorkshop.preOdStartDate,
+                startDate: activeWorkshop.startDate,
+                endDate: activeWorkshop.endDate,
+                preOdQuestionCount: activeWorkshop.preOdQuestionCount,
+              });
+            }
+          }
+        } else if (!activeWorkshop?.templateId) {
           const organizationId = participant.organizationId || "";
-          const workshopData = await fetchWorkshopByOrganization(
-            organizationId
+          const workshopData = await fetchParticipantWorkshops(
+            "",
+            organizationId,
+            { forceRefresh: true }
           );
 
           if (!workshopData.success || !workshopData.workshop) {
@@ -919,7 +1073,7 @@ export default function ODChart() {
           workshopCanEdit = Boolean(workshopData.canEdit);
         }
 
-        if (!activeWorkshop?.templateId) {
+        if (!activeWorkshop?.templateId && !activeWorkshop?.id) {
           if (!cancelled) {
             setErrorMessage(
               "This workshop does not have a template assigned."
@@ -932,23 +1086,28 @@ export default function ODChart() {
         const workshopInfo: WorkshopInfo = {
           id: activeWorkshop.id,
           workshopName: activeWorkshop.workshopName || "Workshop",
-          templateId: activeWorkshop.templateId,
+          templateId: activeWorkshop.templateId || "",
           templateName: activeWorkshop.templateName || "",
           organizationName: activeWorkshop.organizationName || "",
           endDate: activeWorkshop.endDate,
           canEdit: workshopCanEdit,
         };
 
-        // Show cached chart immediately while a network refresh runs (if needed).
-        const cached = getCachedOdChart(activeWorkshop.templateId);
+        // Show cached chart immediately while a network refresh runs.
+        const cached = workshopInfo.templateId
+          ? getCachedOdChart(workshopInfo.templateId)
+          : null;
         if (cached?.success && Array.isArray(cached.tops) && !cancelled) {
           setWorkshop(workshopInfo);
           setTops(sortTopsForDisplay((cached.tops || []) as Top[]));
           setLoading(false);
-          return;
         }
 
-        const chartData = await fetchOdChart(activeWorkshop.templateId);
+        const chartData = await fetchOdChart(
+          workshopInfo.templateId,
+          workshopInfo.id,
+          { forceRefresh: true }
+        );
 
         if (cancelled) {
           return;
@@ -960,8 +1119,18 @@ export default function ODChart() {
           return;
         }
 
-        setWorkshop(workshopInfo);
+        const resolvedTemplateId = String(
+          chartData.template?.id || workshopInfo.templateId
+        ).trim();
+
+        setWorkshop({
+          ...workshopInfo,
+          templateId: resolvedTemplateId || workshopInfo.templateId,
+          templateName:
+            chartData.template?.templateName || workshopInfo.templateName,
+        });
         setTops(sortTopsForDisplay((chartData.tops || []) as Top[]));
+        setLoading(false);
       } catch (error) {
         console.error(error);
         if (!cancelled) {
@@ -1002,6 +1171,19 @@ export default function ODChart() {
       leaf,
       workshop,
     };
+
+    writeChartFocus({
+      leafId: leaf.id,
+      topId: top.id,
+      middleId: middle.id,
+      parentId: parent.id,
+    });
+    ensureFocusExpanded({
+      leafId: leaf.id,
+      topId: top.id,
+      middleId: middle.id,
+      parentId: parent.id,
+    });
 
     sessionStorage.setItem(OD_CHART_NAV_KEY, JSON.stringify(navState));
     navigate("/od-chart/questions", { state: navState });

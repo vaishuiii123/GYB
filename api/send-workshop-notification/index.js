@@ -1,26 +1,10 @@
 const { getTableClient } = require("../shared/tableHelper");
 const { sendSms } = require("../shared/smsProvider");
 const { sendEmail } = require("../shared/emailProvider");
-const {
-  buildVerificationCode,
-  buildWorkshopSmsMessage,
-} = require("../shared/workshopSmsMessage");
+const { buildWorkshopSmsMessage } = require("../shared/workshopSmsMessage");
 const {
   buildWorkshopEmailContent,
 } = require("../shared/workshopEmailMessage");
-
-async function updateParticipantPassword(participantId, password) {
-  const client = getTableClient("Participants");
-
-  await client.updateEntity(
-    {
-      partitionKey: "Participant",
-      rowKey: participantId,
-      Password: password,
-    },
-    "Merge"
-  );
-}
 
 async function getWorkshop(workshopId) {
   const client = getTableClient("Workshop");
@@ -64,6 +48,7 @@ async function getOrganizationParticipants(organizationId) {
       firstName: participant.First_Name || "",
       lastName: participant.Last_Name || "",
       email: participant.Email || "",
+      username: participant.Username || "",
       phoneNo: participant.Phone_No || "",
       password: participant.Password || "",
       organization: participant.Organisation || "",
@@ -71,6 +56,23 @@ async function getOrganizationParticipants(organizationId) {
   }
 
   return participants;
+}
+
+/** Fresh Username + Password from Participants table (source of truth). */
+async function getParticipantCredentials(participantId) {
+  const client = getTableClient("Participants");
+  try {
+    const entity = await client.getEntity("Participant", participantId);
+    return {
+      username: String(entity.Username || "").trim(),
+      email: String(entity.Email || "").trim(),
+      password: String(entity.Password || "").trim(),
+      firstName: String(entity.First_Name || "").trim(),
+      lastName: String(entity.Last_Name || "").trim(),
+    };
+  } catch {
+    return null;
+  }
 }
 
 function normalizeParticipantIds(value) {
@@ -90,7 +92,17 @@ function formatDate(value) {
   if (Number.isNaN(date.getTime())) {
     return String(value);
   }
-  return date.toLocaleString();
+  const datePart = date.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+  const timePart = date.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+  return `${datePart} | ${timePart}`;
 }
 
 module.exports = async function (context, req) {
@@ -219,62 +231,73 @@ module.exports = async function (context, req) {
         }
       }
 
-      let verificationCode = "";
-      try {
-        verificationCode = buildVerificationCode(participant.password);
-        if (verificationCode !== participant.password) {
-          await updateParticipantPassword(participant.id, verificationCode);
-          participant.password = verificationCode;
-        }
-      } catch (error) {
-        results.push({
-          ...baseResult,
-          success: false,
-          error: error.message,
-        });
-        continue;
-      }
+      const credentials = await getParticipantCredentials(participant.id);
+      const loginId =
+        (credentials && credentials.username) ||
+        String(participant.username || "").trim() ||
+        (credentials && credentials.email) ||
+        String(participant.email || "").trim();
+      const loginPassword =
+        (credentials && credentials.password) ||
+        String(participant.password || "").trim();
+      const greetingName =
+        `${(credentials && credentials.firstName) || participant.firstName || ""} ${(credentials && credentials.lastName) || participant.lastName || ""}`.trim() ||
+        displayName;
 
       if (sendEmailChannel && participant.email) {
-        try {
-          const emailContent = buildWorkshopEmailContent({
-            workshopName: workshop.workshopName,
-            organizationName: workshop.organizationName,
-            participantName: displayName,
-            verificationCode,
-            loginUrl: appLoginUrl,
-            startDate: formatDate(workshop.startDate),
-            endDate: formatDate(workshop.endDate),
-          });
-
-          const emailResult = await sendEmail({
-            to: participant.email,
-            subject: emailContent.subject,
-            text: emailContent.text,
-            html: emailContent.html,
-          });
-
-          results.push({
-            ...baseResult,
-            success: true,
-            channel: "email",
-            provider: emailResult.provider,
-            providerResponse: emailResult.response,
-          });
-        } catch (error) {
+        if (!loginId || !loginPassword) {
           results.push({
             ...baseResult,
             success: false,
             channel: "email",
-            error: error.message,
+            error: !loginId
+              ? "Login ID (username) missing for participant"
+              : "Password missing for participant in database",
           });
+        } else {
+          try {
+            const emailContent = buildWorkshopEmailContent({
+              workshopName: workshop.workshopName,
+              organizationName: workshop.organizationName,
+              participantName: greetingName,
+              loginId,
+              password: loginPassword,
+              loginUrl: appLoginUrl,
+              startDate: formatDate(workshop.startDate),
+              endDate: formatDate(workshop.endDate),
+            });
+
+            const emailResult = await sendEmail({
+              to: participant.email,
+              subject: emailContent.subject,
+              text: emailContent.text,
+              html: emailContent.html,
+            });
+
+            results.push({
+              ...baseResult,
+              success: true,
+              channel: "email",
+              provider: emailResult.provider,
+              providerResponse: emailResult.response,
+            });
+          } catch (error) {
+            results.push({
+              ...baseResult,
+              success: false,
+              channel: "email",
+              error: error.message,
+            });
+          }
         }
       }
 
       if (sendSmsChannel && participant.phoneNo) {
         let message = "";
         try {
-          message = buildWorkshopSmsMessage({ verificationCode });
+          message = buildWorkshopSmsMessage({
+            verificationCode: loginPassword,
+          });
           context.log("Workshop SMS message:", message);
 
           const smsResult = await sendSms(participant.phoneNo, message);

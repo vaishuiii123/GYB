@@ -1,0 +1,201 @@
+/* NAO-style version pill + release notes modal */
+
+.gyb-version-badge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  max-height: 40px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid #d0d5dd;
+  background: #f8f9fa;
+  color: #7b1223;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  flex: 0 0 auto;
+  cursor: pointer;
+}
+
+.gyb-version-badge:hover {
+  background: #f0f2f5;
+}
+
+.gyb-version-badge-on-dark {
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.95);
+  color: #7b1223;
+}
+
+.gyb-version-badge-on-dark:hover {
+  background: #ffffff;
+}
+
+.gyb-version-new-label {
+  color: #7b1223;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.gyb-version-number {
+  color: #7b1223;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.gyb-version-dot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #7b1223;
+  pointer-events: none;
+}
+
+.gyb-version-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 11000;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.gyb-version-modal {
+  width: min(520px, 100%);
+  max-height: min(80vh, 640px);
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.28);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+.gyb-version-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid #e8eaee;
+}
+
+.gyb-version-modal-header h2 {
+  margin: 0;
+  font-size: 18px;
+  color: #111827;
+}
+
+.gyb-version-modal-close {
+  border: none;
+  background: transparent;
+  font-size: 24px;
+  line-height: 1;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.gyb-version-modal-close:hover {
+  color: #111827;
+}
+
+.gyb-version-modal-body {
+  padding: 16px 18px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.gyb-version-update-banner {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(123, 18, 35, 0.08);
+  color: #7b1223;
+  font-size: 13px;
+}
+
+.gyb-version-note {
+  margin-bottom: 16px;
+}
+
+.gyb-version-note:last-child {
+  margin-bottom: 0;
+}
+
+.gyb-version-note h3 {
+  margin: 0;
+  font-size: 15px;
+  color: #111827;
+}
+
+.gyb-version-note-date {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.gyb-version-note ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: #1f2937;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.gyb-version-modal-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  padding: 12px 18px 16px;
+  border-top: 1px solid #e8eaee;
+}
+
+.gyb-version-btn-primary,
+.gyb-version-btn-secondary {
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.gyb-version-btn-primary {
+  border: none;
+  background: #9b304a;
+  color: #ffffff;
+}
+
+.gyb-version-btn-primary:hover {
+  background: #7b1223;
+}
+
+.gyb-version-btn-secondary {
+  border: 1px solid #d0d5dd;
+  background: #ffffff;
+  color: #374151;
+}
+
+.gyb-version-btn-secondary:hover {
+  background: #f8f9fa;
+}
+
+@media (max-width: 640px) {
+  .gyb-version-new-label {
+    display: none;
+  }
+}

@@ -54,6 +54,29 @@
   font-weight: 600;
 }
 
+.admin-shell-user-menu {
+  position: relative;
+}
+
+.admin-shell-user-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 4px 6px;
+  border-radius: 8px;
+}
+
+.admin-shell-user-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
 .admin-shell-avatar {
   width: 36px;
   height: 36px;
@@ -74,23 +97,36 @@
   white-space: nowrap;
 }
 
-.admin-shell-logout {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+.admin-shell-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 140px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  padding: 6px;
+  z-index: 1100;
+}
+
+.admin-shell-dropdown button {
+  width: 100%;
   border: none;
-  background: transparent;
-  color: #ffffff;
+  background: none;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: #374151;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   font-family: inherit;
-  padding: 8px 10px;
-  border-radius: 8px;
 }
 
-.admin-shell-logout:hover {
-  background: rgba(255, 255, 255, 0.12);
+.admin-shell-dropdown button:hover {
+  background: #fdf2f4;
+  color: #7b0f2c;
 }
 
 body.admin-sidebar-collapsed .admin-dashboard-content {

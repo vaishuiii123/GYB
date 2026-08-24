@@ -823,6 +823,22 @@
     0 0 0 4px rgba(37, 99, 235, 0.14);
 }
 
+.od-dash-leaf.is-restore-focus {
+  outline: 2px solid #9b304a;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 5px rgba(155, 48, 74, 0.2);
+  animation: od-restore-pulse 1.4s ease-out 1;
+}
+
+@keyframes od-restore-pulse {
+  0% {
+    box-shadow: 0 0 0 2px rgba(155, 48, 74, 0.45);
+  }
+  100% {
+    box-shadow: 0 0 0 5px rgba(155, 48, 74, 0);
+  }
+}
+
 
 /* =========================================================
    OLD SPINE

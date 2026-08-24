@@ -101,7 +101,7 @@ export default function UserNavDrawer({ open, onClose }: UserNavDrawerProps) {
         <button
           type="button"
           className="user-nav-back"
-          onClick={() => handleNavigate("/select-workshop")}
+          onClick={() => handleNavigate("/userdashboard")}
         >
           ← Back
         </button>

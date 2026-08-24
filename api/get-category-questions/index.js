@@ -5,17 +5,10 @@ const {
   groupOptionsByQuestionIds,
   listAnswersForWorkshop,
 } = require("../shared/tableHelper");
-
-function parseQuestionIds(questionIdField) {
-  if (!questionIdField) {
-    return [];
-  }
-
-  return String(questionIdField)
-    .split(",")
-    .map((id) => id.trim())
-    .filter(Boolean);
-}
+const {
+  parseQuestionIds,
+  resolveOdTemplate,
+} = require("../shared/resolveOdTemplate");
 
 async function listOptionsForQuestionIds(optionTable, questionIds) {
   const uniqueIds = [...new Set(questionIds.filter(Boolean))];
@@ -50,10 +43,10 @@ async function listOptionsForQuestionIds(optionTable, questionIds) {
 
 module.exports = async function (context, req) {
   try {
-    const categoryId = req.query.categoryId;
-    const participantId = req.query.participantId;
-    const workshopId = req.query.workshopId;
-    const templateId = req.query.templateId;
+    const categoryId = String(req.query.categoryId || "").trim();
+    const participantId = String(req.query.participantId || "").trim();
+    const workshopId = String(req.query.workshopId || "").trim();
+    const templateIdQuery = String(req.query.templateId || "").trim();
 
     if (!categoryId) {
       context.res = {
@@ -72,30 +65,44 @@ module.exports = async function (context, req) {
     const tagTable = getTableClient("Tags");
 
     const category = await categoryTable.getEntity("Category", categoryId);
-    let questionIds = parseQuestionIds(category.QuestionId);
-    const resolvedTemplateId = templateId || "";
+    const categoryQuestionIds = parseQuestionIds(category.QuestionId);
+    let questionIds = categoryQuestionIds;
 
-    if (workshopId || templateId) {
-      if (!resolvedTemplateId) {
-        questionIds = [];
-      } else {
-        try {
-          const templateTable = getTableClient("Template");
-          const template = await templateTable.getEntity(
-            "Template",
-            resolvedTemplateId
-          );
-          const templateQuestionIds = new Set(
-            parseQuestionIds(template.QuestionIds)
-          );
+    // Participant / workshop: only questions included on the OD template.
+    const isParticipantContext = Boolean(
+      participantId || workshopId || templateIdQuery
+    );
 
-          questionIds = questionIds.filter((id) =>
-            templateQuestionIds.has(id)
-          );
-        } catch {
-          questionIds = [];
-        }
+    if (isParticipantContext) {
+      const resolved = await resolveOdTemplate(workshopId, templateIdQuery);
+
+      if (!resolved.templateId || !resolved.template) {
+        context.res = {
+          status: 400,
+          body: {
+            success: false,
+            message:
+              "Workshop OD template is missing or could not be loaded. Assign Master OD template to the workshop.",
+            data: [],
+          },
+        };
+        return;
       }
+
+      const templateQuestionIds = parseQuestionIds(
+        resolved.template.QuestionIds
+      );
+      const categorySet = new Set(categoryQuestionIds);
+
+      // Template is source of truth — intersect with this leaf category.
+      questionIds = templateQuestionIds.filter((id) => categorySet.has(id));
+
+      context.log(
+        `get-category-questions: category=${categoryId} ` +
+          `template=${resolved.templateId} (${resolved.template.TemplateName}) ` +
+          `templateQs=${templateQuestionIds.length} ` +
+          `categoryQs=${categoryQuestionIds.length} result=${questionIds.length}`
+      );
     }
 
     const questionEntities = await getEntitiesByKeys(

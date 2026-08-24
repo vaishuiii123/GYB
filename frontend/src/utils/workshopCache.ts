@@ -344,6 +344,23 @@ export function clearCachedPageData(key: string) {
   }
 }
 
+/** Clear all cached page payloads (call on login/logout). */
+export function clearAllCachedPageData() {
+  try {
+    const prefix = `${PAGE_DATA_CACHE_KEY}:`;
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < sessionStorage.length; i += 1) {
+      const key = sessionStorage.key(i);
+      if (key && key.startsWith(prefix)) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach((key) => sessionStorage.removeItem(key));
+  } catch {
+    // ignore
+  }
+}
+
 export function workshopFromSelected(
   selected: SelectedWorkshop
 ): WorkshopRecord {
@@ -514,43 +531,66 @@ export async function fetchWorkshopByOrganization(organizationId: string) {
   return data;
 }
 
-async function requestOdChart(templateId: string) {
-  const response = await fetch(
-    `/api/get-od-chart?templateId=${encodeURIComponent(
-      templateId
-    )}&includeQuestions=false`
-  );
+async function requestOdChart(
+  templateId: string,
+  workshopId?: string | null
+) {
+  const params = new URLSearchParams({
+    includeQuestions: "false",
+  });
+
+  if (templateId) {
+    params.set("templateId", templateId);
+  }
+
+  if (workshopId) {
+    params.set("workshopId", workshopId);
+  }
+
+  const response = await fetch(`/api/get-od-chart?${params.toString()}`);
   const data = await response.json();
 
   if (data.success) {
-    setCachedOdChart(templateId, data);
+    const resolvedTemplateId = String(data.template?.id || templateId).trim();
+    if (resolvedTemplateId) {
+      setCachedOdChart(resolvedTemplateId, data);
+    }
   }
 
   return data;
 }
 
 /** Prefetch OD chart into session cache (e.g. from dashboard). */
-export function prefetchOdChart(templateId?: string | null) {
-  if (!templateId) {
+export function prefetchOdChart(
+  templateId?: string | null,
+  workshopId?: string | null
+) {
+  if (!templateId && !workshopId) {
     return;
   }
 
-  if (getCachedOdChart(templateId)) {
+  if (templateId && getCachedOdChart(templateId) && !workshopId) {
     return;
   }
 
-  void requestOdChart(templateId).catch(() => {
+  void requestOdChart(templateId || "", workshopId).catch(() => {
     // ignore prefetch errors
   });
 }
 
-export async function fetchOdChart(templateId: string) {
-  const cached = getCachedOdChart(templateId);
-  if (cached) {
-    return cached;
+export async function fetchOdChart(
+  templateId: string,
+  workshopId?: string | null,
+  options?: { forceRefresh?: boolean }
+) {
+  if (!options?.forceRefresh && templateId && !workshopId) {
+    const cached = getCachedOdChart(templateId);
+    if (cached) {
+      return cached;
+    }
   }
 
-  return requestOdChart(templateId);
+  return requestOdChart(templateId, workshopId);
 }
 
 export function flattenOdChartLeaves(

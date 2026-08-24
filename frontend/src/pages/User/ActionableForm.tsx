@@ -107,7 +107,9 @@ export default function ActionableForm() {
         setEditMessage(initialEditMessage);
 
         const [chartData, actionablesData] = await Promise.all([
-          fetchOdChart(selectedWorkshop.templateId),
+          fetchOdChart(selectedWorkshop.templateId, selectedWorkshop.id, {
+            forceRefresh: true,
+          }),
           fetch(
             `/api/get-actionables?participantId=${participant.id}&workshopId=${selectedWorkshop.id}`
           ).then((response) => response.json()),

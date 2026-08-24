@@ -15,6 +15,7 @@ import {
 import myImage from "../../images/KNAV logo.png";
 import { MSAL_LOGIN_TARGET_KEY } from "../../authConfig";
 import { clearSelectedWorkshop } from "../../utils/selectedWorkshop";
+import { clearAllCachedPageData } from "../../utils/workshopCache";
 import "../../styles/UserLogin.css";
 
 function LinkedInIcon() {
@@ -55,6 +56,7 @@ export default function UserLogin() {
         break;
       case "Participant":
         clearSelectedWorkshop();
+        clearAllCachedPageData();
         navigate("/about-us");
         break;
       default:
@@ -79,6 +81,7 @@ export default function UserLogin() {
     }
 
     localStorage.setItem("participant", JSON.stringify(data.user));
+    clearAllCachedPageData();
     redirectUser(data.user.role);
   };
 
@@ -286,6 +289,7 @@ export default function UserLogin() {
       }
 
       localStorage.setItem("participant", JSON.stringify(data.user));
+      clearAllCachedPageData();
       redirectUser(data.user.role || "Participant");
     } catch (error) {
       console.error(error);

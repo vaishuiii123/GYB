@@ -1,11 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import WorkshopEditBanner from "../../components/WorkshopEditBanner";
 import ODChartShell from "./ODChartShell";
 import {
   clearCachedPageData,
   getActiveWorkshopContext,
-  getCachedPageData,
   getWorkshopEditStatus,
   getWorkshopModuleAccessStatus,
   setCachedPageData,
@@ -83,8 +82,23 @@ export default function ODChartQuestions() {
   const [successMessage, setSuccessMessage] = useState("");
   const [canEdit, setCanEdit] = useState(true);
   const [editMessage, setEditMessage] = useState("");
+  const answersDirtyRef = useRef(false);
+  const loadRequestIdRef = useRef(0);
+  const loadedLeafIdRef = useRef<string>("");
 
   const { participant } = getActiveWorkshopContext();
+  const leafId =
+    (location.state as ODQuestionsNavState | null)?.leaf?.id ||
+    (() => {
+      try {
+        const stored = sessionStorage.getItem(OD_CHART_NAV_KEY);
+        return stored
+          ? (JSON.parse(stored) as ODQuestionsNavState)?.leaf?.id
+          : "";
+      } catch {
+        return "";
+      }
+    })();
 
   useEffect(() => {
     const { workshop } = getActiveWorkshopContext();
@@ -99,6 +113,19 @@ export default function ODChartQuestions() {
       return;
     }
     setNavState(state);
+
+    const leafChanged = loadedLeafIdRef.current !== state.leaf.id;
+    if (leafChanged) {
+      answersDirtyRef.current = false;
+      loadedLeafIdRef.current = state.leaf.id;
+      setAnswers({});
+      setPendingFiles({});
+      setSavedAttachments({});
+      setLoading(true);
+    }
+
+    const requestId = ++loadRequestIdRef.current;
+    let cancelled = false;
 
     const mapQuestions = (data: {
       data?: Array<{
@@ -131,49 +158,51 @@ export default function ODChartQuestions() {
           ),
         }))
       );
-      setAnswers(data.answers || {});
-      setSavedAttachments(data.attachments || {});
-      setPendingFiles({});
+
+      // Never wipe in-progress edits if a late/duplicate fetch finishes.
+      if (!answersDirtyRef.current) {
+        setAnswers(data.answers || {});
+        setSavedAttachments(data.attachments || {});
+        setPendingFiles({});
+      }
     };
 
     const loadPageData = async () => {
       if (!participant.id || !state.workshop.id) {
-        setLoading(false);
+        if (!cancelled && requestId === loadRequestIdRef.current) {
+          setLoading(false);
+        }
         return;
       }
 
       try {
         const editStatus = getWorkshopEditStatus(state.workshop);
-        setCanEdit(editStatus.canEdit);
-        setEditMessage(editStatus.editMessage);
-
-        const cacheKey = `od-questions:${state.workshop.id}:${state.leaf.id}:${participant.id}`;
-        const cached = getCachedPageData<{
-          success: boolean;
-          data?: Array<{
-            questionId: string;
-            questionText: string;
-            questionType: string;
-            tagId?: string;
-            tagName?: string;
-            tagColor?: string;
-            attachmentsApplicable?: string;
-            options: { optionText: string }[] | string[];
-          }>;
-          answers?: Record<string, string>;
-          attachments?: Record<string, AttachmentMeta>;
-        }>(cacheKey);
-
-        if (cached?.success) {
-          mapQuestions(cached);
-          setLoading(false);
+        if (!cancelled && requestId === loadRequestIdRef.current) {
+          setCanEdit(editStatus.canEdit);
+          setEditMessage(editStatus.editMessage);
         }
 
+        const cacheKey = `od-questions:${state.workshop.id}:${state.leaf.id}:${participant.id}`;
+        clearCachedPageData(cacheKey);
+
         const activeWorkshop = getActiveWorkshopContext().workshop;
-        const templateId =
-          String(activeWorkshop?.templateId || state.workshop.templateId || "").trim();
-        const workshopId =
-          String(activeWorkshop?.id || state.workshop.id || "").trim();
+        const templateId = String(
+          activeWorkshop?.templateId || state.workshop.templateId || ""
+        ).trim();
+        const workshopId = String(
+          activeWorkshop?.id || state.workshop.id || ""
+        ).trim();
+
+        if (!templateId) {
+          if (!cancelled && requestId === loadRequestIdRef.current) {
+            setQuestions([]);
+            setErrorMessage(
+              "This workshop does not have a template assigned. Questions cannot be loaded."
+            );
+            setLoading(false);
+          }
+          return;
+        }
 
         const query = new URLSearchParams({
           categoryId: state.leaf.id,
@@ -187,10 +216,15 @@ export default function ODChartQuestions() {
         );
         const questionsData = await questionsRes.json();
 
+        if (cancelled || requestId !== loadRequestIdRef.current) {
+          return;
+        }
+
         if (questionsData.success) {
           mapQuestions(questionsData);
           setCachedPageData(cacheKey, questionsData);
         } else {
+          setQuestions([]);
           setErrorMessage(
             questionsData.message ||
               "Unable to load questions for this workshop template."
@@ -198,20 +232,29 @@ export default function ODChartQuestions() {
         }
       } catch (error) {
         console.error(error);
-        setErrorMessage("Unable to load questions.");
+        if (!cancelled && requestId === loadRequestIdRef.current) {
+          setErrorMessage("Unable to load questions.");
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled && requestId === loadRequestIdRef.current) {
+          setLoading(false);
+        }
       }
     };
 
     loadPageData();
-  }, [location, navigate, participant.id]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [leafId, navigate, participant.id, location.key]);
 
   const setAnswer = (questionId: string, value: string) => {
     if (!canEdit) {
       return;
     }
 
+    answersDirtyRef.current = true;
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
   };
 
@@ -234,6 +277,7 @@ export default function ODChartQuestions() {
       return;
     }
 
+    answersDirtyRef.current = true;
     setPendingFiles((prev) => ({
       ...prev,
       [questionId]: {
@@ -330,6 +374,7 @@ export default function ODChartQuestions() {
 
       setSavedAttachments(uploadedAttachments);
       setPendingFiles({});
+      answersDirtyRef.current = false;
 
       if (navState) {
         clearCachedPageData(
@@ -357,7 +402,9 @@ export default function ODChartQuestions() {
     const isMultiple = type.includes("multiple");
     const isSingle = type.includes("single");
     const isRating = type.includes("rating");
-    const isText = type.includes("text") || (!isMultiple && !isSingle && !isRating && options.length === 0);
+    const isText =
+      type.includes("text") ||
+      (!isMultiple && !isSingle && !isRating && options.length === 0);
 
     if (isMultiple && options.length > 0) {
       const selected = currentValue
@@ -392,7 +439,10 @@ export default function ODChartQuestions() {
       );
     }
 
-    if ((isSingle || (options.length > 0 && !isText && !isRating)) && options.length > 0) {
+    if (
+      (isSingle || (options.length > 0 && !isText && !isRating)) &&
+      options.length > 0
+    ) {
       return (
         <div className="option-buttons" role="radiogroup">
           {options.map((option) => (

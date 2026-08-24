@@ -15,7 +15,6 @@ import {
 import {
   clearCachedPageData,
   getActiveWorkshopContext,
-  getCachedPageData,
   getWorkshopModuleAccessStatus,
   setCachedPageData,
 } from "../../utils/workshopCache";
@@ -105,43 +104,31 @@ export default function VisionMission() {
     const fetchData = async () => {
       try {
         const activeWorkshopId = selectedWorkshop?.id || "";
+        const participantId = String(participant?.id || "").trim();
         setWorkshopId(activeWorkshopId);
         setCanEdit(initialCanEdit);
         setEditMessage(initialEditMessage);
         setErrorMessage("");
-        // Clear previous workshop answers immediately while loading.
+        setMessage("");
+        // Always reset so another participant's answers never linger in UI.
         setVisionKeywords([]);
         setMissionKeywords([]);
+        setVisionInput("");
+        setMissionInput("");
 
-        const cacheKey = `vision-mission:${participant?.id || ""}:${activeWorkshopId}`;
-        const cached = getCachedPageData<{
-          keywords: string[];
-          visionKeywords: string[];
-          missionKeywords: string[];
-        }>(cacheKey);
-
-        if (cached) {
-          setKeywords(
-            cached.keywords.length ? cached.keywords : DEFAULT_KEYWORDS
-          );
-          setVisionKeywords(cached.visionKeywords);
-          setMissionKeywords(cached.missionKeywords);
-        }
-
-        const responseParams = new URLSearchParams({
-          participantId: participant?.id || "",
-        });
-        if (activeWorkshopId) {
-          responseParams.set("workshopId", activeWorkshopId);
+        if (!participantId || !activeWorkshopId) {
+          setKeywords(DEFAULT_KEYWORDS);
+          return;
         }
 
         const [keywordsRes, responseRes] = await Promise.all([
           fetch("/api/get-vision-mission"),
-          participant?.id
-            ? fetch(
-                `/api/get-vision-mission-response?${responseParams.toString()}`
-              )
-            : Promise.resolve(null),
+          fetch(
+            `/api/get-vision-mission-response?${new URLSearchParams({
+              participantId,
+              workshopId: activeWorkshopId,
+            }).toString()}`
+          ),
         ]);
 
         const keywordsData = await keywordsRes.json();
@@ -154,9 +141,17 @@ export default function VisionMission() {
           setKeywords(nextKeywords);
         }
 
-        if (responseRes) {
-          const responseData = await responseRes.json();
-          if (responseData.success) {
+        const responseData = await responseRes.json();
+        if (responseData.success) {
+          const responseParticipantId = String(
+            responseData.data?.participantId || ""
+          ).trim();
+
+          // Never apply a payload that belongs to a different participant.
+          if (
+            !responseParticipantId ||
+            responseParticipantId === participantId
+          ) {
             nextVision = buildKeywordList(
               responseData.data.visionKeywords || [],
               responseData.data.visionText || ""
@@ -165,20 +160,26 @@ export default function VisionMission() {
               responseData.data.missionKeywords || [],
               responseData.data.missionText || ""
             );
-            setVisionKeywords(nextVision);
-            setMissionKeywords(nextMission);
           }
         }
 
-        if (activeWorkshopId) {
-          setCachedPageData(cacheKey, {
+        setVisionKeywords(nextVision);
+        setMissionKeywords(nextMission);
+
+        setCachedPageData(
+          `vision-mission:${participantId}:${activeWorkshopId}`,
+          {
+            participantId,
+            workshopId: activeWorkshopId,
             keywords: nextKeywords,
             visionKeywords: nextVision,
             missionKeywords: nextMission,
-          });
-        }
+          }
+        );
       } catch (error) {
         console.error("Error fetching vision/mission:", error);
+        setVisionKeywords([]);
+        setMissionKeywords([]);
         setErrorMessage("Unable to load Vision & Mission data.");
       } finally {
         setLoading(false);

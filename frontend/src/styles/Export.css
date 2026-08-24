@@ -153,6 +153,22 @@
   border-bottom: 3px solid #9b2145;
 }
 
+.export-tabs button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.export-text-cell {
+  white-space: pre-wrap;
+  max-width: 320px;
+  line-height: 1.4;
+}
+
+.export-table-wide th:nth-child(n),
+.export-table-wide td:nth-child(n) {
+  min-width: 120px;
+}
+
 /* =========================================
    SEARCH + EXCEL
 ========================================= */

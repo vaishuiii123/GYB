@@ -74,8 +74,8 @@ module.exports = async function (context, req) {
 
     const entity = {
       partitionKey: "Participant",
-      rowKey: participantId,
-      ParticipantId: participantId,
+      rowKey: String(participantId),
+      ParticipantId: String(participantId),
       OrganizationId: organizationId || access.workshop?.organizationId || "",
       WorkshopId: resolvedWorkshopId,
       VisionKeywords: JSON.stringify(cleanedVisionKeywords),
@@ -86,7 +86,7 @@ module.exports = async function (context, req) {
     };
 
     try {
-      await tableClient.getEntity("Participant", participantId);
+      await tableClient.getEntity("Participant", String(participantId));
       await tableClient.updateEntity(entity, "Replace");
     } catch {
       await tableClient.createEntity(entity);
@@ -96,11 +96,15 @@ module.exports = async function (context, req) {
       const workshopEntity = {
         ...entity,
         partitionKey: String(resolvedWorkshopId),
-        rowKey: participantId,
+        rowKey: String(participantId),
+        ParticipantId: String(participantId),
       };
 
       try {
-        await tableClient.getEntity(String(resolvedWorkshopId), participantId);
+        await tableClient.getEntity(
+          String(resolvedWorkshopId),
+          String(participantId)
+        );
         await tableClient.updateEntity(workshopEntity, "Replace");
       } catch {
         await tableClient.createEntity(workshopEntity);

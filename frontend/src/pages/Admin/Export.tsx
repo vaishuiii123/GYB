@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import * as XLSX from "xlsx";
+import JSZip from "jszip";
 import "../../styles/Export.css";
 
 type PageProps = {
@@ -31,8 +32,67 @@ type ExportRow = {
   questionType?: string;
   response: string;
   attachment: string;
+  attachmentFileName?: string;
   source: "preod" | "od";
 };
+
+type VisionMissionRow = {
+  participant: string;
+  organization: string;
+  workshop: string;
+  visionText: string;
+  missionText: string;
+  visionKeywords: string[];
+  missionKeywords: string[];
+  submittedDate?: string;
+};
+
+type ActionableRow = {
+  participant: string;
+  organization: string;
+  workshop: string;
+  categoryName: string;
+  categoryPath: string;
+  description: string;
+  timeline: string;
+  responsiblePersons: string;
+  comments: string;
+};
+
+function safeZipSegment(value: string, fallback = "item", maxLen = 80) {
+  const cleaned = String(value || "")
+    .replace(/[<>:"/\\|?*\x00-\x1f]+/g, "_")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxLen);
+  return cleaned || fallback;
+}
+
+function categoryLeafName(category: string) {
+  const parts = String(category || "")
+    .split(">")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  return parts[parts.length - 1] || category || "Category";
+}
+
+function uniqueZipPath(
+  usedPaths: Set<string>,
+  folderPath: string,
+  fileName: string
+) {
+  let unique = `${folderPath}/${fileName}`;
+  let suffix = 2;
+  while (usedPaths.has(unique.toLowerCase())) {
+    const dot = fileName.lastIndexOf(".");
+    const base = dot > 0 ? fileName.slice(0, dot) : fileName;
+    const ext = dot > 0 ? fileName.slice(dot) : "";
+    unique = `${folderPath}/${base}_${suffix}${ext}`;
+    suffix += 1;
+  }
+  usedPaths.add(unique.toLowerCase());
+  return unique;
+}
 
 type ResponseData = {
   workshop?: {
@@ -170,6 +230,9 @@ function isLikelyCategoricalForPie(values: string[]) {
 
 function isChoiceQuestionType(questionType?: string) {
   const type = String(questionType || "").trim().toLowerCase();
+  if (!type || type.includes("text")) {
+    return false;
+  }
   return (
     type.includes("multiple") ||
     type.includes("single") ||
@@ -348,6 +411,14 @@ export default function Export({ user }: PageProps) {
   const [responses, setResponses] =
     useState<ExportRow[]>([]);
 
+  const [visionMissionRows, setVisionMissionRows] = useState<
+    VisionMissionRow[]
+  >([]);
+
+  const [actionableRows, setActionableRows] = useState<ActionableRow[]>(
+    []
+  );
+
   const [loading, setLoading] =
     useState(false);
 
@@ -361,7 +432,9 @@ export default function Export({ user }: PageProps) {
     useState("");
 
   const [activeView, setActiveView] =
-    useState<"all" | "summary">("all");
+    useState<"all" | "summary" | "vision" | "actionable">("all");
+
+  const [exportingZip, setExportingZip] = useState(false);
 
   /*
    * --------------------------------------------------
@@ -473,6 +546,8 @@ export default function Export({ user }: PageProps) {
   useEffect(() => {
     if (!selectedWorkshop) {
       setResponses([]);
+      setVisionMissionRows([]);
+      setActionableRows([]);
       setSelectedCategory("");
       setSelectedQuestion("");
       return;
@@ -499,6 +574,8 @@ export default function Export({ user }: PageProps) {
         }
 
         const rows: ExportRow[] = [];
+        const visionRows: VisionMissionRow[] = [];
+        const actionableList: ActionableRow[] = [];
 
         /*
          * --------------------------------------------
@@ -514,6 +591,10 @@ export default function Export({ user }: PageProps) {
             const participantName =
               participant.participantName ||
               "Unknown";
+            const organizationName =
+              data.workshop?.organizationName || "";
+            const workshopName =
+              data.workshop?.workshopName || "";
 
             /*
              * Pre OD
@@ -546,15 +627,17 @@ export default function Export({ user }: PageProps) {
 
                   rows.push({
                     participant: participantName,
-                    organization:
-                      data.workshop?.organizationName || "",
-                    workshop: data.workshop?.workshopName || "",
+                    organization: organizationName,
+                    workshop: workshopName,
                     category:
                       question.category ||
                       "Pre Organization Development",
                     question: question.question,
                     response: hasAnswer ? String(answer) : "",
                     attachment: attachmentUrl,
+                    attachmentFileName: hasAttachment
+                      ? String(attachmentMeta?.fileName || "attachment")
+                      : undefined,
                     source: "preod",
                   });
                 }
@@ -583,42 +666,60 @@ export default function Export({ user }: PageProps) {
                     : "-";
 
                   rows.push({
-                    participant:
-                      participantName,
-
-                    organization:
-                      data.workshop
-                        ?.organizationName || "",
-
-                    workshop:
-                      data.workshop
-                        ?.workshopName || "",
-
-                    category:
-                      getCategoryForQuestion(
-                        questionId
-                      ),
-
+                    participant: participantName,
+                    organization: organizationName,
+                    workshop: workshopName,
+                    category: getCategoryForQuestion(questionId),
                     question:
-                      data.questionLabels?.[
-                        questionId
-                      ] || questionId,
-
+                      data.questionLabels?.[questionId] || questionId,
                     questionId,
                     questionType:
                       data.questionTypes?.[questionId] ||
-                      getQuestionTypeForQuestion(
-                        questionId
-                      ),
-
-                    response:
-                      String(answer || ""),
-
+                      getQuestionTypeForQuestion(questionId),
+                    response: String(answer || ""),
                     attachment: attachmentUrl,
+                    attachmentFileName: attachmentMeta?.blobPath
+                      ? String(attachmentMeta?.fileName || "attachment")
+                      : undefined,
                     source: "od",
                   });
                 }
               );
+
+              // Include OD attachments that exist without a text answer.
+              Object.entries(
+                participant.odChart.attachments || {}
+              ).forEach(([questionId, attachmentMeta]: [string, any]) => {
+                if (
+                  !attachmentMeta?.blobPath ||
+                  participant.odChart.answers?.[questionId] !== undefined
+                ) {
+                  return;
+                }
+
+                rows.push({
+                  participant: participantName,
+                  organization: organizationName,
+                  workshop: workshopName,
+                  category: getCategoryForQuestion(questionId),
+                  question:
+                    data.questionLabels?.[questionId] || questionId,
+                  questionId,
+                  questionType:
+                    data.questionTypes?.[questionId] ||
+                    getQuestionTypeForQuestion(questionId),
+                  response: "",
+                  attachment: `/api/get-od-attachment?participantId=${encodeURIComponent(
+                    participant.participantId
+                  )}&workshopId=${encodeURIComponent(
+                    selectedWorkshop
+                  )}&questionId=${encodeURIComponent(questionId)}`,
+                  attachmentFileName: String(
+                    attachmentMeta?.fileName || "attachment"
+                  ),
+                  source: "od",
+                });
+              });
             }
 
             /*
@@ -627,71 +728,91 @@ export default function Export({ user }: PageProps) {
              * ----------------------------------------
              */
 
-            if (
-              participant.visionMission
-            ) {
-              const vm =
-                participant.visionMission;
+            if (participant.visionMission) {
+              const vm = participant.visionMission;
+              const visionText = String(vm.visionText || "").trim();
+              const missionText = String(vm.missionText || "").trim();
+              const visionKeywords = Array.isArray(vm.visionKeywords)
+                ? vm.visionKeywords.map(String)
+                : [];
+              const missionKeywords = Array.isArray(vm.missionKeywords)
+                ? vm.missionKeywords.map(String)
+                : [];
 
-              if (vm.visionText) {
+              if (visionText || missionText) {
+                visionRows.push({
+                  participant: participantName,
+                  organization: organizationName,
+                  workshop: workshopName,
+                  visionText,
+                  missionText,
+                  visionKeywords,
+                  missionKeywords,
+                  submittedDate: vm.submittedDate || "",
+                });
+              }
+
+              const visionResponse =
+                visionKeywords.length > 0
+                  ? visionKeywords.join(", ")
+                  : visionText;
+              const missionResponse =
+                missionKeywords.length > 0
+                  ? missionKeywords.join(", ")
+                  : missionText;
+
+              if (visionResponse) {
                 rows.push({
-                  participant:
-                    participantName,
-
-                  organization:
-                    data.workshop
-                      ?.organizationName || "",
-
-                  workshop:
-                    data.workshop
-                      ?.workshopName || "",
-
-                  category:
-                    "Vision & Mission",
-
-                  question:
-                    "Vision",
-
-                  response:
-                    vm.visionText,
-
+                  participant: participantName,
+                  organization: organizationName,
+                  workshop: workshopName,
+                  category: "Vision & Mission",
+                  question: "Vision",
+                  response: visionResponse,
                   attachment: "-",
                   source: "od",
                 });
               }
 
-              if (vm.missionText) {
+              if (missionResponse) {
                 rows.push({
-                  participant:
-                    participantName,
-
-                  organization:
-                    data.workshop
-                      ?.organizationName || "",
-
-                  workshop:
-                    data.workshop
-                      ?.workshopName || "",
-
-                  category:
-                    "Vision & Mission",
-
-                  question:
-                    "Mission",
-
-                  response:
-                    vm.missionText,
-
+                  participant: participantName,
+                  organization: organizationName,
+                  workshop: workshopName,
+                  category: "Vision & Mission",
+                  question: "Mission",
+                  response: missionResponse,
                   attachment: "-",
                   source: "od",
                 });
               }
             }
 
+            /*
+             * ----------------------------------------
+             * Actionables
+             * ----------------------------------------
+             */
+
+            (participant.actionables || []).forEach((item: any) => {
+              actionableList.push({
+                participant: participantName,
+                organization: organizationName,
+                workshop: workshopName,
+                categoryName: String(item.categoryName || ""),
+                categoryPath: String(item.categoryPath || ""),
+                description: String(item.description || ""),
+                timeline: String(item.timeline || ""),
+                responsiblePersons: String(item.responsiblePersons || ""),
+                comments: String(item.comments || ""),
+              });
+            });
           }
         );
 
         setResponses(rows);
+        setVisionMissionRows(visionRows);
+        setActionableRows(actionableList);
       } catch (err) {
         console.error(err);
 
@@ -700,6 +821,8 @@ export default function Export({ user }: PageProps) {
         );
 
         setResponses([]);
+        setVisionMissionRows([]);
+        setActionableRows([]);
       } finally {
         setLoading(false);
       }
@@ -955,6 +1078,69 @@ const availableQuestions = useMemo(() => {
     availableCategories,
   ]);
 
+  const filteredVisionMission = useMemo(() => {
+    if (exportType !== "od") {
+      return [];
+    }
+
+    const searchValue = search.trim().toLowerCase();
+    if (!searchValue) {
+      return visionMissionRows;
+    }
+
+    return visionMissionRows.filter((item) =>
+      [
+        item.participant,
+        item.organization,
+        item.workshop,
+        item.visionText,
+        item.missionText,
+        item.visionKeywords.join(" "),
+        item.missionKeywords.join(" "),
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(searchValue)
+    );
+  }, [visionMissionRows, exportType, search]);
+
+  const filteredActionables = useMemo(() => {
+    if (exportType !== "od") {
+      return [];
+    }
+
+    const searchValue = search.trim().toLowerCase();
+    if (!searchValue) {
+      return actionableRows;
+    }
+
+    return actionableRows.filter((item) =>
+      [
+        item.participant,
+        item.organization,
+        item.workshop,
+        item.categoryName,
+        item.categoryPath,
+        item.description,
+        item.timeline,
+        item.responsiblePersons,
+        item.comments,
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(searchValue)
+    );
+  }, [actionableRows, exportType, search]);
+
+  useEffect(() => {
+    if (
+      exportType === "preod" &&
+      (activeView === "vision" || activeView === "actionable")
+    ) {
+      setActiveView("all");
+    }
+  }, [exportType, activeView]);
+
   /*
    * --------------------------------------------------
    * Reset dependent dropdowns
@@ -969,6 +1155,8 @@ const availableQuestions = useMemo(() => {
     setSelectedCategory("");
     setSelectedQuestion("");
     setResponses([]);
+    setVisionMissionRows([]);
+    setActionableRows([]);
   };
 
  const handleWorkshopChange = async (
@@ -1054,75 +1242,177 @@ const availableQuestions = useMemo(() => {
 
   /*
    * --------------------------------------------------
-   * Excel export
+   * ZIP export (Excel + attachment folders)
    * --------------------------------------------------
    */
 
-  const handleExportExcel = () => {
-    if (
-      filteredResponses.length === 0
-    ) {
+  const handleExportZip = async () => {
+    if (filteredResponses.length === 0 || exportingZip) {
       return;
     }
 
-    const worksheet =
-      XLSX.utils.json_to_sheet(
-        filteredResponses.map(
-          (item) => ({
-            Participant:
-              item.participant,
+    try {
+      setExportingZip(true);
 
-            Organization:
-              item.organization,
+      const workshopName =
+        organizationWorkshops.find((item) => item.id === selectedWorkshop)
+          ?.workshopName || "Workshop";
+      const safeWorkshop = safeZipSegment(workshopName, "Workshop");
+      const zip = new JSZip();
+      const attachmentsRoot = zip.folder("Attachments");
+      const usedPaths = new Set<string>();
 
-            Workshop:
-              item.workshop,
+      // Pre-assign ZIP paths so Excel can index participant + question + file.
+      const zipPathByIndex = new Map<number, string>();
+      const plannedFileNameByIndex = new Map<number, string>();
 
-            Category:
-              item.category,
+      filteredResponses.forEach((item, index) => {
+        if (!item.attachment || item.attachment === "-") {
+          return;
+        }
 
-            Question:
-              item.question,
+        const sourceFolder = item.source === "preod" ? "PreOD" : "OD";
+        const participantFolder = safeZipSegment(
+          item.participant,
+          "Participant"
+        );
+        const categoryFolder = safeZipSegment(
+          categoryLeafName(item.category),
+          "Category",
+          60
+        );
+        const questionFolder = safeZipSegment(item.question, "Question", 70);
+        const plannedName = safeZipSegment(
+          item.attachmentFileName || `attachment_${index + 1}`,
+          `attachment_${index + 1}`
+        );
+        const folderPath = `${sourceFolder}/${participantFolder}/${categoryFolder}/${questionFolder}`;
+        const unique = uniqueZipPath(usedPaths, folderPath, plannedName);
+        zipPathByIndex.set(index, `Attachments/${unique}`);
+        plannedFileNameByIndex.set(
+          index,
+          unique.slice(unique.lastIndexOf("/") + 1)
+        );
+      });
 
-            Response:
-              item.response,
-
-            Attachment:
-              item.attachment,
-          })
-        )
+      const worksheet = XLSX.utils.json_to_sheet(
+        filteredResponses.map((item, index) => ({
+          Participant: item.participant,
+          Organization: item.organization,
+          Workshop: item.workshop,
+          Category: item.category,
+          Question: item.question,
+          Response: item.response,
+          "Attachment File":
+            plannedFileNameByIndex.get(index) ||
+            item.attachmentFileName ||
+            "-",
+          "ZIP Path": zipPathByIndex.get(index) || "-",
+        }))
       );
 
-    worksheet["!cols"] = [
-      { wch: 20 },
-      { wch: 20 },
-      { wch: 25 },
-      { wch: 35 },
-      { wch: 50 },
-      { wch: 40 },
-      { wch: 20 },
-    ];
+      worksheet["!cols"] = [
+        { wch: 20 },
+        { wch: 20 },
+        { wch: 25 },
+        { wch: 35 },
+        { wch: 50 },
+        { wch: 40 },
+        { wch: 28 },
+        { wch: 70 },
+      ];
 
-    const workbook =
-      XLSX.utils.book_new();
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "All Responses");
 
-    XLSX.utils.book_append_sheet(
-      workbook,
-      worksheet,
-      "All Responses"
-    );
+      if (exportType === "od" && visionMissionRows.length > 0) {
+        const visionSheet = XLSX.utils.json_to_sheet(
+          visionMissionRows.map((item) => ({
+            Participant: item.participant,
+            Organization: item.organization,
+            Workshop: item.workshop,
+            Category: "Vision & Mission",
+            Vision:
+              item.visionKeywords.length > 0
+                ? item.visionKeywords.join(", ")
+                : item.visionText || "-",
+            Mission:
+              item.missionKeywords.length > 0
+                ? item.missionKeywords.join(", ")
+                : item.missionText || "-",
+          }))
+        );
+        XLSX.utils.book_append_sheet(
+          workbook,
+          visionSheet,
+          "Vision & Mission"
+        );
+      }
 
-    const workshopName =
-      organizationWorkshops.find(
-        (item) =>
-          item.id === selectedWorkshop
-      )?.workshopName ||
-      "Workshop";
+      if (exportType === "od" && actionableRows.length > 0) {
+        const actionableSheet = XLSX.utils.json_to_sheet(
+          actionableRows.map((item) => ({
+            Participant: item.participant,
+            Organization: item.organization,
+            Workshop: item.workshop,
+            Category: item.categoryName || item.categoryPath,
+            Description: item.description,
+            Timeline: item.timeline,
+            Responsible: item.responsiblePersons,
+            Comments: item.comments,
+          }))
+        );
+        XLSX.utils.book_append_sheet(
+          workbook,
+          actionableSheet,
+          "Actionable"
+        );
+      }
 
-    XLSX.writeFile(
-      workbook,
-      `${workshopName}_Export.xlsx`
-    );
+      const excelBuffer = XLSX.write(workbook, {
+        bookType: "xlsx",
+        type: "array",
+      });
+      zip.file(`${safeWorkshop}_Responses.xlsx`, excelBuffer);
+
+      await Promise.all(
+        filteredResponses.map(async (item, index) => {
+          const zipPath = zipPathByIndex.get(index);
+          if (!zipPath || !item.attachment || item.attachment === "-") {
+            return;
+          }
+
+          try {
+            const response = await fetch(item.attachment);
+            if (!response.ok) {
+              return;
+            }
+
+            const blob = await response.blob();
+            // Path inside ZIP is relative to Attachments/ folder.
+            const relative = zipPath.replace(/^Attachments\//, "");
+            attachmentsRoot?.file(relative, blob);
+          } catch (error) {
+            console.error("Failed to include attachment in ZIP", error);
+          }
+        })
+      );
+
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(zipBlob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${safeWorkshop}_Export.zip`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error(error);
+      alert("Unable to create the export ZIP. Please try again.");
+    } finally {
+      setExportingZip(false);
+    }
   };
 
   /*
@@ -1193,22 +1483,15 @@ const availableQuestions = useMemo(() => {
     }> = [];
 
     byQuestion.forEach((entry, question) => {
-      const forceCategorical = isChoiceQuestionType(entry.questionType);
-      // Only chart real choice questions (or clearly categorical answers).
-      if (!forceCategorical && !isLikelyCategoricalForPie(
-        entry.responses.flatMap((r) => expandAnswerTokens(r))
-      )) {
+      // Only Multiple Choice / Single Choice / Rating — never Text.
+      if (!isChoiceQuestionType(entry.questionType)) {
         return;
       }
 
       const slices = buildAnswerSlices(entry.responses, {
-        forceCategorical,
+        forceCategorical: true,
       });
       if (!slices || slices.length < 1) {
-        return;
-      }
-      // Need at least 2 slices OR a forced choice type with answers.
-      if (slices.length < 2 && !forceCategorical) {
         return;
       }
       charts.push({ title: question, slices });
@@ -1508,6 +1791,34 @@ const availableQuestions = useMemo(() => {
             Summary View
           </button>
 
+          <button
+            type="button"
+            className={activeView === "vision" ? "active" : ""}
+            onClick={() => setActiveView("vision")}
+            disabled={exportType !== "od"}
+            title={
+              exportType !== "od"
+                ? "Available for OD export only"
+                : "Vision & Mission responses"
+            }
+          >
+            Vision & Mission
+          </button>
+
+          <button
+            type="button"
+            className={activeView === "actionable" ? "active" : ""}
+            onClick={() => setActiveView("actionable")}
+            disabled={exportType !== "od"}
+            title={
+              exportType !== "od"
+                ? "Available for OD export only"
+                : "Actionable items"
+            }
+          >
+            Actionable
+          </button>
+
         </div>
 
 
@@ -1537,13 +1848,13 @@ const availableQuestions = useMemo(() => {
           <button
             type="button"
             className="export-excel-button"
-            onClick={handleExportExcel}
+            onClick={handleExportZip}
             disabled={
-              filteredResponses.length === 0
+              filteredResponses.length === 0 || exportingZip
             }
-            title="Export to Excel"
+            title="Download ZIP (Excel + attachments)"
           >
-            📊
+            {exportingZip ? "…" : "📦"}
           </button>
 
         </div>
@@ -1649,6 +1960,101 @@ const availableQuestions = useMemo(() => {
         </section>
 
 
+      ) : activeView === "vision" ? (
+        <section className="export-table-card">
+          <div className="export-table-scroll">
+            <table className="export-table">
+              <thead>
+                <tr>
+                  <th>Participant</th>
+                  <th>Organization</th>
+                  <th>Workshop</th>
+                  <th>Category</th>
+                  <th>Vision</th>
+                  <th>Mission</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredVisionMission.length === 0 ? (
+                  <tr>
+                    <td colSpan={6}>
+                      No Vision & Mission responses found.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredVisionMission.map((item, index) => (
+                    <tr key={`${item.participant}-vm-${index}`}>
+                      <td>{item.participant}</td>
+                      <td>{item.organization}</td>
+                      <td>{item.workshop}</td>
+                      <td>Vision & Mission</td>
+                      <td className="export-text-cell">
+                        {item.visionKeywords.length > 0
+                          ? item.visionKeywords.join(", ")
+                          : item.visionText || "-"}
+                      </td>
+                      <td className="export-text-cell">
+                        {item.missionKeywords.length > 0
+                          ? item.missionKeywords.join(", ")
+                          : item.missionText || "-"}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : activeView === "actionable" ? (
+        <section className="export-table-card">
+          <div className="export-table-scroll">
+            <table className="export-table export-table-wide">
+              <thead>
+                <tr>
+                  <th>Participant</th>
+                  <th>Organization</th>
+                  <th>Workshop</th>
+                  <th>Category</th>
+                  <th>Description</th>
+                  <th>Timeline</th>
+                  <th>Responsible</th>
+                  <th>Comments</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredActionables.length === 0 ? (
+                  <tr>
+                    <td colSpan={8}>No actionable items found.</td>
+                  </tr>
+                ) : (
+                  filteredActionables.map((item, index) => (
+                    <tr key={`${item.participant}-act-${index}`}>
+                      <td>{item.participant}</td>
+                      <td>{item.organization}</td>
+                      <td>{item.workshop}</td>
+                      <td>
+                        {item.categoryName ||
+                          item.categoryPath
+                            ?.split(">")
+                            .pop()
+                            ?.trim() ||
+                          "-"}
+                      </td>
+                      <td className="export-text-cell">
+                        {item.description || "-"}
+                      </td>
+                      <td>{item.timeline || "-"}</td>
+                      <td>{item.responsiblePersons || "-"}</td>
+                      <td className="export-text-cell">
+                        {item.comments || "-"}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
       ) : (
 
 

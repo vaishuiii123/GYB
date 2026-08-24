@@ -19,11 +19,11 @@ function parseJsonArray(value) {
   }
 }
 
-function emptyResponse(participantId, organizationId = "") {
+function emptyResponse(participantId, organizationId = "", workshopId = "") {
   return {
     participantId,
     organizationId,
-    workshopId: "",
+    workshopId: workshopId || "",
     visionKeywords: [],
     missionKeywords: [],
     visionText: "",
@@ -45,9 +45,30 @@ function mapEntity(entity, participantId) {
   };
 }
 
+/** Only accept a row that belongs to this participant. */
+function belongsToParticipant(entity, participantId) {
+  if (!entity || !participantId) {
+    return false;
+  }
+
+  const rowKey = String(entity.rowKey || "").trim();
+  const storedParticipantId = String(entity.ParticipantId || "").trim();
+  const expected = String(participantId).trim();
+
+  if (rowKey && rowKey !== expected) {
+    return false;
+  }
+
+  if (storedParticipantId && storedParticipantId !== expected) {
+    return false;
+  }
+
+  return rowKey === expected || storedParticipantId === expected;
+}
+
 module.exports = async function (context, req) {
   try {
-    const participantId = req.query.participantId;
+    const participantId = String(req.query.participantId || "").trim();
     const workshopId = String(req.query.workshopId || "").trim();
 
     if (!participantId) {
@@ -64,25 +85,35 @@ module.exports = async function (context, req) {
     const tableClient = await getTableClient("VisionMissionResponse");
     let entity = null;
 
-    // Prefer the workshop-scoped row so each workshop has its own answers.
+    // Workshop-scoped row only (each participant + workshop is isolated).
     if (workshopId) {
       try {
-        entity = await tableClient.getEntity(workshopId, participantId);
+        const workshopRow = await tableClient.getEntity(
+          workshopId,
+          participantId
+        );
+        if (belongsToParticipant(workshopRow, participantId)) {
+          entity = workshopRow;
+        }
       } catch {
         entity = null;
       }
     }
 
-    // Legacy Participant row: only reuse when it belongs to this workshop.
+    // Legacy Participant row: only when it is for this participant AND this workshop.
     if (!entity) {
       try {
         const legacy = await tableClient.getEntity("Participant", participantId);
-        const legacyWorkshopId = String(legacy.WorkshopId || "").trim();
+        if (!belongsToParticipant(legacy, participantId)) {
+          // ignore
+        } else {
+          const legacyWorkshopId = String(legacy.WorkshopId || "").trim();
 
-        if (!workshopId) {
-          entity = legacy;
-        } else if (legacyWorkshopId && legacyWorkshopId === workshopId) {
-          entity = legacy;
+          if (!workshopId) {
+            entity = legacy;
+          } else if (legacyWorkshopId && legacyWorkshopId === workshopId) {
+            entity = legacy;
+          }
         }
       } catch {
         entity = null;
@@ -96,7 +127,7 @@ module.exports = async function (context, req) {
         table: "VisionMissionResponse",
         data: entity
           ? mapEntity(entity, participantId)
-          : emptyResponse(participantId),
+          : emptyResponse(participantId, "", workshopId),
       },
     };
   } catch (error) {

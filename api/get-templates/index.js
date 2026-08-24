@@ -27,12 +27,17 @@ module.exports = async function (context, req) {
       })
     ) {
 
+      const templateName = entity.TemplateName || "";
+      // Pre OD rows sometimes land in Template table; keep them out of OD picker.
+      if (/pre\s*od/i.test(templateName)) {
+        continue;
+      }
+
         templates.push({
           id:
             entity.rowKey,
 
-          templateName:
-            entity.TemplateName || "",
+          templateName,
 
           templateType: "OD",
 

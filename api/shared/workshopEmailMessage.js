@@ -1,8 +1,16 @@
+const FONT =
+  "Cambria,'Times New Roman',Times,serif";
+
+function p(inner) {
+  return `<p style="margin:0 0 12px 0;font-family:${FONT};font-size:14pt;line-height:1.5;color:#111827">${inner}</p>`;
+}
+
 function buildWorkshopEmailContent({
   workshopName,
   organizationName,
   participantName,
-  verificationCode,
+  loginId,
+  password,
   loginUrl,
   startDate,
   endDate,
@@ -10,59 +18,98 @@ function buildWorkshopEmailContent({
   const name = String(participantName || "Participant").trim();
   const workshop = String(workshopName || "Workshop").trim();
   const org = String(organizationName || "").trim();
-  const code = String(verificationCode || "").trim();
-  const url =
-    String(loginUrl || "").trim() ||
-    "https://gentle-sea-0636fbe10.7.azurestaticapps.net";
-
-  const subject = `Workshop invite: ${workshop}`;
+  const userLogin = String(loginId || "").trim();
+  const userPassword = String(password || "").trim();
+  const url = String(loginUrl || "")
+    .trim()
+    .replace(/\/?$/, "/");
+  const subjectOrg = org || "Workshop";
+  const subject = `Invitation to Attend ${subjectOrg} Workshop`;
 
   const text = [
-    `Hi ${name},`,
+    `Dear ${name}`,
     "",
-    `You are invited to the workshop "${workshop}"${org ? ` for ${org}` : ""}.`,
-    startDate ? `Start: ${startDate}` : "",
-    endDate ? `End: ${endDate}` : "",
+    `We are pleased to invite you to participate in the ${
+      org || "workshop"
+    } workshop.`,
     "",
-    `Login link: ${url}`,
-    code ? `Your verification code: ${code}` : "",
+    "This workshop is designed to provide valuable insights, practical knowledge and interactive discussions on digital transformation initiatives and best practices.",
     "",
-    "Please do not share this code with anyone.",
+    "Workshop Details are as follows",
+    `Workshop Name : ${workshop}`,
+    startDate ? `Start date & time : ${startDate}` : null,
+    endDate ? `End date & time : ${endDate}` : null,
     "",
-    "— Team KNAV",
+    "Access Details",
+    userLogin ? `Username:-  ${userLogin}` : null,
+    userPassword ? `Password:- ${userPassword}` : null,
+    "",
+    `🔗 Workshop Login :- ${url}`,
+    "",
+    "For security purposes, please keep your login credentials confidential and do not share them with anyone.",
+    "",
+    "We look forward to your participation and hope you find the session informative and engaging.",
+    "",
+    "Regards,",
+    "Team KNAV",
   ]
-    .filter((line) => line !== "")
+    .filter((line) => line !== null)
     .join("\n");
 
+  const orgHtml = org
+    ? `<strong>${escapeHtml(org)}</strong>`
+    : "workshop";
+
   const html = `
-    <div style="font-family:Segoe UI,Arial,sans-serif;line-height:1.5;color:#111827">
-      <p>Hi ${escapeHtml(name)},</p>
-      <p>
-        You are invited to the workshop
-        <strong>${escapeHtml(workshop)}</strong>${
-          org ? ` for <strong>${escapeHtml(org)}</strong>` : ""
-        }.
-      </p>
+    <div style="font-family:${FONT};font-size:14pt;line-height:1.5;color:#111827">
+      ${p(`Dear ${escapeHtml(name)}`)}
+      ${p(
+        `We are pleased to invite you to participate in the ${orgHtml} workshop.`
+      )}
+      ${p(
+        "This workshop is designed to provide valuable insights, practical knowledge and interactive discussions on digital transformation initiatives and best practices."
+      )}
+      ${p("<strong>Workshop Details are as follows</strong>")}
+      ${p(`Workshop Name : ${escapeHtml(workshop)}`)}
       ${
         startDate
-          ? `<p><strong>Start:</strong> ${escapeHtml(String(startDate))}</p>`
+          ? p(`Start date &amp; time : ${escapeHtml(String(startDate))}`)
           : ""
       }
       ${
         endDate
-          ? `<p><strong>End:</strong> ${escapeHtml(String(endDate))}</p>`
+          ? p(`End date &amp; time : ${escapeHtml(String(endDate))}`)
           : ""
       }
-      <p>
-        <a href="${escapeHtml(url)}" style="color:#8f1738">Open login page</a>
-      </p>
+      ${p("<strong>Access Details</strong>")}
       ${
-        code
-          ? `<p><strong>Your verification code:</strong> ${escapeHtml(code)}</p>`
+        userLogin
+          ? p(
+              `Username:-  <a href="mailto:${escapeHtml(
+                userLogin
+              )}" style="font-family:${FONT};color:#0563c1">${escapeHtml(
+                userLogin
+              )}</a>`
+            )
           : ""
       }
-      <p>Please do not share this code with anyone.</p>
-      <p>— Team KNAV</p>
+      ${
+        userPassword
+          ? p(`Password:- ${escapeHtml(userPassword)}`)
+          : ""
+      }
+      ${p(
+        `🔗 <strong>Workshop Login :-</strong> <a href="${escapeHtml(
+          url
+        )}" style="font-family:${FONT};color:#0563c1">${escapeHtml(url)}</a>`
+      )}
+      ${p(
+        "For security purposes, please keep your login credentials confidential and do not share them with anyone."
+      )}
+      ${p(
+        "We look forward to your participation and hope you find the session informative and engaging."
+      )}
+      ${p("Regards,<br />Team KNAV")}
     </div>
   `.trim();
 
