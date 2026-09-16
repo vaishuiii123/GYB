@@ -4,6 +4,10 @@ type CacheEntry<T> = {
 };
 
 const CACHE_TTL_MS = 10 * 60 * 1000;
+const FRESH_TTL_MS = 45 * 1000;
+
+/** In-flight GET dedupe so StrictMode / prefetch don't double-hit the API. */
+const inflightRequests = new Map<string, Promise<Response>>();
 
 export const ADMIN_CACHE_KEYS = {
   organizations: "organizations_cache",
@@ -17,7 +21,7 @@ export const ADMIN_CACHE_KEYS = {
   questions: "questions_cache",
 } as const;
 
-export function readAdminListCache<T>(key: string): T | null {
+function readEntry<T>(key: string): CacheEntry<T> | null {
   try {
     const raw = sessionStorage.getItem(key);
     if (!raw) {
@@ -26,9 +30,9 @@ export function readAdminListCache<T>(key: string): T | null {
 
     const parsed = JSON.parse(raw);
 
-    // Organization page stores a bare array.
+    // Legacy bare-array cache: treat as stale so we refresh once.
     if (Array.isArray(parsed)) {
-      return parsed as T;
+      return { savedAt: 0, data: parsed as T };
     }
 
     const entry = parsed as CacheEntry<T>;
@@ -41,20 +45,27 @@ export function readAdminListCache<T>(key: string): T | null {
       return null;
     }
 
-    return entry.data;
+    return entry;
   } catch {
     return null;
   }
 }
 
+export function readAdminListCache<T>(key: string): T | null {
+  return readEntry<T>(key)?.data ?? null;
+}
+
+/** True when cache exists and was written recently — skip background refresh. */
+export function isAdminListCacheFresh(key: string, maxAgeMs = FRESH_TTL_MS) {
+  const entry = readEntry(key);
+  if (!entry) {
+    return false;
+  }
+  return Date.now() - entry.savedAt <= maxAgeMs;
+}
+
 export function writeAdminListCache<T>(key: string, data: T) {
   try {
-    // Keep organizations compatible with Organization.tsx.
-    if (key === ADMIN_CACHE_KEYS.organizations && Array.isArray(data)) {
-      sessionStorage.setItem(key, JSON.stringify(data));
-      return;
-    }
-
     const entry: CacheEntry<T> = {
       savedAt: Date.now(),
       data,
@@ -73,17 +84,37 @@ export function clearAdminListCache(key: string) {
   }
 }
 
+/** Deduped fetch — concurrent identical GETs share one network call. */
+export function fetchOnce(url: string, init?: RequestInit): Promise<Response> {
+  const method = (init?.method || "GET").toUpperCase();
+  if (method !== "GET") {
+    return fetch(url, init);
+  }
+
+  const existing = inflightRequests.get(url);
+  if (existing) {
+    return existing.then((res) => res.clone());
+  }
+
+  const promise = fetch(url, init).finally(() => {
+    inflightRequests.delete(url);
+  });
+
+  inflightRequests.set(url, promise);
+  return promise.then((res) => res.clone());
+}
+
 async function prefetchOne(
   url: string,
   cacheKey: string,
   pick: (data: any) => unknown
 ) {
   try {
-    if (readAdminListCache(cacheKey) != null) {
+    if (isAdminListCacheFresh(cacheKey)) {
       return;
     }
 
-    const res = await fetch(url);
+    const res = await fetchOnce(url);
     const data = await res.json();
     if (!res.ok || !data?.success) {
       return;

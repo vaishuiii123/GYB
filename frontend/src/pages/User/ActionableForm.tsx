@@ -117,7 +117,9 @@ export default function ActionableForm() {
         if (chartData.success) {
           setCategories(
             flattenOdChartLeaves(
-              chartData.tops || [],
+              (chartData.tops || []) as Parameters<
+                typeof flattenOdChartLeaves
+              >[0],
               selectedWorkshop.templateId
             )
           );
