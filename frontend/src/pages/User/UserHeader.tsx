@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronDown, Menu } from "lucide-react";
 import UserNavDrawer from "./UserNavDrawer";
-import AppVersionControl from "../../components/AppVersionControl";
 import {
   clearSelectedWorkshop,
   getParticipantDisplayName,
@@ -15,10 +14,12 @@ import { appConfirm } from "../../utils/appDialog";
 
 export default function UserHeader() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
+  const isHomePage = location.pathname.startsWith("/userdashboard");
   const participant = getParticipantFromStorage();
   const participantName = getParticipantDisplayName(participant);
   const initials = participantName
@@ -78,7 +79,6 @@ export default function UserHeader() {
           </div>
 
           <div className="user-header-right">
-            <AppVersionControl />
             <div className="user-header-user-menu" ref={menuRef}>
               <button
                 type="button"
@@ -98,16 +98,18 @@ export default function UserHeader() {
 
               {menuOpen ? (
                 <div className="user-header-dropdown" role="menu">
-                  <button
-                    type="button"
-                    role="menuitem"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      navigate("/userdashboard");
-                    }}
-                  >
-                    Home
-                  </button>
+                  {!isHomePage ? (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        navigate("/userdashboard");
+                      }}
+                    >
+                      Home
+                    </button>
+                  ) : null}
                   <button
                     type="button"
                     role="menuitem"

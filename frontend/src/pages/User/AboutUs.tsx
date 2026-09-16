@@ -40,7 +40,7 @@ export default function AboutUs() {
             className="header-link"
             onClick={goToDashboard}
           >
-            Home
+            Back to Dashboard
           </button>
           <span className="header-icon" aria-hidden="true">
             🌐
@@ -54,52 +54,48 @@ export default function AboutUs() {
       <main className="about-main">
         <div className="about-card">
           <p>
-            KNAV is a firm with over two decades of experience in international
-            accounting and tax advisory. Headquartered in Mumbai and Atlanta,
-            KNAV has a presence in seven countries and serves clients across
-            diverse industries with deep expertise and a client-first approach.
+            In today&apos;s ever-changing business landscape, adaptability is
+            key. KNAV&apos;s Organization Development Workshop is a collaborative
+            platform for businesses aiming to accelerate growth. The goal is
+            simple: align strategic objectives with action plans, engage
+            stakeholders, and chart a clear path forward in a resilience-focused
+            environment.
           </p>
 
           <p>
-            The Organization Development Workshop is a collaborative platform
-            designed for businesses of all sizes — from startups to established
-            enterprises — to align organizational goals, engage stakeholders,
-            and build a shared understanding of where the business is headed.
+            Through this exercise, guided by KNAV experts, you will explore key
+            business facets, uncover strengths and challenges, identify
+            opportunities, and create a roadmap toward your vision.
           </p>
 
           <p>
-            The Organization Development &amp; Business Planning Workshop helps
-            organizations identify pain points and map roadmaps toward their
-            business vision. Through structured discussions and SWOT analysis
-            — covering strengths, weaknesses, opportunities, and threats —
-            participants gain clarity on priorities and actionable next steps.
+            Together, we will embark on a journey of strategic exploration to
+            unlock your business&apos;s full potential. This interactive workshop
+            encourages active participation and idea-sharing, fostering a
+            supportive environment where real breakthroughs happen!
           </p>
 
           <p>
-            To support this process, KNAV has developed a proprietary application
-            called <strong>Grow Your Business</strong>, which streamlines
-            management inputs and generates tailored reports — enabling leaders
-            to make informed decisions and drive sustainable growth.
+            To support this process, KNAV has developed the{" "}
+            <strong>Grow Your Business</strong> platform, where you will
+            complete the Pre-Organisation Development Workshop Questionnaire and
+            collaborate throughout the workshop journey.
           </p>
+
+          <div className="about-card-actions">
+            <button
+              type="button"
+              className="next-btn"
+              onClick={goToDashboard}
+            >
+              Next
+              <span className="next-arrow" aria-hidden="true">
+                ›››
+              </span>
+            </button>
+          </div>
         </div>
       </main>
-
-      <footer className="about-footer">
-        <p className="about-footer-text">
-          Grow Your Business: Organization Development Workshop
-        </p>
-
-        <button
-          type="button"
-          className="next-btn"
-          onClick={goToDashboard}
-        >
-          Next
-          <span className="next-arrow" aria-hidden="true">
-            ›››
-          </span>
-        </button>
-      </footer>
     </div>
   );
 }

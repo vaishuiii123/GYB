@@ -43,9 +43,9 @@ type ModuleCard = {
 const MODULE_CARDS: ModuleCard[] = [
   {
     key: "pre-od",
-    title: "Pre-OD Workshop",
+    title: "Pre-Workshop Questionnaire",
     description:
-      "Setting context before the Organization Development Workshop.",
+      "Complete this short questionnaire before the Organization Development Workshop begins.",
     path: "/pre-od-workshop",
     theme: "pink",
     icon: ClipboardList,
@@ -97,7 +97,7 @@ const FEEDBACK_CLOSED_NOTE =
   "This window will start once the workshop is finished.";
 
 const PRE_OD_CLOSED_NOTE =
-  "This window has closed because the workshop has started.";
+  "This questionnaire is closed because the workshop has started.";
 
 function toSelectedWorkshop(
   workshop: {

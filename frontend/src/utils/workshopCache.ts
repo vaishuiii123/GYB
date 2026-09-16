@@ -3,6 +3,7 @@ import {
   getSelectedWorkshop,
   type SelectedWorkshop,
 } from "./selectedWorkshop";
+import { fetchOnce } from "./adminListCache";
 
 const WORKSHOP_CACHE_KEY = "gyb-workshop-cache";
 const PARTICIPANT_WORKSHOP_CACHE_KEY = "gyb-participant-workshops-cache";
@@ -12,6 +13,26 @@ const PAGE_DATA_CACHE_KEY = "gyb-page-data-cache";
 const CACHE_TTL_MS = 10 * 60 * 1000;
 /** OD chart structure rarely changes — keep longer for faster revisits. */
 const OD_CHART_TTL_MS = 60 * 60 * 1000;
+
+/** Dedupe concurrent workshop/chart loaders (StrictMode / parallel pages). */
+const inflightJson = new Map<string, Promise<unknown>>();
+
+async function fetchJsonOnce<T>(url: string): Promise<T> {
+  const existing = inflightJson.get(url);
+  if (existing) {
+    return existing as Promise<T>;
+  }
+
+  const promise = (async () => {
+    const response = await fetchOnce(url);
+    return (await response.json()) as T;
+  })().finally(() => {
+    inflightJson.delete(url);
+  });
+
+  inflightJson.set(url, promise);
+  return promise;
+}
 
 export type WorkshopRecord = {
   id: string;
@@ -86,7 +107,7 @@ export function getWorkshopEditStatus(workshop?: WorkshopRecord | null) {
     return {
       canEdit: false,
       editMessage:
-        "Workshop modules open once the workshop starts. You can complete Pre OD until then.",
+        "Workshop modules open once the workshop starts. You can complete the Pre-Workshop Questionnaire until then.",
     };
   }
 
@@ -123,7 +144,7 @@ export function getWorkshopModuleAccessStatus(
       enabled: false,
       canEdit: false,
       message:
-        "This module opens once the workshop starts. Complete Pre OD until then.",
+        "This module opens once the workshop starts. Please complete the Pre-Workshop Questionnaire until then.",
     };
   }
 
@@ -172,7 +193,7 @@ export function getPreOdAccessStatus(workshop?: PreOdWorkshop | null) {
       available: false,
       canFill: false,
       enabled: false,
-      message: "Pre OD has not been assigned for this workshop yet.",
+      message: "The Pre-Workshop Questionnaire has not been assigned for this workshop yet.",
     };
   }
 
@@ -200,7 +221,7 @@ export function getPreOdAccessStatus(workshop?: PreOdWorkshop | null) {
         canFill: false,
         enabled: false,
         message:
-          "Pre OD is not open yet. Please check back at the Pre OD start time.",
+          "The Pre-Workshop Questionnaire is not open yet. Please check back at the scheduled start time.",
       };
     }
   }
@@ -315,16 +336,20 @@ function readOdChartCache<T>(key: string): T | null {
   }
 }
 
+type OdChartPayload = {
+  success: boolean;
+  message?: string;
+  template?: { id?: string; templateName?: string };
+  tops?: unknown[];
+};
+
 export function getCachedOdChart(templateId: string) {
-  return readOdChartCache<{ success: boolean; tops: unknown[] }>(
+  return readOdChartCache<OdChartPayload>(
     `${OD_CHART_CACHE_KEY}:${templateId}`
   );
 }
 
-export function setCachedOdChart(
-  templateId: string,
-  data: { success: boolean; tops: unknown[] }
-) {
+export function setCachedOdChart(templateId: string, data: OdChartPayload) {
   writeCache(`${OD_CHART_CACHE_KEY}:${templateId}`, data);
 }
 
@@ -465,39 +490,49 @@ export async function fetchParticipantWorkshops(
     params.set("organizationId", organizationId);
   }
 
-  const response = await fetch(
-    `/api/get-workshop-by-organization?${params.toString()}`
-  );
-
-  let data: WorkshopResponse & { organizationIds?: string[] };
-
-  try {
-    data = (await response.json()) as WorkshopResponse & {
-      organizationIds?: string[];
-    };
-  } catch {
-    return {
-      success: false,
-      workshop: null,
-      workshops: [],
-    };
+  const url = `/api/get-workshop-by-organization?${params.toString()}`;
+  const inflightKey = `participant-workshops:${url}`;
+  const existing = inflightJson.get(inflightKey);
+  if (existing) {
+    return existing as Promise<WorkshopResponse>;
   }
 
-  if (!response.ok || !data.success) {
-    return {
-      success: false,
-      workshop: null,
-      workshops: [],
-      editMessage:
-        (data as { error?: string; message?: string }).error ||
-        (data as { error?: string; message?: string }).message ||
-        "Failed to load workshops.",
-    };
-  }
+  const promise = (async () => {
+    let data: WorkshopResponse & { organizationIds?: string[] };
 
-  const resolved = applySelectedWorkshop(data);
-  setCachedParticipantWorkshops(participantId, organizationId, resolved);
-  return resolved;
+    try {
+      data = await fetchJsonOnce<WorkshopResponse & { organizationIds?: string[] }>(
+        url
+      );
+    } catch {
+      return {
+        success: false,
+        workshop: null,
+        workshops: [],
+      };
+    }
+
+    if (!data.success) {
+      return {
+        success: false,
+        workshop: null,
+        workshops: [],
+        editMessage:
+          (data as { error?: string; message?: string }).error ||
+          (data as { error?: string; message?: string }).message ||
+          "Failed to load workshops.",
+      };
+    }
+
+    const resolved = applySelectedWorkshop(data);
+    setCachedParticipantWorkshops(participantId, organizationId, resolved);
+    return resolved;
+  })().finally(() => {
+    inflightJson.delete(inflightKey);
+  });
+
+  inflightJson.set(inflightKey, promise);
+  return promise;
 }
 
 export async function fetchWorkshopByOrganization(organizationId: string) {
@@ -515,12 +550,10 @@ export async function fetchWorkshopByOrganization(organizationId: string) {
     });
   }
 
-  const response = await fetch(
-    `/api/get-workshop-by-organization?organizationId=${encodeURIComponent(
-      organizationId
-    )}`
-  );
-  const data = (await response.json()) as WorkshopResponse;
+  const url = `/api/get-workshop-by-organization?organizationId=${encodeURIComponent(
+    organizationId
+  )}`;
+  const data = await fetchJsonOnce<WorkshopResponse>(url);
 
   if (data.success) {
     const resolved = applySelectedWorkshop(data);
@@ -534,7 +567,7 @@ export async function fetchWorkshopByOrganization(organizationId: string) {
 async function requestOdChart(
   templateId: string,
   workshopId?: string | null
-) {
+): Promise<OdChartPayload> {
   const params = new URLSearchParams({
     includeQuestions: "false",
   });
@@ -543,12 +576,14 @@ async function requestOdChart(
     params.set("templateId", templateId);
   }
 
-  if (workshopId) {
+  // Only resolve via workshop when templateId is unknown — keeps URL stable
+  // and lets the API serve memory cache in ~ms.
+  if (!templateId && workshopId) {
     params.set("workshopId", workshopId);
   }
 
-  const response = await fetch(`/api/get-od-chart?${params.toString()}`);
-  const data = await response.json();
+  const url = `/api/get-od-chart?${params.toString()}`;
+  const data = await fetchJsonOnce<OdChartPayload>(url);
 
   if (data.success) {
     const resolvedTemplateId = String(data.template?.id || templateId).trim();
@@ -569,7 +604,7 @@ export function prefetchOdChart(
     return;
   }
 
-  if (templateId && getCachedOdChart(templateId) && !workshopId) {
+  if (templateId && getCachedOdChart(templateId)) {
     return;
   }
 
@@ -582,8 +617,8 @@ export async function fetchOdChart(
   templateId: string,
   workshopId?: string | null,
   options?: { forceRefresh?: boolean }
-) {
-  if (!options?.forceRefresh && templateId && !workshopId) {
+): Promise<OdChartPayload> {
+  if (!options?.forceRefresh && templateId) {
     const cached = getCachedOdChart(templateId);
     if (cached) {
       return cached;
@@ -591,6 +626,108 @@ export async function fetchOdChart(
   }
 
   return requestOdChart(templateId, workshopId);
+}
+
+export type CategoryQuestionsPayload = {
+  success: boolean;
+  message?: string;
+  data?: Array<{
+    questionId: string;
+    questionText: string;
+    questionType: string;
+    tagId?: string;
+    tagName?: string;
+    tagColor?: string;
+    attachmentsApplicable?: string;
+    options: { optionText: string }[] | string[];
+  }>;
+  answers?: Record<string, string>;
+  attachments?: Record<string, { fileName: string; blobPath?: string; contentType?: string; size?: number }>;
+};
+
+function categoryQuestionsCacheKey(
+  workshopId: string,
+  categoryId: string,
+  participantId: string
+) {
+  return `od-questions:${workshopId}:${categoryId}:${participantId}`;
+}
+
+function categoryQuestionsUrl(params: {
+  categoryId: string;
+  participantId: string;
+  workshopId: string;
+  templateId: string;
+}) {
+  const query = new URLSearchParams({
+    categoryId: params.categoryId,
+    participantId: params.participantId,
+    workshopId: params.workshopId,
+    templateId: params.templateId,
+  });
+  return `/api/get-category-questions?${query.toString()}`;
+}
+
+/** Load category questions with session cache + in-flight dedupe. */
+export async function fetchCategoryQuestions(params: {
+  categoryId: string;
+  participantId: string;
+  workshopId: string;
+  templateId: string;
+  forceRefresh?: boolean;
+}): Promise<CategoryQuestionsPayload> {
+  const cacheKey = categoryQuestionsCacheKey(
+    params.workshopId,
+    params.categoryId,
+    params.participantId
+  );
+
+  if (!params.forceRefresh) {
+    const cached = getCachedPageData<CategoryQuestionsPayload>(cacheKey);
+    if (cached?.success) {
+      return cached;
+    }
+  }
+
+  const data = await fetchJsonOnce<CategoryQuestionsPayload>(
+    categoryQuestionsUrl(params)
+  );
+
+  if (data.success) {
+    setCachedPageData(cacheKey, data);
+  }
+
+  return data;
+}
+
+/** Warm API + session cache before the user opens a leaf. */
+export function prefetchCategoryQuestions(params: {
+  categoryId: string;
+  participantId: string;
+  workshopId: string;
+  templateId: string;
+}) {
+  if (
+    !params.categoryId ||
+    !params.participantId ||
+    !params.workshopId ||
+    !params.templateId
+  ) {
+    return;
+  }
+
+  const cacheKey = categoryQuestionsCacheKey(
+    params.workshopId,
+    params.categoryId,
+    params.participantId
+  );
+  if (getCachedPageData(cacheKey)) {
+    return;
+  }
+
+  void fetchCategoryQuestions(params).catch(() => {
+    // ignore prefetch errors
+  });
 }
 
 export function flattenOdChartLeaves(

@@ -1,11 +1,15 @@
 .user-nav-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(17, 24, 39, 0.35);
+  width: 100%;
+  height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: rgba(17, 24, 39, 0.55);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s ease;
-  z-index: 1100;
+  z-index: 1300;
 }
 
 .user-nav-overlay.open {
@@ -17,18 +21,22 @@
   position: fixed;
   top: 0;
   left: 0;
+  bottom: 0;
   width: min(320px, 88vw);
   height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
   background: #ffffff;
-  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.12);
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.18);
   transform: translateX(-100%);
   transition: transform 0.25s ease;
-  z-index: 1200;
+  z-index: 1400;
   padding: 24px 28px 32px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .user-nav-drawer.open {

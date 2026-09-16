@@ -4,7 +4,9 @@ import WorkshopEditBanner from "../../components/WorkshopEditBanner";
 import ODChartShell from "./ODChartShell";
 import {
   clearCachedPageData,
+  fetchCategoryQuestions,
   getActiveWorkshopContext,
+  getCachedPageData,
   getWorkshopEditStatus,
   getWorkshopModuleAccessStatus,
   setCachedPageData,
@@ -19,6 +21,32 @@ const STATUS_OPTIONS = [
   { value: "Green", label: "Green", className: "status-green" },
 ];
 
+function normalizeStatusValue(value: string): string {
+  const lower = String(value || "")
+    .trim()
+    .toLowerCase();
+  if (lower === "red" || lower === "r") {
+    return "Red";
+  }
+  if (lower === "yellow" || lower === "y" || lower === "amber") {
+    return "Yellow";
+  }
+  if (lower === "green" || lower === "g") {
+    return "Green";
+  }
+  return String(value || "").trim();
+}
+
+function statusPresetFor(value: string) {
+  const normalized = normalizeStatusValue(value);
+  return (
+    STATUS_OPTIONS.find((item) => item.value === normalized) ||
+    STATUS_OPTIONS.find(
+      (item) => item.value.toLowerCase() === String(value || "").trim().toLowerCase()
+    ) ||
+    null
+  );
+}
 const ATTACHMENT_ACCEPT =
   ".xlsx,.xls,.csv,.doc,.docx,.pdf,.ppt,.pptx,.txt,.png,.jpg,.jpeg,.gif,.webp,.bmp";
 
@@ -82,6 +110,7 @@ export default function ODChartQuestions() {
   const [successMessage, setSuccessMessage] = useState("");
   const [canEdit, setCanEdit] = useState(true);
   const [editMessage, setEditMessage] = useState("");
+  const [showLeaveDialog, setShowLeaveDialog] = useState(false);
   const answersDirtyRef = useRef(false);
   const loadRequestIdRef = useRef(0);
   const loadedLeafIdRef = useRef<string>("");
@@ -183,7 +212,22 @@ export default function ODChartQuestions() {
         }
 
         const cacheKey = `od-questions:${state.workshop.id}:${state.leaf.id}:${participant.id}`;
-        clearCachedPageData(cacheKey);
+        const cached = getCachedPageData<{
+          success: boolean;
+          message?: string;
+          data?: Array<{
+            questionId: string;
+            questionText: string;
+            questionType: string;
+            tagId?: string;
+            tagName?: string;
+            tagColor?: string;
+            attachmentsApplicable?: string;
+            options: { optionText: string }[] | string[];
+          }>;
+          answers?: Record<string, string>;
+          attachments?: Record<string, AttachmentMeta>;
+        }>(cacheKey);
 
         const activeWorkshop = getActiveWorkshopContext().workshop;
         const templateId = String(
@@ -204,24 +248,56 @@ export default function ODChartQuestions() {
           return;
         }
 
-        const query = new URLSearchParams({
+        const requestParams = {
           categoryId: state.leaf.id,
           participantId: participant.id,
           workshopId,
           templateId,
-        });
+        };
 
-        const questionsRes = await fetch(
-          `/api/get-category-questions?${query.toString()}`
-        );
-        const questionsData = await questionsRes.json();
+        if (cached?.success && Array.isArray(cached.data)) {
+          if (!cancelled && requestId === loadRequestIdRef.current) {
+            mapQuestions(cached);
+            setLoading(false);
+          }
+
+          // Soft revalidate in background (API memory cache keeps this ~ms).
+          void fetchCategoryQuestions({
+            ...requestParams,
+            forceRefresh: true,
+          })
+            .then((questionsData) => {
+              if (
+                cancelled ||
+                requestId !== loadRequestIdRef.current ||
+                !questionsData.success ||
+                answersDirtyRef.current
+              ) {
+                return;
+              }
+              mapQuestions(questionsData);
+              setCachedPageData(cacheKey, questionsData);
+            })
+            .catch(() => {
+              // keep cached page
+            });
+          return;
+        }
+
+        if (!cancelled && requestId === loadRequestIdRef.current) {
+          setLoading(true);
+        }
+
+        const questionsData = await fetchCategoryQuestions(requestParams);
 
         if (cancelled || requestId !== loadRequestIdRef.current) {
           return;
         }
 
         if (questionsData.success) {
-          mapQuestions(questionsData);
+          if (!answersDirtyRef.current) {
+            mapQuestions(questionsData);
+          }
           setCachedPageData(cacheKey, questionsData);
         } else {
           setQuestions([]);
@@ -289,18 +365,18 @@ export default function ODChartQuestions() {
     setErrorMessage("");
   };
 
-  const handleSave = async () => {
+  const handleSave = async (): Promise<boolean> => {
     if (!canEdit) {
       setErrorMessage(
         editMessage ||
           "The workshop has ended. You can no longer edit questionnaire answers."
       );
-      return;
+      return false;
     }
 
     if (!participant.id || !navState) {
       setErrorMessage("Please log in again to save responses.");
-      return;
+      return false;
     }
 
     try {
@@ -334,7 +410,7 @@ export default function ODChartQuestions() {
             uploadResult.message ||
               `Failed to upload attachment for question ${questionId}.`
           );
-          return;
+          return false;
         }
 
         uploadedAttachments[questionId] = {
@@ -369,7 +445,7 @@ export default function ODChartQuestions() {
 
       if (!response.ok || !result.success) {
         setErrorMessage(result.message || "Failed to save responses.");
-        return;
+        return false;
       }
 
       setSavedAttachments(uploadedAttachments);
@@ -377,18 +453,56 @@ export default function ODChartQuestions() {
       answersDirtyRef.current = false;
 
       if (navState) {
-        clearCachedPageData(
-          `od-questions:${navState.workshop.id}:${navState.leaf.id}:${participant.id}`
-        );
+        const cacheKey = `od-questions:${navState.workshop.id}:${navState.leaf.id}:${participant.id}`;
+        const existing = getCachedPageData<{
+          success?: boolean;
+          data?: unknown;
+          answers?: Record<string, string>;
+          attachments?: Record<string, AttachmentMeta>;
+        }>(cacheKey);
+        if (existing?.success) {
+          setCachedPageData(cacheKey, {
+            ...existing,
+            answers,
+            attachments: uploadedAttachments,
+          });
+        } else {
+          clearCachedPageData(cacheKey);
+        }
       }
 
       setSuccessMessage("Responses saved successfully.");
+      return true;
     } catch (error) {
       console.error(error);
       setErrorMessage("Something went wrong while saving.");
+      return false;
     } finally {
       setSaving(false);
     }
+  };
+
+  const requestBackToChart = () => {
+    if (answersDirtyRef.current) {
+      setShowLeaveDialog(true);
+      return;
+    }
+    navigate("/od-chart");
+  };
+
+  const leaveWithoutSaving = () => {
+    answersDirtyRef.current = false;
+    setShowLeaveDialog(false);
+    navigate("/od-chart");
+  };
+
+  const saveAndLeave = async () => {
+    const saved = await handleSave();
+    if (!saved) {
+      return;
+    }
+    setShowLeaveDialog(false);
+    navigate("/od-chart");
   };
 
   const renderQuestionInput = (question: Question) => {
@@ -401,10 +515,50 @@ export default function ODChartQuestions() {
 
     const isMultiple = type.includes("multiple");
     const isSingle = type.includes("single");
-    const isRating = type.includes("rating");
+    const looksLikeTrafficLight =
+      options.length > 0 &&
+      options.every((option) =>
+        ["red", "yellow", "green", "amber", "r", "y", "g"].includes(
+          option.toLowerCase()
+        )
+      );
+    const isRating = type.includes("rating") || looksLikeTrafficLight;
     const isText =
       type.includes("text") ||
       (!isMultiple && !isSingle && !isRating && options.length === 0);
+
+    if (isRating) {
+      const ratingOptions =
+        options.length > 0
+          ? options.map((option) => normalizeStatusValue(option))
+          : STATUS_OPTIONS.map((option) => option.value);
+      const selectedValue = normalizeStatusValue(currentValue);
+
+      return (
+        <div className="status-buttons" role="radiogroup" aria-label="Rating">
+          {ratingOptions.map((option) => {
+            const preset = statusPresetFor(option);
+            const value = preset?.value || option;
+            const selected = selectedValue === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                className={`status-btn status-swatch ${preset?.className || ""} ${
+                  selected ? "is-selected" : ""
+                }`}
+                onClick={() => setAnswer(question.id, value)}
+                disabled={disabled}
+                aria-label={preset?.label || value}
+                aria-checked={selected}
+                title={preset?.label || value}
+                role="radio"
+              />
+            );
+          })}
+        </div>
+      );
+    }
 
     if (isMultiple && options.length > 0) {
       const selected = currentValue
@@ -440,7 +594,7 @@ export default function ODChartQuestions() {
     }
 
     if (
-      (isSingle || (options.length > 0 && !isText && !isRating)) &&
+      (isSingle || (options.length > 0 && !isText)) &&
       options.length > 0
     ) {
       return (
@@ -458,36 +612,6 @@ export default function ODChartQuestions() {
               {option}
             </button>
           ))}
-        </div>
-      );
-    }
-
-    if (isRating) {
-      const ratingOptions =
-        options.length > 0
-          ? options
-          : STATUS_OPTIONS.map((option) => option.value);
-
-      return (
-        <div className="status-buttons" role="radiogroup">
-          {ratingOptions.map((option) => {
-            const preset = STATUS_OPTIONS.find(
-              (item) => item.value.toLowerCase() === option.toLowerCase()
-            );
-            return (
-              <button
-                key={option}
-                type="button"
-                className={`status-btn ${preset?.className || ""} ${
-                  currentValue === option ? "selected" : ""
-                }`}
-                onClick={() => setAnswer(question.id, option)}
-                disabled={disabled}
-              >
-                {preset?.label || option}
-              </button>
-            );
-          })}
         </div>
       );
     }
@@ -552,27 +676,9 @@ export default function ODChartQuestions() {
   }
 
   return (
-    <ODChartShell backLabel="Back to Chart" backPath="/od-chart">
+    <ODChartShell>
       <div className="od-questions-panel">
-        <nav className="od-breadcrumb" aria-label="Category breadcrumb">
-          {navState.breadcrumb.map((crumb, index) => (
-            <span key={`${crumb}-${index}`} className="od-breadcrumb-item">
-              {index > 0 && <span className="od-breadcrumb-sep"> › </span>}
-              <span
-                className={
-                  index === navState.breadcrumb.length - 1
-                    ? "od-breadcrumb-current"
-                    : "od-breadcrumb-text"
-                }
-              >
-                {crumb}
-              </span>
-            </span>
-          ))}
-        </nav>
-
         <h1 className="od-questions-title">{navState.leaf.name}</h1>
-        <p className="od-questions-path">{navState.leaf.fullPath}</p>
 
         {!canEdit && <WorkshopEditBanner message={editMessage} />}
 
@@ -596,16 +702,8 @@ export default function ODChartQuestions() {
             >
               <div className="question-text">{question.question}</div>
               <div className="question-meta">
-                <span className="question-type-badge">
-                  {question.answerType || "Text"}
-                </span>
                 {question.tagName ? (
-                  <span
-                    className="question-tag"
-                    style={{ color: question.tagColor || "#9B304A" }}
-                  >
-                    {question.tagName}
-                  </span>
+                  <span className="question-tag">{question.tagName}</span>
                 ) : null}
               </div>
               {renderQuestionInput(question)}
@@ -624,20 +722,72 @@ export default function ODChartQuestions() {
           <button
             type="button"
             className="user-btn-secondary"
-            onClick={() => navigate("/od-chart")}
+            onClick={requestBackToChart}
+            disabled={saving}
           >
             Back to Chart
           </button>
           <button
             type="button"
             className="user-btn-primary"
-            onClick={handleSave}
+            onClick={() => {
+              void handleSave();
+            }}
             disabled={saving || loading || !canEdit}
           >
             {saving ? "Saving..." : "Save Responses"}
           </button>
         </div>
       </div>
+
+      {showLeaveDialog ? (
+        <div
+          className="od-leave-modal-backdrop"
+          role="presentation"
+          onClick={() => setShowLeaveDialog(false)}
+        >
+          <div
+            className="od-leave-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="od-leave-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 id="od-leave-title">Unsaved responses</h2>
+            <p>
+              You have not saved your answer. Do you want to save your response?
+            </p>
+            <div className="od-leave-modal-actions">
+              <button
+                type="button"
+                className="user-btn-secondary"
+                onClick={() => setShowLeaveDialog(false)}
+                disabled={saving}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="user-btn-secondary"
+                onClick={leaveWithoutSaving}
+                disabled={saving}
+              >
+                Don&apos;t Save
+              </button>
+              <button
+                type="button"
+                className="user-btn-primary"
+                onClick={() => {
+                  void saveAndLeave();
+                }}
+                disabled={saving || !canEdit}
+              >
+                {saving ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </ODChartShell>
   );
 }

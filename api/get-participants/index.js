@@ -21,6 +21,7 @@ module.exports = async function (context, req) {
       "Email",
       "Username",
       "Phone_No",
+      "Password",
     ];
 
     const queryOptions = organization
@@ -45,6 +46,7 @@ module.exports = async function (context, req) {
         email: entity.Email || "",
         username: entity.Username || "",
         phoneNo: entity.Phone_No || "",
+        password: entity.Password || "",
       });
     }
 

@@ -6,7 +6,12 @@ export type UserMenuItem = {
 
 export const workshopNavItems: UserMenuItem[] = [
   {
-    label: "Pre OD",
+    label: "Home",
+    path: "/userdashboard",
+    match: (pathname) => pathname.startsWith("/userdashboard"),
+  },
+  {
+    label: "Pre-Workshop Questionnaire",
     path: "/pre-od-workshop",
     match: (pathname) => pathname.startsWith("/pre-od-workshop"),
   },
@@ -30,6 +35,11 @@ export const workshopNavItems: UserMenuItem[] = [
     path: "/workshop-feedback",
     match: (pathname) => pathname.startsWith("/workshop-feedback"),
   },
+  {
+    label: "Reports",
+    path: "/reports",
+    match: (pathname) => pathname.startsWith("/reports"),
+  },
 ];
 
 export type DashboardCard = {
@@ -40,9 +50,9 @@ export type DashboardCard = {
 
 export const dashboardCards: DashboardCard[] = [
   {
-    title: "Pre-Organization Development Workshop",
+    title: "Pre-Workshop Questionnaire",
     description:
-      "Setting context before the Organization Development Workshop.",
+      "Complete this short questionnaire before the Organization Development Workshop begins.",
     path: "/pre-od-workshop",
   },
   {

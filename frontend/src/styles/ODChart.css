@@ -6,17 +6,30 @@
 
 .od-chart-panel {
   padding: 0;
+  margin: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   height: 100%;
   min-height: 0;
+  width: 100%;
+  max-width: none;
 }
 
 .od-panel-top {
   display: flex;
-  align-items: flex-start;
-  margin-bottom: 10px;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 0;
+  flex-shrink: 0;
+  padding: 8px 12px;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.od-panel-top-actions {
+  gap: 12px;
 }
 
 .od-chart-main {
@@ -97,15 +110,18 @@
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  width: 100%;
+  max-width: none;
+  margin: 0;
 
   background: #f5f6f8;
 
-  border: 1px solid #d9dee7;
-  border-radius: 12px;
+  border: none;
+  border-radius: 0;
 
   overflow: hidden;
 
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+  box-shadow: none;
 }
 
 .od-dash:fullscreen {
@@ -115,15 +131,19 @@
 
 
 /* =========================================================
-   CHART HEADER
+   CHART HEADER — full-bleed bar; stem attaches below
    ========================================================= */
 
 .od-dash-banner {
   display: flex;
+
   align-items: center;
+
   justify-content: center;
 
   gap: 14px;
+
+  width: 100%;
 
   min-height: 46px;
 
@@ -137,9 +157,26 @@
 
   color: #ffffff;
 
-  border-bottom: 1px solid #6e0d27;
+  border: none;
+
+  border-radius: 0;
+
+  box-sizing: border-box;
 
   flex: 0 0 auto;
+
+  cursor: pointer;
+
+  font: inherit;
+}
+
+.od-dash-banner:hover {
+  filter: brightness(1.05);
+}
+
+.od-dash-banner:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: -4px;
 }
 
 .od-dash-banner h1 {
@@ -217,15 +254,34 @@
 
   overflow: auto;
 
-  padding: 0 18px 24px;
+  /* No top padding — root stem meets the full-bleed banner */
+  padding: 0 16px 16px;
 
-  background: linear-gradient(
-    180deg,
-    #ffffff 0%,
-    #f8f9fb 100%
-  );
+  background: #ffffff;
 
   border-bottom: 1px solid #d9dee7;
+
+  display: flex;
+
+  justify-content: safe center;
+
+  align-items: flex-start;
+}
+
+
+/* Scaled shell so zoomed chart still participates in flex centering */
+.od-dash-zoom-stage {
+  flex: 0 0 auto;
+
+  position: relative;
+
+  /* Unscaled child layout must not inflate the flex item past the scaled size */
+  min-width: 0;
+
+  min-height: 0;
+
+  /* Must not clip expanded lower-level nodes when height catches up a frame late */
+  overflow: visible;
 }
 
 
@@ -235,10 +291,10 @@
 
 .od-dash-content {
   --od-col-count: 4;
-  --od-top-tab-w: 240px;
+  --od-top-tab-w: 200px;
   --od-link: #111111;
   --od-link-w: 2px;
-  --od-link-gap: 18px;
+  --od-link-gap: 14px;
 
   display: flex;
 
@@ -250,9 +306,11 @@
 
   width: max-content;
 
-  min-width: 100%;
+  max-width: none;
 
-  padding: 0 16px 8px;
+  margin: 0;
+
+  padding: 0;
 
   box-sizing: border-box;
 
@@ -395,7 +453,7 @@
 .od-dash-column-body {
   --od-link: #111111;
   --od-link-w: 2px;
-  --od-link-gap: 16px;
+  --od-link-gap: 14px;
   min-height: 0;
 }
 
@@ -412,7 +470,8 @@
 
 .od-fork {
   --od-n: 1;
-  --od-col-w: 170px;
+  --od-col-w: 168px;
+  --od-link-gap: 14px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -422,6 +481,10 @@
 }
 
 /* Root fork: stem attaches under UNLOCK VALUE banner */
+.od-fork.od-fork-root {
+  margin-top: 0;
+}
+
 .od-fork.od-fork-root > .od-fork-stem {
   height: 22px;
 }
@@ -493,7 +556,7 @@
   justify-content: center;
   width: 100%;
   max-width: 100%;
-  padding: 0 8px;
+  padding: 0 4px;
   box-sizing: border-box;
   position: relative;
   z-index: 2;
@@ -503,6 +566,7 @@
 .od-fork-block > .od-dash-node {
   position: relative;
   z-index: 3;
+  flex-shrink: 0;
 }
 
 
@@ -1035,7 +1099,7 @@
 
   align-items: center;
 
-  justify-content: space-between;
+  justify-content: flex-start;
 
   gap: 12px;
 
@@ -1535,18 +1599,13 @@
   margin-bottom: 12px;
 }
 
-.question-type-badge {
+.question-tag {
   display: inline-flex;
   align-items: center;
   padding: 3px 10px;
   border-radius: 999px;
   background: #f3f4f6;
   color: #374151;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.question-tag {
   font-size: 12px;
   font-weight: 600;
 }
@@ -1607,19 +1666,68 @@
   cursor: not-allowed;
 }
 
-.status-btn.status-red.selected {
-  background: #dc2626;
+/* Rating swatches: hollow until selected, then solid fill */
+.status-btn.status-swatch {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  padding: 0;
+  border-width: 2.5px;
+  border-style: solid;
+  font-size: 0;
+  line-height: 0;
+  color: transparent;
+  background: #ffffff;
+  flex: 0 0 auto;
+}
+
+.status-btn.status-swatch:hover:not(:disabled) {
+  border-color: inherit;
+}
+
+.status-btn.status-red:not(.is-selected) {
+  border-color: #dc2626;
+  background: #ffffff;
+}
+
+.status-btn.status-red:not(.is-selected):hover:not(:disabled) {
+  background: #fef2f2;
   border-color: #dc2626;
 }
 
-.status-btn.status-yellow.selected {
-  background: #ca8a04;
+.status-btn.status-red.is-selected {
+  border-color: #dc2626;
+  background: #dc2626;
+}
+
+.status-btn.status-yellow:not(.is-selected) {
+  border-color: #ca8a04;
+  background: #ffffff;
+}
+
+.status-btn.status-yellow:not(.is-selected):hover:not(:disabled) {
+  background: #fefce8;
   border-color: #ca8a04;
 }
 
-.status-btn.status-green.selected {
-  background: #16a34a;
+.status-btn.status-yellow.is-selected {
+  border-color: #ca8a04;
+  background: #ca8a04;
+}
+
+.status-btn.status-green:not(.is-selected) {
   border-color: #16a34a;
+  background: #ffffff;
+}
+
+.status-btn.status-green:not(.is-selected):hover:not(:disabled) {
+  background: #f0fdf4;
+  border-color: #16a34a;
+}
+
+.status-btn.status-green.is-selected {
+  border-color: #16a34a;
+  background: #16a34a;
 }
 
 .od-chart-actions {
@@ -1645,4 +1753,43 @@
 .od-chart-status {
   color: #6b7280;
   font-size: 14px;
+}
+
+.od-leave-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.od-leave-modal {
+  width: min(440px, 100%);
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 22px 22px 18px;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.22);
+}
+
+.od-leave-modal h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  color: #111827;
+}
+
+.od-leave-modal p {
+  margin: 0 0 18px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: #4b5563;
+}
+
+.od-leave-modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
 }

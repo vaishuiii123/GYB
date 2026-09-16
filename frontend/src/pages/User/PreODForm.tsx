@@ -184,7 +184,7 @@ export default function PreODForm() {
 
         if (!response.ok || !data.success) {
           if (!cached) {
-            setErrorMessage(data.message || "Unable to load Pre OD form.");
+            setErrorMessage(data.message || "Unable to load the questionnaire.");
           }
           return;
         }
@@ -197,7 +197,7 @@ export default function PreODForm() {
       } catch (error) {
         console.error(error);
         if (!cancelled && requestId === requestIdRef.current) {
-          setErrorMessage("Unable to load Pre OD form.");
+          setErrorMessage("Unable to load the questionnaire.");
         }
       } finally {
         if (!cancelled && requestId === requestIdRef.current) {
@@ -305,7 +305,7 @@ export default function PreODForm() {
     const data = await response.json();
 
     if (!response.ok || !data.success) {
-      throw new Error(data.message || "Failed to save Pre OD.");
+      throw new Error(data.message || "Failed to save your responses.");
     }
 
     setSavedAttachments(
@@ -332,10 +332,10 @@ export default function PreODForm() {
       setErrorMessage("");
       setSuccessMessage("");
       await saveAnswers(true);
-      setSuccessMessage("Pre OD draft saved successfully.");
+      setSuccessMessage("Draft saved successfully.");
     } catch (error: any) {
       console.error(error);
-      setErrorMessage(error.message || "Failed to save Pre OD.");
+      setErrorMessage(error.message || "Failed to save your responses.");
     } finally {
       setSaving(false);
     }
@@ -349,7 +349,7 @@ export default function PreODForm() {
       setPage((current) => Math.min(current + 1, totalPages - 1));
     } catch (error: any) {
       console.error(error);
-      setErrorMessage(error.message || "Failed to save Pre OD.");
+      setErrorMessage(error.message || "Failed to save your responses.");
     } finally {
       setSaving(false);
     }
@@ -366,11 +366,11 @@ export default function PreODForm() {
       setSuccessMessage("");
       await saveAnswers(false);
       clearCachedPageData(`pre-od:${participantId}:${formData!.workshop.id}`);
-      setSuccessMessage("Pre OD submitted successfully.");
+      setSuccessMessage("Questionnaire submitted successfully.");
       navigate("/userdashboard", { replace: true });
     } catch (error: any) {
       console.error(error);
-      setErrorMessage(error.message || "Failed to submit Pre OD.");
+      setErrorMessage(error.message || "Failed to submit the questionnaire.");
     } finally {
       setSaving(false);
     }
@@ -381,8 +381,7 @@ export default function PreODForm() {
       <div className="pre-od-form-page">
         <div className="pre-od-form-header">
           <div>
-            <h1>Pre-Organization Development Workshop</h1>
-            <p>Complete the assigned questions before your workshop begins.</p>
+            <h1>Pre-Organizational Development Questionnaire</h1>
           </div>
         </div>
 
@@ -399,11 +398,11 @@ export default function PreODForm() {
         ) : null}
 
         {loading && !formData ? (
-          <p className="pre-od-form-status">Loading Pre OD form...</p>
+          <p className="pre-od-form-status">Loading questionnaire...</p>
         ) : !formData?.available ? (
           <div className="pre-od-form-empty">
             {formData?.message ||
-              "Pre OD has not been assigned for your workshop yet."}
+              "The Pre-Workshop Questionnaire has not been assigned for your workshop yet."}
           </div>
         ) : (
           <>

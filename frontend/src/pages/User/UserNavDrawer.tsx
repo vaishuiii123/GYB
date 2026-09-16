@@ -51,7 +51,8 @@ export default function UserNavDrawer({ open, onClose }: UserNavDrawerProps) {
             const isWorkshopModule =
               item.path === "/vision-mission" ||
               item.path === "/od-chart" ||
-              item.path === "/actionables";
+              item.path === "/actionables" ||
+              item.path === "/reports";
 
             let path = item.path;
             let title: string | undefined;

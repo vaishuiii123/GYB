@@ -1,4 +1,5 @@
 const { getTableClient } = require("./tableHelper");
+const { getOrLoad } = require("./listCache");
 
 function parseQuestionIds(questionIdField) {
   if (!questionIdField) {
@@ -68,7 +69,7 @@ async function findTemplateByName(templateName) {
  * Prefer Workshop.TemplateId from DB. If that ID points at a template whose
  * name does not match Workshop.TemplateName (common mis-link), resolve by name.
  */
-async function resolveOdTemplate(workshopId, templateIdQuery) {
+async function resolveOdTemplateUncached(workshopId, templateIdQuery) {
   const workshopKey = String(workshopId || "").trim();
   let workshopTemplateId = "";
   let workshopTemplateName = "";
@@ -113,6 +114,18 @@ async function resolveOdTemplate(workshopId, templateIdQuery) {
     templateId: candidateId,
     template,
   };
+}
+
+async function resolveOdTemplate(workshopId, templateIdQuery) {
+  const key = `od-template:${String(workshopId || "").trim()}:${String(
+    templateIdQuery || ""
+  ).trim()}`;
+  const { value } = await getOrLoad(
+    key,
+    () => resolveOdTemplateUncached(workshopId, templateIdQuery),
+    10 * 60 * 1000
+  );
+  return value;
 }
 
 module.exports = {

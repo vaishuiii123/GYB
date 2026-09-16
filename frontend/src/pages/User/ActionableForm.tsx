@@ -17,6 +17,7 @@ import {
   getWorkshopEditStatus,
   getWorkshopModuleAccessStatus,
 } from "../../utils/workshopCache";
+import { fetchOnce } from "../../utils/adminListCache";
 import UserLayout from "./UserLayout";
 import WorkshopEditBanner from "../../components/WorkshopEditBanner";
 import "../../styles/Actionables.css";
@@ -107,10 +108,8 @@ export default function ActionableForm() {
         setEditMessage(initialEditMessage);
 
         const [chartData, actionablesData] = await Promise.all([
-          fetchOdChart(selectedWorkshop.templateId, selectedWorkshop.id, {
-            forceRefresh: true,
-          }),
-          fetch(
+          fetchOdChart(selectedWorkshop.templateId),
+          fetchOnce(
             `/api/get-actionables?participantId=${participant.id}&workshopId=${selectedWorkshop.id}`
           ).then((response) => response.json()),
         ]);
@@ -571,18 +570,6 @@ export default function ActionableForm() {
             </>
           )}
         </div>
-
-        <footer className="act-footer-banner">
-          <div className="act-footer-copy">
-            <span className="act-footer-icon" aria-hidden>
-              <TrendingUp size={18} strokeWidth={2.1} />
-            </span>
-            <div>
-              <strong>Grow Your Business</strong>
-              <span>Organization Development Workshop</span>
-            </div>
-          </div>
-        </footer>
       </div>
     </UserLayout>
   );

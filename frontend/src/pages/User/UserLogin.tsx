@@ -169,47 +169,81 @@ export default function UserLogin() {
         }),
       });
 
-      const data = await response.json();
+      let data: any = null;
+      try {
+        data = await response.json();
+      } catch {
+        setErrorMessage(
+          "Unable to reach the login service. Make sure the API is running on port 7071."
+        );
+        return;
+      }
 
       if (!data.success) {
         setErrorMessage(data.message || "Invalid username or password.");
         return;
       }
-      
+
+      // Local/dev SMS bypass: complete login without OTP.
+      if (data.skipOtp && data.user) {
+        localStorage.setItem("participant", JSON.stringify(data.user));
+        clearAllCachedPageData();
+        redirectUser(data.user.role || "Participant");
+        return;
+      }
+
       const assignedPhone = String(data.user?.phoneNo || "").replace(/\D/g, "");
-      
+
       if (assignedPhone.length !== 10) {
         setErrorMessage("No valid phone number is assigned to this user.");
         return;
       }
-      
+
       setPhoneNo(assignedPhone);
-      
+
       const otpResponse = await fetch("/api/send-login-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phoneNo: assignedPhone }),
       });
-      
-      const otpData = await otpResponse.json();
-      
-      if (!otpData.success) {
-        setErrorMessage(otpData.message || "Unable to send OTP.");
+
+      let otpData: any = null;
+      try {
+        otpData = await otpResponse.json();
+      } catch {
+        setErrorMessage(
+          "Unable to send the verification code. Make sure the API is running."
+        );
         return;
       }
-      
+
+      if (!otpData.success) {
+        const rawOtpError = String(otpData.message || "");
+        const isSmsIpBlocked = /ip blocked|bulksmslink|sms_dev_bypass/i.test(
+          rawOtpError
+        );
+        setErrorMessage(
+          isSmsIpBlocked
+            ? "Unable to send the verification code right now. Please try again shortly, or contact your workshop organizer."
+            : rawOtpError || "Unable to send OTP."
+        );
+        return;
+      }
+
       setStep("otp");
       setInfoMessage(
         otpData.devOtp
           ? `Local OTP: ${otpData.devOtp}`
           : otpData.message || "OTP sent to your mobile number."
       );
-
-      
-
+      if (otpData.devOtp) {
+        setOtp(String(otpData.devOtp));
+      }
     } catch (error) {
       console.error(error);
-      setErrorMessage("Unable to sign in.");
+      setErrorMessage(
+        "Unable to sign in. Check that the API (port 7071) is running, then try again."
+      );
     } finally {
       setLoading(false);
       setLoadingAction("");

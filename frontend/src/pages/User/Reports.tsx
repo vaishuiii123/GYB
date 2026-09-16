@@ -22,8 +22,8 @@ type ReportSection = {
 
 const reportSections: ReportSection[] = [
   {
-    title: "Pre OD",
-    description: "Review your Pre OD responses for this workshop.",
+    title: "Pre-Workshop Questionnaire",
+    description: "Review your questionnaire responses for this workshop.",
     path: "/pre-od-workshop",
     access: "preOd",
   },

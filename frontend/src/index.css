@@ -1,12 +1,85 @@
+/* ===== Global brand tokens (Admin + Frontend) ===== */
+:root {
+  --gyb-brand: #9b304a;
+  --gyb-brand-hover: #7e263c;
+  --gyb-brand-deep: #7b0f2c;
+  --gyb-brand-soft: #fdf2f4;
+  --gyb-brand-muted: #c4a0ab;
+  --gyb-text: #111827;
+  --gyb-text-secondary: #374151;
+  --gyb-text-muted: #6b7280;
+  --gyb-border: #e5e7eb;
+  --gyb-surface: #ffffff;
+  --gyb-page-bg: #f3f4f6;
+  --gyb-font: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  --gyb-font-size: 14px;
+  --gyb-label-size: 13px;
+  --gyb-title-size: 1.75rem;
+  --gyb-radius: 8px;
+}
+
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
+html {
+  /* Improves layout stability under Windows display scaling (125%, 150%) */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
-  font-family: Arial, sans-serif;
+  font-family: var(--gyb-font);
+  font-size: var(--gyb-font-size);
+  color: var(--gyb-text);
   width: 100%;
-  height: 100%;
-  overflow: hidden;
+  min-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--gyb-page-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* Shared page title / label rhythm */
+.gyb-page-title {
+  margin: 0;
+  font-family: var(--gyb-font);
+  font-size: clamp(1.35rem, 2.2vw, 2rem);
+  font-weight: 700;
+  color: var(--gyb-text);
+  line-height: 1.25;
+}
+
+.gyb-field-label {
+  display: block;
+  margin: 0 0 6px;
+  font-family: var(--gyb-font);
+  font-size: var(--gyb-label-size);
+  font-weight: 600;
+  color: var(--gyb-text-secondary);
+  letter-spacing: 0.01em;
+}
+
+/* Scaling-safe containers */
+@media (max-width: 1200px) {
+  .organization-content,
+  .user-layout-main:not(.user-layout-main-od) {
+    padding-left: max(16px, 2vw);
+    padding-right: max(16px, 2vw);
+  }
 }

@@ -1,6 +1,7 @@
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import { useState, useEffect, useMemo, useRef } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import {
   DeleteIconBtn,
   EditIconBtn,
@@ -63,6 +64,8 @@ export default function Participants({ user }: PageProps) {
 
   const [showEditModal, setShowEditModal] = useState(false);
   const [editParticipant, setEditParticipant] = useState<any>(null);
+  const [showCreatePassword, setShowCreatePassword] = useState(false);
+  const [showEditPassword, setShowEditPassword] = useState(false);
 
   const hasFetchedParticipants = useRef(false);
 
@@ -102,7 +105,6 @@ export default function Participants({ user }: PageProps) {
     firstName?: string;
     lastName?: string;
     email?: string;
-    username?: string;
     phoneNo?: string;
     password?: string;
   }) =>
@@ -110,8 +112,6 @@ export default function Participants({ user }: PageProps) {
       String(form.firstName || "").trim() &&
         String(form.lastName || "").trim() &&
         isValidEmail(String(form.email || "")) &&
-        String(form.username || "").trim().length >= 3 &&
-        !/\s/.test(String(form.username || "").trim()) &&
         isValidPhone(String(form.phoneNo || "")) &&
         String(form.password || "").trim()
     );
@@ -120,7 +120,6 @@ export default function Participants({ user }: PageProps) {
     firstName?: string;
     lastName?: string;
     email?: string;
-    username?: string;
     phoneNo?: string;
     password?: string;
   }) => {
@@ -131,17 +130,6 @@ export default function Participants({ user }: PageProps) {
     const emailError = getEmailError(String(form.email || ""));
     if (emailError) {
       return emailError;
-    }
-
-    const username = String(form.username || "").trim();
-    if (!username) {
-      return "Username is required.";
-    }
-    if (username.length < 3) {
-      return "Username must be at least 3 characters.";
-    }
-    if (/\s/.test(username)) {
-      return "Username cannot contain spaces.";
     }
 
     const phoneError = getPhoneError(String(form.phoneNo || ""));
@@ -155,6 +143,9 @@ export default function Participants({ user }: PageProps) {
 
     return "";
   };
+
+  const usernameFromEmail = (email: string) =>
+    String(email || "").trim().toLowerCase();
 
   const isUsernameAlreadyTaken = (username: string, excludeId?: string) => {
     const target = String(username || "").trim().toLowerCase();
@@ -194,7 +185,7 @@ export default function Participants({ user }: PageProps) {
       middleName: participantForm.middleName.trim(),
       lastName: participantForm.lastName.trim(),
       email: participantForm.email.trim(),
-      username: participantForm.username.trim(),
+      username: usernameFromEmail(participantForm.email),
       phoneNo: participantForm.phoneNo.trim(),
       password: participantForm.password,
     };
@@ -206,7 +197,7 @@ export default function Participants({ user }: PageProps) {
     }
 
     if (isUsernameAlreadyTaken(payload.username)) {
-      setFormError("This username is already taken.");
+      setFormError("A participant with this email already exists.");
       return;
     }
 
@@ -262,8 +253,10 @@ export default function Participants({ user }: PageProps) {
     setEditParticipant({
       ...participant,
       username: String(participant.username || participant.email || "").trim(),
+      password: String(participant.password || ""),
     });
     setFormError("");
+    setShowEditPassword(false);
     setShowEditModal(true);
   };
 
@@ -278,7 +271,7 @@ export default function Participants({ user }: PageProps) {
       middleName: String(editParticipant.middleName || "").trim(),
       lastName: String(editParticipant.lastName || "").trim(),
       email: String(editParticipant.email || "").trim(),
-      username: String(editParticipant.username || "").trim(),
+      username: usernameFromEmail(editParticipant.email),
       phoneNo: String(editParticipant.phoneNo || "").trim(),
       password: String(editParticipant.password || ""),
     };
@@ -290,7 +283,7 @@ export default function Participants({ user }: PageProps) {
     }
 
     if (isUsernameAlreadyTaken(payload.username, payload.id)) {
-      setFormError("This username is already taken.");
+      setFormError("A participant with this email already exists.");
       return;
     }
 
@@ -410,11 +403,12 @@ export default function Participants({ user }: PageProps) {
 
           <div className="organization-content">
             <div className="org-page-header">
-              <h1 className="org-page-title">Participants</h1>
               <button
                 className="org-btn org-btn-primary"
                 onClick={() => {
                   setFormError("");
+                  setParticipantForm(emptyParticipantForm);
+                  setShowCreatePassword(false);
                   setShowParticipantModal(true);
                 }}
               >
@@ -425,7 +419,7 @@ export default function Participants({ user }: PageProps) {
             <div className="org-card">
               <input
                 type="text"
-                placeholder="Search participants by name, username, email, or phone..."
+                placeholder="Search participants by name, email, or phone..."
                 value={tableSearch}
                 onChange={(e) => setTableSearch(e.target.value)}
                 className="org-input org-search-input"
@@ -435,7 +429,6 @@ export default function Participants({ user }: PageProps) {
                 <thead>
                   <tr>
                     <th>Name</th>
-                    <th>Username</th>
                     <th>Email</th>
                     <th>Phone No</th>
                     <th>Actions</th>
@@ -447,7 +440,6 @@ export default function Participants({ user }: PageProps) {
                     filteredParticipants.map((p) => (
                       <tr key={p.id}>
                         <td>{formatParticipantName(p)}</td>
-                        <td>{p.username || "-"}</td>
                         <td>{p.email}</td>
                         <td>{p.phoneNo || "-"}</td>
                         <td>
@@ -464,7 +456,7 @@ export default function Participants({ user }: PageProps) {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={5} className="org-empty-cell">
+                      <td colSpan={4} className="org-empty-cell">
                         No participants found
                       </td>
                     </tr>
@@ -541,21 +533,6 @@ export default function Participants({ user }: PageProps) {
             />
 
             <label className="org-field-label">
-              Username <span className="org-required">*</span>
-            </label>
-            <input
-              className="org-input"
-              placeholder="Username"
-              value={participantForm.username}
-              onChange={(e) =>
-                setParticipantForm({
-                  ...participantForm,
-                  username: e.target.value,
-                })
-              }
-            />
-
-            <label className="org-field-label">
               Phone Number <span className="org-required">*</span>
             </label>
             <input
@@ -573,18 +550,33 @@ export default function Participants({ user }: PageProps) {
             <label className="org-field-label">
               Password <span className="org-required">*</span>
             </label>
-            <input
-              type="password"
-              className="org-input"
-              placeholder="Password"
-              value={participantForm.password}
-              onChange={(e) =>
-                setParticipantForm({
-                  ...participantForm,
-                  password: e.target.value,
-                })
-              }
-            />
+            <div className="org-password-wrap">
+              <input
+                type={showCreatePassword ? "text" : "password"}
+                className="org-input"
+                placeholder="Password"
+                value={participantForm.password}
+                onChange={(e) =>
+                  setParticipantForm({
+                    ...participantForm,
+                    password: e.target.value,
+                  })
+                }
+                autoComplete="new-password"
+              />
+              <button
+                type="button"
+                className="org-password-toggle"
+                onClick={() => setShowCreatePassword((prev) => !prev)}
+                aria-label={showCreatePassword ? "Hide password" : "Show password"}
+              >
+                {showCreatePassword ? (
+                  <EyeOff size={18} strokeWidth={2} />
+                ) : (
+                  <Eye size={18} strokeWidth={2} />
+                )}
+              </button>
+            </div>
 
             {formError ? (
               <div className="org-fetch-error" role="alert">
@@ -599,6 +591,7 @@ export default function Participants({ user }: PageProps) {
                   setShowParticipantModal(false);
                   setParticipantForm(emptyParticipantForm);
                   setFormError("");
+                  setShowCreatePassword(false);
                 }}
               >
                 Cancel
@@ -677,21 +670,6 @@ export default function Participants({ user }: PageProps) {
             />
 
             <label className="org-field-label">
-              Username <span className="org-required">*</span>
-            </label>
-            <input
-              className="org-input"
-              placeholder="Username"
-              value={editParticipant.username || ""}
-              onChange={(e) =>
-                setEditParticipant({
-                  ...editParticipant,
-                  username: e.target.value,
-                })
-              }
-            />
-
-            <label className="org-field-label">
               Phone Number <span className="org-required">*</span>
             </label>
             <input
@@ -708,17 +686,32 @@ export default function Participants({ user }: PageProps) {
             <label className="org-field-label">
               Password <span className="org-required">*</span>
             </label>
-            <input
-              type="password"
-              className="org-input"
-              value={editParticipant.password || ""}
-              onChange={(e) =>
-                setEditParticipant({
-                  ...editParticipant,
-                  password: e.target.value,
-                })
-              }
-            />
+            <div className="org-password-wrap">
+              <input
+                type={showEditPassword ? "text" : "password"}
+                className="org-input"
+                value={editParticipant.password || ""}
+                onChange={(e) =>
+                  setEditParticipant({
+                    ...editParticipant,
+                    password: e.target.value,
+                  })
+                }
+                autoComplete="new-password"
+              />
+              <button
+                type="button"
+                className="org-password-toggle"
+                onClick={() => setShowEditPassword((prev) => !prev)}
+                aria-label={showEditPassword ? "Hide password" : "Show password"}
+              >
+                {showEditPassword ? (
+                  <EyeOff size={18} strokeWidth={2} />
+                ) : (
+                  <Eye size={18} strokeWidth={2} />
+                )}
+              </button>
+            </div>
 
             {formError ? (
               <div className="org-fetch-error" role="alert">
@@ -732,6 +725,7 @@ export default function Participants({ user }: PageProps) {
                 onClick={() => {
                   setShowEditModal(false);
                   setFormError("");
+                  setShowEditPassword(false);
                 }}
               >
                 Cancel

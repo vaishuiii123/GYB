@@ -15,9 +15,11 @@ import {
 import {
   clearCachedPageData,
   getActiveWorkshopContext,
+  getCachedPageData,
   getWorkshopModuleAccessStatus,
   setCachedPageData,
 } from "../../utils/workshopCache";
+import { fetchOnce } from "../../utils/adminListCache";
 import "../../styles/VisionMission.css";
 
 type DropZone = "vision" | "mission";
@@ -110,25 +112,48 @@ export default function VisionMission() {
         setEditMessage(initialEditMessage);
         setErrorMessage("");
         setMessage("");
-        // Always reset so another participant's answers never linger in UI.
-        setVisionKeywords([]);
-        setMissionKeywords([]);
-        setVisionInput("");
-        setMissionInput("");
 
         if (!participantId || !activeWorkshopId) {
           setKeywords(DEFAULT_KEYWORDS);
+          setVisionKeywords([]);
+          setMissionKeywords([]);
+          setVisionInput("");
+          setMissionInput("");
           return;
         }
 
+        const pageCacheKey = `vision-mission:${participantId}:${activeWorkshopId}`;
+        const cached = getCachedPageData<{
+          participantId: string;
+          workshopId: string;
+          keywords: string[];
+          visionKeywords: string[];
+          missionKeywords: string[];
+        }>(pageCacheKey);
+
+        if (
+          cached &&
+          cached.participantId === participantId &&
+          cached.workshopId === activeWorkshopId
+        ) {
+          setKeywords(cached.keywords?.length ? cached.keywords : DEFAULT_KEYWORDS);
+          setVisionKeywords(cached.visionKeywords || []);
+          setMissionKeywords(cached.missionKeywords || []);
+        } else {
+          setVisionKeywords([]);
+          setMissionKeywords([]);
+          setVisionInput("");
+          setMissionInput("");
+        }
+
+        const responseUrl = `/api/get-vision-mission-response?${new URLSearchParams({
+          participantId,
+          workshopId: activeWorkshopId,
+        }).toString()}`;
+
         const [keywordsRes, responseRes] = await Promise.all([
-          fetch("/api/get-vision-mission"),
-          fetch(
-            `/api/get-vision-mission-response?${new URLSearchParams({
-              participantId,
-              workshopId: activeWorkshopId,
-            }).toString()}`
-          ),
+          fetchOnce("/api/get-vision-mission"),
+          fetchOnce(responseUrl),
         ]);
 
         const keywordsData = await keywordsRes.json();
@@ -166,16 +191,13 @@ export default function VisionMission() {
         setVisionKeywords(nextVision);
         setMissionKeywords(nextMission);
 
-        setCachedPageData(
-          `vision-mission:${participantId}:${activeWorkshopId}`,
-          {
-            participantId,
-            workshopId: activeWorkshopId,
-            keywords: nextKeywords,
-            visionKeywords: nextVision,
-            missionKeywords: nextMission,
-          }
-        );
+        setCachedPageData(pageCacheKey, {
+          participantId,
+          workshopId: activeWorkshopId,
+          keywords: nextKeywords,
+          visionKeywords: nextVision,
+          missionKeywords: nextMission,
+        });
       } catch (error) {
         console.error("Error fetching vision/mission:", error);
         setVisionKeywords([]);
@@ -339,12 +361,14 @@ export default function VisionMission() {
     onInputChange: (value: string) => void
   ) => {
     const ZoneIcon = zone === "vision" ? Eye : Target;
+    const isActive = activeZone === zone;
 
     return (
       <section
         className={`vm-statement-card ${
           draggingKeyword ? "is-drop-ready" : ""
-        }`}
+        } ${isActive ? "is-active" : ""}`}
+        onClick={() => setActiveZone(zone)}
         onDragOver={(event) => event.preventDefault()}
         onDrop={(event) => handleDrop(zone, event)}
       >
@@ -354,7 +378,11 @@ export default function VisionMission() {
           </span>
           <div>
             <h2>{title}</h2>
-            <p>Drag keywords here, click below, or type your own.</p>
+            <p className="vm-statement-hint">
+              {isActive
+                ? "Selected — click a keyword to add it here."
+                : "Click here to select, then choose keywords."}
+            </p>
           </div>
         </header>
 
@@ -398,12 +426,14 @@ export default function VisionMission() {
               type="text"
               className="vm-drop-input"
               value={inputValue}
+              onFocus={() => setActiveZone(zone)}
+              onClick={() => setActiveZone(zone)}
               onChange={(event) => onInputChange(event.target.value)}
               onKeyDown={(event) => handleInputKeyDown(zone, event)}
               disabled={!canEdit}
               placeholder={
                 selectedKeywords.length === 0
-                  ? "Drop keywords here or type and press Enter"
+                  ? "Click here, then pick keywords — or type and press Enter"
                   : "Type and press Enter"
               }
             />
@@ -421,8 +451,9 @@ export default function VisionMission() {
             <h1>Vision & Mission Statement</h1>
             <p>
               Select keywords that best represent your organization&apos;s
-              vision and mission. Drag them into the sections below, click to
-              add them, or type your own and press Enter.
+              vision and mission. Click a Vision or Mission box, then click
+              keywords to add them — or drag them in, or type your own and press
+              Enter.
             </p>
           </div>
           <div className="vm-hero-art" aria-hidden>
@@ -445,31 +476,12 @@ export default function VisionMission() {
                     <Sparkles size={18} strokeWidth={2.2} />
                     Suggested Keywords
                   </h3>
-                  <div className="vm-zone-toggle">
-                    <span>Add clicks to:</span>
-                    <button
-                      type="button"
-                      className={
-                        activeZone === "vision"
-                          ? "vm-zone-btn is-active"
-                          : "vm-zone-btn"
-                      }
-                      onClick={() => setActiveZone("vision")}
-                    >
-                      Vision
-                    </button>
-                    <button
-                      type="button"
-                      className={
-                        activeZone === "mission"
-                          ? "vm-zone-btn is-active"
-                          : "vm-zone-btn"
-                      }
-                      onClick={() => setActiveZone("mission")}
-                    >
-                      Mission
-                    </button>
-                  </div>
+                  <p className="vm-active-target">
+                    Adding to:{" "}
+                    <strong>
+                      {activeZone === "vision" ? "Vision" : "Mission"}
+                    </strong>
+                  </p>
                 </div>
 
                 <div className="vm-keyword-grid">
@@ -502,8 +514,8 @@ export default function VisionMission() {
                 </div>
 
                 <p className="vm-keyword-tip">
-                  Click a keyword to add it to the selected section, or drag and
-                  drop it into Vision or Mission.
+                  Click a Vision or Mission box to select it, then click a
+                  keyword to add it there. You can also drag and drop.
                 </p>
               </section>
 

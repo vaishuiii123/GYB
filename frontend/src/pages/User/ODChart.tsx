@@ -2,6 +2,7 @@ import {
   Children,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -12,11 +13,8 @@ import { useNavigate } from "react-router-dom";
 import {
   CircleDollarSign,
   Gem,
-  Maximize2,
   Minus,
   Plus,
-  RotateCcw,
-  Search,
   Target,
   Users,
 } from "lucide-react";
@@ -27,8 +25,8 @@ import {
   getActiveWorkshopContext,
   getCachedOdChart,
   getWorkshopModuleAccessStatus,
-} from "../../utils/workshopCache";
-import { setSelectedWorkshop } from "../../utils/selectedWorkshop";
+  prefetchCategoryQuestions,
+} from "../../utils/workshopCache";import { setSelectedWorkshop } from "../../utils/selectedWorkshop";
 import ODChartShell from "./ODChartShell";
 import "../../styles/ODChart.css";
 
@@ -169,11 +167,13 @@ function LeafNode({
   highlighted,
   restoreFocus,
   onOpen,
+  onPrefetch,
 }: {
   leaf: Leaf;
   highlighted: boolean;
   restoreFocus?: boolean;
   onOpen: () => void;
+  onPrefetch?: () => void;
 }) {
   const assigned = leafHasAssignedQuestions(leaf);
   const tagColor = leaf.tagColor || "#9b304a";
@@ -199,6 +199,8 @@ function LeafNode({
           ? "Open questions"
           : "No questions assigned for your workshop"
       }
+      onMouseEnter={onPrefetch}
+      onFocus={onPrefetch}
       onClick={onOpen}
     >
       {leaf.name}
@@ -208,22 +210,32 @@ function LeafNode({
 
 /**
  * Explicit DOM connectors. Leaf/parent siblings are always a horizontal row.
+ * Optional `colWidths` lets root tops keep their natural width (no huge empty gaps).
  */
 function TreeFork({
   count,
   colWidth,
+  colWidths,
   children,
   className = "",
 }: {
   count: number;
   colWidth: number;
+  colWidths?: number[];
   children: ReactNode;
   className?: string;
 }) {
   const n = Math.max(count, 1);
   const single = n <= 1;
   const childArray = Children.toArray(children);
-  const rowWidth = n * colWidth;
+  const widths =
+    colWidths && colWidths.length === n
+      ? colWidths.map((width) => Math.max(width, 1))
+      : Array.from({ length: n }, () => Math.max(colWidth, 1));
+  const rowWidth = widths.reduce((sum, width) => sum + width, 0);
+  const firstCenter = widths[0] / 2;
+  const lastCenter = rowWidth - widths[n - 1] / 2;
+  const busWidth = Math.max(lastCenter - firstCenter, 0);
 
   return (
     <div
@@ -231,7 +243,7 @@ function TreeFork({
       style={
         {
           "--od-n": String(n),
-          "--od-col-w": `${colWidth}px`,
+          "--od-col-w": `${widths[0]}px`,
           width: rowWidth,
         } as CSSProperties
       }
@@ -239,19 +251,31 @@ function TreeFork({
       <div
         className={`od-fork-stem ${single ? "is-long" : ""}`}
         aria-hidden
+        style={
+          single
+            ? undefined
+            : {
+                alignSelf: "flex-start",
+                marginLeft: (firstCenter + lastCenter) / 2 - 1,
+              }
+        }
       />
       {!single ? (
         <div
           className="od-fork-bus"
           aria-hidden
-          style={{ width: Math.max(n - 1, 0) * colWidth }}
+          style={{
+            width: busWidth,
+            alignSelf: "flex-start",
+            marginLeft: firstCenter,
+          }}
         />
       ) : null}
       <div
         className="od-fork-row"
         style={{
           display: "grid",
-          gridTemplateColumns: `repeat(${n}, ${colWidth}px)`,
+          gridTemplateColumns: widths.map((width) => `${width}px`).join(" "),
           width: rowWidth,
           gridAutoFlow: "column",
         }}
@@ -260,7 +284,7 @@ function TreeFork({
           <div
             key={index}
             className="od-fork-col"
-            style={{ width: colWidth, maxWidth: colWidth }}
+            style={{ width: widths[index], maxWidth: widths[index] }}
           >
             {!single ? <div className="od-fork-drop" aria-hidden /> : null}
             {child}
@@ -377,17 +401,52 @@ function writeTopExpandState(topId: string, state: TopExpandState) {
   }
 }
 
-/** One shared slot size for every tree cell — keep CSS box width below this. */
-const SLOT_PX = 176;
+/** Expand every top / middle / parent so the full tree is visible. */
+function expandAllChartNodes(tops: Top[]) {
+  try {
+    const raw = localStorage.getItem(OD_CHART_EXPAND_KEY);
+    const all = raw ? (JSON.parse(raw) as Record<string, TopExpandState>) : {};
+    tops.forEach((top) => {
+      all[top.id] = {
+        open: true,
+        middles: top.middles.map((middle) => middle.id),
+        parents: top.middles.flatMap((middle) =>
+          middle.parents.map((parent) => parent.id)
+        ),
+      };
+    });
+    localStorage.setItem(OD_CHART_EXPAND_KEY, JSON.stringify(all));
+  } catch {
+    // ignore storage failures
+  }
+}
+
+/** Collapse every top / middle / parent back to the root tabs only. */
+function collapseAllChartNodes(tops: Top[]) {
+  try {
+    const raw = localStorage.getItem(OD_CHART_EXPAND_KEY);
+    const all = raw ? (JSON.parse(raw) as Record<string, TopExpandState>) : {};
+    tops.forEach((top) => {
+      all[top.id] = { open: false, middles: [], parents: [] };
+    });
+    localStorage.setItem(OD_CHART_EXPAND_KEY, JSON.stringify(all));
+  } catch {
+    // ignore storage failures
+  }
+}
+
+/** Slot per cell = node box + modest gutter (avoid both congestion and huge gaps). */
+const SLOT_PX = 168;
 /** Fixed width for collapsed top tab buttons (matches --od-top-tab-w). */
-const TOP_TAB_PX = 240;
-/** Fork column width including gap between top tabs. */
-const TOP_COL_PX = 280;
+const TOP_TAB_PX = 200;
+/** Fork column width for collapsed tops — small gap between green tabs. */
+const TOP_COL_PX = 220;
 
 function parentBranchWidth(parent: Parent, parentOpen: boolean) {
   if (!parentOpen || parent.leaves.length === 0) {
     return SLOT_PX;
   }
+  // Pack leaves tightly — each leaf owns one slot, no extra gutter.
   return parent.leaves.length * SLOT_PX;
 }
 
@@ -399,18 +458,11 @@ function middleBranchWidth(
   if (!middleOpen || middle.parents.length === 0) {
     return SLOT_PX;
   }
-  const parentWidths = middle.parents.map((parent) =>
-    parentBranchWidth(parent, isParentOpen(parent))
+  // Sum natural parent widths (do not equalize to the widest sibling).
+  return middle.parents.reduce(
+    (sum, parent) => sum + parentBranchWidth(parent, isParentOpen(parent)),
+    0
   );
-  const colW = Math.max(SLOT_PX, ...parentWidths);
-  return middle.parents.length * colW;
-}
-
-function equalSiblingColWidth(widths: number[], floor = SLOT_PX) {
-  if (widths.length === 0) {
-    return floor;
-  }
-  return Math.max(floor, ...widths);
 }
 
 function ColumnTree({
@@ -419,6 +471,10 @@ function ColumnTree({
   focusLeafId,
   onOpenLeaf,
   onBranchWidthChange,
+  expandSyncNonce = 0,
+  expandAllOpen = true,
+  onManualToggle,
+  onPrefetchLeaf,
 }: {
   top: Top;
   search: string;
@@ -430,6 +486,10 @@ function ColumnTree({
     leaf: Leaf
   ) => void;
   onBranchWidthChange?: (topId: string, width: number) => void;
+  expandSyncNonce?: number;
+  expandAllOpen?: boolean;
+  onManualToggle?: () => void;
+  onPrefetchLeaf?: (leafId: string) => void;
 }) {
   const Icon = topIcon(top.name);
   const headerAssigned = topHasAssignedQuestions(top);
@@ -450,16 +510,50 @@ function ColumnTree({
   );
   const [expandedMiddleIds, setExpandedMiddleIds] = useState<Set<string>>(
     () => {
+      // Only restore deeper levels when returning to a focused leaf.
+      if (!focusLeafId) {
+        return new Set();
+      }
       const saved = readTopExpandState(top.id);
       return new Set(saved.middles.filter((id) => middleIdSet.has(id)));
     }
   );
   const [expandedParentIds, setExpandedParentIds] = useState<Set<string>>(
     () => {
+      if (!focusLeafId) {
+        return new Set();
+      }
       const saved = readTopExpandState(top.id);
       return new Set(saved.parents.filter((id) => parentIdSet.has(id)));
     }
   );
+  const keepInViewIdRef = useRef<string | null>(null);
+
+  useLayoutEffect(() => {
+    if (!expandSyncNonce) {
+      return;
+    }
+    if (expandAllOpen) {
+      setTopExpanded(true);
+      setExpandedMiddleIds(new Set(top.middles.map((middle) => middle.id)));
+      setExpandedParentIds(
+        new Set(
+          top.middles.flatMap((middle) =>
+            middle.parents.map((parent) => parent.id)
+          )
+        )
+      );
+      return;
+    }
+    setTopExpanded(false);
+    setExpandedMiddleIds(new Set());
+    setExpandedParentIds(new Set());
+  }, [expandSyncNonce, expandAllOpen, top]);
+
+  const rememberNodeView = (nodeId: string) => {
+    keepInViewIdRef.current = nodeId;
+    captureOdScrollAnchor(nodeId);
+  };
 
   useEffect(() => {
     writeTopExpandState(top.id, {
@@ -516,52 +610,98 @@ function ColumnTree({
     );
   };
 
+  const toggleTop = () => {
+    rememberNodeView(top.id);
+    onManualToggle?.();
+    setTopExpanded((open) => {
+      // Always reset nested levels so only the immediate children show.
+      setExpandedMiddleIds(new Set());
+      setExpandedParentIds(new Set());
+      return !open;
+    });
+  };
+
   const toggleMiddle = (middleId: string) => {
+    rememberNodeView(middleId);
+    onManualToggle?.();
     setExpandedMiddleIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(middleId)) {
-        next.delete(middleId);
+      if (prev.has(middleId)) {
         const middle = top.middles.find((item) => item.id === middleId);
-        if (middle) {
-          setExpandedParentIds((parents) => {
-            const cleaned = new Set(parents);
-            middle.parents.forEach((parent) => cleaned.delete(parent.id));
-            return cleaned;
-          });
-        }
-      } else {
-        next.add(middleId);
+        setExpandedParentIds((parents) => {
+          const cleaned = new Set(parents);
+          middle?.parents.forEach((parent) => cleaned.delete(parent.id));
+          return cleaned;
+        });
+        const next = new Set(prev);
+        next.delete(middleId);
+        return next;
       }
-      return next;
+
+      // Open only this middle; keep deeper levels closed.
+      setExpandedParentIds(new Set());
+      const middle = top.middles.find((item) => item.id === middleId);
+      middle?.parents.forEach((parent) => {
+        parent.leaves.forEach((leaf) => onPrefetchLeaf?.(leaf.id));
+      });
+      return new Set([middleId]);
     });
   };
 
   const toggleParent = (parentId: string) => {
+    rememberNodeView(parentId);
+    onManualToggle?.();
     setExpandedParentIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(parentId)) {
+      if (prev.has(parentId)) {
+        const next = new Set(prev);
         next.delete(parentId);
-      } else {
-        next.add(parentId);
+        return next;
       }
+
+      // Open only this parent; close siblings under the same middle.
+      const middle = top.middles.find((item) =>
+        item.parents.some((parent) => parent.id === parentId)
+      );
+      if (!middle) {
+        return new Set([parentId]);
+      }
+      const parent = middle.parents.find((item) => item.id === parentId);
+      parent?.leaves.forEach((leaf) => onPrefetchLeaf?.(leaf.id));
+      const siblingIds = new Set(middle.parents.map((item) => item.id));
+      const next = new Set(
+        [...prev].filter((id) => !siblingIds.has(id))
+      );
+      next.add(parentId);
       return next;
     });
   };
 
-  const middleColWidth = equalSiblingColWidth(
-    top.middles.map((middle) =>
-      middleBranchWidth(middle, isMiddleExpanded(middle), isParentExpanded)
-    )
+  const middleColWidths = top.middles.map((middle) =>
+    middleBranchWidth(middle, isMiddleExpanded(middle), isParentExpanded)
   );
 
   const branchWidth =
     effectiveTopExpanded && top.middles.length > 0
-      ? Math.max(TOP_COL_PX, top.middles.length * middleColWidth)
+      ? Math.max(
+          TOP_COL_PX,
+          middleColWidths.reduce((sum, width) => sum + width, 0)
+        )
       : TOP_COL_PX;
 
   useEffect(() => {
     onBranchWidthChange?.(top.id, branchWidth);
   }, [top.id, branchWidth, onBranchWidthChange]);
+
+  useLayoutEffect(() => {
+    if (!keepInViewIdRef.current) {
+      return;
+    }
+    const frame = window.requestAnimationFrame(() => {
+      // Keep anchor for the follow-up sibling-width equalize pass.
+      restoreOdScrollAnchor(false);
+      keepInViewIdRef.current = null;
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [topExpanded, expandedMiddleIds, expandedParentIds, branchWidth]);
 
   return (
     <section
@@ -571,6 +711,7 @@ function ColumnTree({
     >
       <button
         type="button"
+        data-od-node-id={top.id}
         className={`od-dash-column-header ${assignedClass(headerAssigned)}`}
         aria-expanded={effectiveTopExpanded}
         title={
@@ -578,7 +719,7 @@ function ColumnTree({
             ? "Hide categories"
             : "Show categories under this tab"
         }
-        onClick={() => setTopExpanded((open) => !open)}
+        onClick={toggleTop}
       >
         <span className="od-dash-column-icon" aria-hidden>
           <Icon size={18} strokeWidth={2.2} />
@@ -591,13 +732,15 @@ function ColumnTree({
           {top.middles.length === 0 ? (
             <p className="od-dash-empty">No sub-categories</p>
           ) : (
-            <TreeFork count={top.middles.length} colWidth={middleColWidth}>
+            <TreeFork
+              count={top.middles.length}
+              colWidth={SLOT_PX}
+              colWidths={middleColWidths}
+            >
               {top.middles.map((middle) => {
                 const middleOpen = isMiddleExpanded(middle);
-                const parentColWidth = equalSiblingColWidth(
-                  middle.parents.map((parent) =>
-                    parentBranchWidth(parent, isParentExpanded(parent))
-                  )
+                const parentColWidths = middle.parents.map((parent) =>
+                  parentBranchWidth(parent, isParentExpanded(parent))
                 );
 
                 return (
@@ -609,6 +752,7 @@ function ColumnTree({
                   >
                     <button
                       type="button"
+                      data-od-node-id={middle.id}
                       className={`od-dash-node od-dash-middle ${assignedClass(
                         middleHasAssignedQuestions(middle)
                       )} ${
@@ -628,7 +772,8 @@ function ColumnTree({
                     {middleOpen && middle.parents.length > 0 ? (
                       <TreeFork
                         count={middle.parents.length}
-                        colWidth={parentColWidth}
+                        colWidth={SLOT_PX}
+                        colWidths={parentColWidths}
                       >
                         {middle.parents.map((parent) => {
                           const parentOpen = isParentExpanded(parent);
@@ -646,6 +791,7 @@ function ColumnTree({
                               {hasLeaves ? (
                                 <button
                                   type="button"
+                                  data-od-node-id={parent.id}
                                   className={`od-dash-node od-dash-parent ${assignedClass(
                                     parentHasAssignedQuestions(parent)
                                   )} ${
@@ -694,6 +840,9 @@ function ColumnTree({
                                           search
                                         )}
                                         restoreFocus={focusLeafId === leaf.id}
+                                        onPrefetch={() =>
+                                          onPrefetchLeaf?.(leaf.id)
+                                        }
                                         onOpen={() =>
                                           onOpenLeaf(
                                             top,
@@ -723,7 +872,59 @@ function ColumnTree({
   );
 }
 
-const DEFAULT_ZOOM = 0.96;
+const DEFAULT_ZOOM = 1;
+
+/** Keeps the clicked node in view after expand/collapse reflow. */
+const odScrollAnchor: {
+  nodeId: string | null;
+  viewX: number | null;
+} = {
+  nodeId: null,
+  viewX: null,
+};
+
+function captureOdScrollAnchor(nodeId: string) {
+  odScrollAnchor.nodeId = nodeId;
+  const el = document.querySelector(
+    `[data-od-node-id="${CSS.escape(nodeId)}"]`
+  ) as HTMLElement | null;
+  const board = el?.closest(".od-dash-board") as HTMLElement | null;
+  if (!el || !board) {
+    odScrollAnchor.viewX = null;
+    return;
+  }
+  odScrollAnchor.viewX =
+    el.getBoundingClientRect().left - board.getBoundingClientRect().left;
+}
+
+function restoreOdScrollAnchor(clear = true) {
+  const { nodeId, viewX } = odScrollAnchor;
+  if (!nodeId) {
+    return;
+  }
+
+  const el = document.querySelector(
+    `[data-od-node-id="${CSS.escape(nodeId)}"]`
+  ) as HTMLElement | null;
+  const board = el?.closest(".od-dash-board") as HTMLElement | null;
+
+  if (el && board && viewX !== null) {
+    const currentX =
+      el.getBoundingClientRect().left - board.getBoundingClientRect().left;
+    board.scrollLeft += currentX - viewX;
+  } else if (el) {
+    el.scrollIntoView({
+      behavior: "auto",
+      block: "nearest",
+      inline: "nearest",
+    });
+  }
+
+  if (clear) {
+    odScrollAnchor.nodeId = null;
+    odScrollAnchor.viewX = null;
+  }
+}
 
 function DashboardChart({
   tops,
@@ -741,7 +942,7 @@ function DashboardChart({
   const contentRef = useRef<HTMLDivElement>(null);
   const restoreDoneRef = useRef(false);
   const [zoom, setZoom] = useState(DEFAULT_ZOOM);
-  const [search, setSearch] = useState("");
+  const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
   const [focusLeafId, setFocusLeafId] = useState<string | null>(() => {
     const focus = readChartFocus();
     if (!focus) {
@@ -754,8 +955,38 @@ function DashboardChart({
   const [topBranchWidths, setTopBranchWidths] = useState<
     Record<string, number>
   >({});
+  const [expandSyncNonce, setExpandSyncNonce] = useState(0);
+  const [allNodesOpen, setAllNodesOpen] = useState(false);
 
   const zoomPercent = Math.round(zoom * 100);
+
+  const toggleAllNodes = useCallback(() => {
+    const nextOpen = !allNodesOpen;
+    if (nextOpen) {
+      expandAllChartNodes(tops);
+    } else {
+      collapseAllChartNodes(tops);
+    }
+    setAllNodesOpen(nextOpen);
+    setExpandSyncNonce((nonce) => nonce + 1);
+  }, [allNodesOpen, tops]);
+
+  const clearAllNodesOpenFlag = useCallback(() => {
+    setAllNodesOpen(false);
+  }, []);
+
+  const prefetchLeaf = useCallback((leafId: string) => {
+    const { participant, workshop } = getActiveWorkshopContext();
+    if (!participant?.id || !workshop?.id || !workshop.templateId) {
+      return;
+    }
+    prefetchCategoryQuestions({
+      categoryId: leafId,
+      participantId: participant.id,
+      workshopId: workshop.id,
+      templateId: workshop.templateId,
+    });
+  }, []);
 
   const reportTopBranchWidth = useCallback((topId: string, width: number) => {
     setTopBranchWidths((prev) =>
@@ -763,14 +994,33 @@ function DashboardChart({
     );
   }, []);
 
-  const topColWidth = useMemo(
-    () =>
-      equalSiblingColWidth(
-        tops.map((top) => topBranchWidths[top.id] ?? TOP_COL_PX),
-        TOP_COL_PX
-      ),
+  const topColWidths = useMemo(
+    () => tops.map((top) => topBranchWidths[top.id] ?? TOP_COL_PX),
     [tops, topBranchWidths]
   );
+
+  const topWidthsKey = topColWidths.join(",");
+
+  const measureNaturalSize = useCallback(() => {
+    const content = contentRef.current;
+    if (!content) {
+      return { width: 0, height: 0 };
+    }
+    const prevTransform = content.style.transform;
+    content.style.transform = "none";
+    const width = Math.max(content.scrollWidth, content.offsetWidth, 1);
+    const height = Math.max(content.scrollHeight, content.offsetHeight, 1);
+    content.style.transform = prevTransform;
+    return { width, height };
+  }, []);
+
+  useLayoutEffect(() => {
+    // Width changes after expand/collapse — keep the clicked node in view.
+    const frame = window.requestAnimationFrame(() => {
+      restoreOdScrollAnchor(true);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [topWidthsKey]);
 
   const applyZoom = useCallback((next: number) => {
     const clamped = Math.min(1.6, Math.max(0.55, next));
@@ -782,43 +1032,65 @@ function DashboardChart({
     const content = contentRef.current;
     if (!board || !content) return;
 
-    content.style.zoom = "1";
-    const naturalWidth = Math.max(content.scrollWidth, 1);
-    const available = Math.max(board.clientWidth - 16, 280);
-    applyZoom(Math.min(1, available / naturalWidth));
-  }, [applyZoom]);
+    const measured = measureNaturalSize();
+    setNaturalSize(measured);
+    const available = Math.max(board.clientWidth - 32, 280);
+    // Only shrink when the tree is wider than the board; never upscale.
+    applyZoom(measured.width > available ? available / measured.width : 1);
+  }, [applyZoom, measureNaturalSize]);
 
-  const resetView = useCallback(() => {
-    setZoom(DEFAULT_ZOOM);
-    setSearch("");
-    setFocusLeafId(null);
-    clearChartFocus();
-    if (boardRef.current) {
-      boardRef.current.scrollLeft = 0;
-      boardRef.current.scrollTop = 0;
+  // Remeasure whenever the tree geometry changes (expand/collapse, zoom).
+  useLayoutEffect(() => {
+    if (tops.length === 0) {
+      return;
     }
-  }, []);
 
-  const toggleFullscreen = useCallback(async () => {
-    const el = boardRef.current?.closest(".od-dash") as HTMLElement | null;
-    if (!el) return;
+    const applyMeasure = () => {
+      const measured = measureNaturalSize();
+      setNaturalSize((prev) =>
+        prev.width === measured.width && prev.height === measured.height
+          ? prev
+          : measured
+      );
+    };
 
-    try {
-      if (!document.fullscreenElement) {
-        await el.requestFullscreen();
-      } else {
-        await document.exitFullscreen();
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  }, []);
+    applyMeasure();
+    // Second pass after browser paints nested forks (parent/leaf rows).
+    const frame = window.requestAnimationFrame(() => {
+      applyMeasure();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [measureNaturalSize, tops.length, topWidthsKey, zoom, expandSyncNonce]);
 
+  // Keep stage size in sync if content grows after paint (expanded branches).
   useEffect(() => {
     const content = contentRef.current;
-    if (!content) return;
-    content.style.zoom = String(zoom);
-  }, [zoom, tops]);
+    if (!content || typeof ResizeObserver === "undefined") {
+      return;
+    }
+
+    const observer = new ResizeObserver(() => {
+      const measured = measureNaturalSize();
+      setNaturalSize((prev) =>
+        prev.width === measured.width && prev.height === measured.height
+          ? prev
+          : measured
+      );
+    });
+    observer.observe(content);
+    return () => observer.disconnect();
+  }, [measureNaturalSize]);
+
+  // Fit once the chart data is ready, then keep it centered.
+  useEffect(() => {
+    if (tops.length === 0) {
+      return;
+    }
+    const frame = window.requestAnimationFrame(() => {
+      fitToWidth();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [fitToWidth, tops.length, topWidthsKey]);
 
   useEffect(() => {
     if (!focusLeafId || restoreDoneRef.current || tops.length === 0) {
@@ -863,38 +1135,64 @@ function DashboardChart({
 
   return (
     <div className="od-dash">
-      <div className="od-dash-banner">
+      <button
+        type="button"
+        className="od-dash-banner"
+        onClick={toggleAllNodes}
+        title={allNodesOpen ? "Collapse all nodes" : "Expand all nodes"}
+        aria-label={
+          allNodesOpen
+            ? "Collapse all Unlock Value nodes"
+            : "Expand all Unlock Value nodes"
+        }
+        aria-expanded={allNodesOpen}
+      >
         <h1>UNLOCK VALUE</h1>
-        <div className="od-chart-legend" role="note">
-          <span className="od-chart-legend-swatch od-chart-legend-swatch-assigned" />
-          <p>
-            <strong>Maroon</strong> = questions assigned
-          </p>
-        </div>
-      </div>
+      </button>
 
       <div className="od-dash-board" ref={boardRef}>
         <div
-          className="od-dash-content"
-          ref={contentRef}
-          style={{ ["--od-col-count" as string]: String(columnCount) }}
+          className="od-dash-zoom-stage"
+          style={
+            naturalSize.width > 0
+              ? {
+                  width: naturalSize.width * zoom,
+                  height: naturalSize.height * zoom,
+                }
+              : undefined
+          }
         >
-          <TreeFork
-            className="od-fork-root"
-            count={columnCount}
-            colWidth={topColWidth}
+          <div
+            className="od-dash-content"
+            ref={contentRef}
+            style={{
+              ["--od-col-count" as string]: String(columnCount),
+              transform: `scale(${zoom})`,
+              transformOrigin: "top left",
+            }}
           >
-            {tops.map((top) => (
-              <ColumnTree
-                key={top.id}
-                top={top}
-                search={search}
-                focusLeafId={focusLeafId}
-                onOpenLeaf={onOpenLeaf}
-                onBranchWidthChange={reportTopBranchWidth}
-              />
-            ))}
-          </TreeFork>
+            <TreeFork
+              className="od-fork-root"
+              count={columnCount}
+              colWidth={TOP_COL_PX}
+              colWidths={topColWidths}
+            >
+              {tops.map((top) => (
+                <ColumnTree
+                  key={top.id}
+                  top={top}
+                  search=""
+                  focusLeafId={focusLeafId}
+                  onOpenLeaf={onOpenLeaf}
+                  onBranchWidthChange={reportTopBranchWidth}
+                  expandSyncNonce={expandSyncNonce}
+                  expandAllOpen={allNodesOpen}
+                  onManualToggle={clearAllNodesOpenFlag}
+                  onPrefetchLeaf={prefetchLeaf}
+                />
+              ))}
+            </TreeFork>
+          </div>
         </div>
       </div>
 
@@ -923,37 +1221,6 @@ function DashboardChart({
             onClick={fitToWidth}
           >
             Fit to Width
-          </button>
-        </div>
-
-        <label className="od-dash-search">
-          <Search size={15} aria-hidden />
-          <input
-            type="search"
-            placeholder="Search nodes..."
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-          />
-        </label>
-
-        <div className="od-dash-toolbar-group">
-          <button
-            type="button"
-            className="od-dash-tool-btn"
-            aria-label="Reset view"
-            title="Reset view"
-            onClick={resetView}
-          >
-            <RotateCcw size={15} />
-          </button>
-          <button
-            type="button"
-            className="od-dash-tool-btn"
-            aria-label="Fullscreen"
-            title="Fullscreen"
-            onClick={toggleFullscreen}
-          >
-            <Maximize2 size={15} />
           </button>
         </div>
       </div>
@@ -1020,13 +1287,14 @@ export default function ODChart() {
         let activeWorkshop = selectedWorkshop;
         let workshopCanEdit = canEdit;
 
-        // Always refresh from server so a stale local templateId
-        // (e.g. Pre OD accidentally stored as OD) cannot hide chart branches.
-        if (participant?.id) {
+        // Prefer local workshop context. Only hit the API when template is missing.
+        if (
+          participant?.id &&
+          (!activeWorkshop?.templateId || !activeWorkshop?.id)
+        ) {
           const workshopData = await fetchParticipantWorkshops(
             participant.id,
-            participant.organizationId || activeWorkshop?.organizationId || "",
-            { forceRefresh: true }
+            participant.organizationId || activeWorkshop?.organizationId || ""
           );
 
           if (workshopData.success && workshopData.workshop) {
@@ -1055,8 +1323,7 @@ export default function ODChart() {
           const organizationId = participant.organizationId || "";
           const workshopData = await fetchParticipantWorkshops(
             "",
-            organizationId,
-            { forceRefresh: true }
+            organizationId
           );
 
           if (!workshopData.success || !workshopData.workshop) {
@@ -1093,7 +1360,7 @@ export default function ODChart() {
           canEdit: workshopCanEdit,
         };
 
-        // Show cached chart immediately while a network refresh runs.
+        // Show cached chart immediately; refresh in background only when cold.
         const cached = workshopInfo.templateId
           ? getCachedOdChart(workshopInfo.templateId)
           : null;
@@ -1101,12 +1368,12 @@ export default function ODChart() {
           setWorkshop(workshopInfo);
           setTops(sortTopsForDisplay((cached.tops || []) as Top[]));
           setLoading(false);
+          return;
         }
 
         const chartData = await fetchOdChart(
           workshopInfo.templateId,
-          workshopInfo.id,
-          { forceRefresh: true }
+          workshopInfo.id
         );
 
         if (cancelled) {

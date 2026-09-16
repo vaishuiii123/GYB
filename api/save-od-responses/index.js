@@ -199,6 +199,13 @@ module.exports = async function (context, req) {
         },
       },
     };
+
+    try {
+      const { invalidatePrefix } = require("../shared/listCache");
+      invalidatePrefix(`cat-questions:`);
+    } catch {
+      // ignore cache invalidation failures
+    }
   } catch (error) {
     context.res = {
       status: 500,
