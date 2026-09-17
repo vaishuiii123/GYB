@@ -38,6 +38,7 @@ import PreODForm from "./pages/User/PreODForm";
 import WorkshopFeedback from "./pages/User/WorkshopFeedback";
 import Reports from "./pages/User/Reports";
 import Export from "./pages/Admin/Export";
+import { UnsavedChangesProvider } from "./utils/unsavedChanges";
 
 function App() {
 
@@ -56,6 +57,7 @@ function App() {
   return (
     <BrowserRouter>
       <AppDialogHost />
+      <UnsavedChangesProvider>
      <Routes>
         <Route
           path="/"
@@ -218,6 +220,7 @@ function App() {
         />
        
       </Routes>
+      </UnsavedChangesProvider>
     </BrowserRouter>
   );
 }

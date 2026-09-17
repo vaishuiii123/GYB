@@ -95,8 +95,8 @@
 }
 
 .app-toast-info .app-toast-icon {
-  background: #fdf2f4;
-  color: #7b0f2c;
+  background: #f4e9ec;
+  color: #3d0010;
 }
 
 .app-confirm-overlay {
@@ -132,8 +132,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #fdf2f4;
-  color: #7b0f2c;
+  background: #f4e9ec;
+  color: #3d0010;
 }
 
 .app-confirm-warning .app-confirm-icon,
@@ -160,10 +160,16 @@
   display: flex;
   gap: 10px;
   justify-content: center;
+  flex-wrap: wrap;
+}
+
+.app-confirm-actions-triple {
+  gap: 8px;
 }
 
 .app-confirm-cancel,
-.app-confirm-ok {
+.app-confirm-ok,
+.app-confirm-discard {
   min-width: 110px;
   height: 40px;
   border-radius: 10px;
@@ -184,8 +190,19 @@
   background: #e5e7eb;
 }
 
+.app-confirm-discard {
+  background: #fff7ed;
+  color: #9a3412;
+  border-color: #fed7aa;
+}
+
+.app-confirm-discard:hover {
+  background: #ffedd5;
+}
+
+
 .app-confirm-ok {
-  background: #7b0f2c;
+  background: #3d0010;
   color: #ffffff;
   box-shadow: 0 8px 18px rgba(123, 15, 44, 0.22);
 }

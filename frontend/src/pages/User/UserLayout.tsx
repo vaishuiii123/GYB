@@ -5,6 +5,7 @@ import {
   getParticipantFromStorage,
   getSelectedWorkshop,
 } from "../../utils/selectedWorkshop";
+import { useUnsavedChanges } from "../../utils/unsavedChanges";
 import "../../styles/UserHeader.css";
 import "../../styles/UserLayout.css";
 
@@ -22,6 +23,7 @@ export default function UserLayout({
 }: UserLayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { tryNavigate } = useUnsavedChanges();
 
   useEffect(() => {
     const participant = getParticipantFromStorage();
@@ -51,7 +53,9 @@ export default function UserLayout({
             <button
               type="button"
               className="user-btn-secondary od-back-btn user-layout-back-btn"
-              onClick={() => navigate("/userdashboard")}
+              onClick={() => {
+                void tryNavigate("/userdashboard");
+              }}
             >
               ← Back to Dashboard
             </button>

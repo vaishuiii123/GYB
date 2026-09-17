@@ -1,6 +1,6 @@
 import UserLayout from "./UserLayout";
 import WorkshopEditBanner from "../../components/WorkshopEditBanner";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Crosshair,
@@ -20,9 +20,14 @@ import {
   setCachedPageData,
 } from "../../utils/workshopCache";
 import { fetchOnce } from "../../utils/adminListCache";
+import { useRegisterUnsavedGuard } from "../../utils/unsavedChanges";
 import "../../styles/VisionMission.css";
 
 type DropZone = "vision" | "mission";
+
+function snapshotKeywords(vision: string[], mission: string[]) {
+  return JSON.stringify({ vision, mission });
+}
 
 const DEFAULT_KEYWORDS = [
   "Integrity",
@@ -88,6 +93,7 @@ export default function VisionMission() {
   const [workshopId, setWorkshopId] = useState("");
 
   const [dragSource, setDragSource] = useState<"bank" | DropZone | null>(null);
+  const savedSnapshotRef = useRef(snapshotKeywords([], []));
 
   const {
     participant,
@@ -95,6 +101,81 @@ export default function VisionMission() {
     canEdit: initialCanEdit,
     editMessage: initialEditMessage,
   } = getActiveWorkshopContext();
+
+  const isDirty = useMemo(() => {
+    if (!canEdit || loading) {
+      return false;
+    }
+    return (
+      snapshotKeywords(visionKeywords, missionKeywords) !==
+      savedSnapshotRef.current
+    );
+  }, [canEdit, loading, visionKeywords, missionKeywords]);
+
+  const handleSave = async () => {
+    if (!canEdit) {
+      setErrorMessage(
+        editMessage ||
+          "The workshop has ended. You can no longer edit Vision & Mission."
+      );
+      return false;
+    }
+
+    if (!participant.id) {
+      setErrorMessage("Please log in again to save your response.");
+      return false;
+    }
+
+    if (visionKeywords.length === 0 && missionKeywords.length === 0) {
+      setErrorMessage("Add at least one item to Vision or Mission.");
+      return false;
+    }
+
+    try {
+      setSaving(true);
+      setErrorMessage("");
+      setMessage("");
+
+      const response = await fetch("/api/save-vision-mission-response", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          participantId: participant.id,
+          organizationId: participant.organizationId || "",
+          workshopId,
+          visionKeywords,
+          missionKeywords,
+          visionText: visionKeywords.join(" "),
+          missionText: missionKeywords.join(" "),
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        setErrorMessage(result.message || "Failed to save Vision & Mission.");
+        return false;
+      }
+
+      clearCachedPageData(
+        `vision-mission:${participant?.id || ""}:${selectedWorkshop?.id || ""}`
+      );
+      savedSnapshotRef.current = snapshotKeywords(
+        visionKeywords,
+        missionKeywords
+      );
+      setMessage("Vision & Mission saved successfully.");
+      return true;
+    } catch (error) {
+      console.error(error);
+      setErrorMessage("Something went wrong while saving.");
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  useRegisterUnsavedGuard(isDirty, handleSave);
 
   useEffect(() => {
     if (!getWorkshopModuleAccessStatus(selectedWorkshop).enabled) {
@@ -190,6 +271,7 @@ export default function VisionMission() {
 
         setVisionKeywords(nextVision);
         setMissionKeywords(nextMission);
+        savedSnapshotRef.current = snapshotKeywords(nextVision, nextMission);
 
         setCachedPageData(pageCacheKey, {
           participantId,
@@ -202,6 +284,7 @@ export default function VisionMission() {
         console.error("Error fetching vision/mission:", error);
         setVisionKeywords([]);
         setMissionKeywords([]);
+        savedSnapshotRef.current = snapshotKeywords([], []);
         setErrorMessage("Unable to load Vision & Mission data.");
       } finally {
         setLoading(false);
@@ -294,63 +377,6 @@ export default function VisionMission() {
     event.preventDefault();
     const value = zone === "vision" ? visionInput : missionInput;
     addKeywordToZone(zone, value);
-  };
-
-  const handleSave = async () => {
-    if (!canEdit) {
-      setErrorMessage(
-        editMessage ||
-          "The workshop has ended. You can no longer edit Vision & Mission."
-      );
-      return;
-    }
-
-    if (!participant.id) {
-      setErrorMessage("Please log in again to save your response.");
-      return;
-    }
-
-    if (visionKeywords.length === 0 && missionKeywords.length === 0) {
-      setErrorMessage("Add at least one item to Vision or Mission.");
-      return;
-    }
-
-    try {
-      setSaving(true);
-      setErrorMessage("");
-      setMessage("");
-
-      const response = await fetch("/api/save-vision-mission-response", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          participantId: participant.id,
-          organizationId: participant.organizationId || "",
-          workshopId,
-          visionKeywords,
-          missionKeywords,
-          visionText: visionKeywords.join(" "),
-          missionText: missionKeywords.join(" "),
-        }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        setErrorMessage(result.message || "Failed to save Vision & Mission.");
-        return;
-      }
-
-      clearCachedPageData(
-        `vision-mission:${participant?.id || ""}:${selectedWorkshop?.id || ""}`
-      );
-      setMessage("Vision & Mission saved successfully.");
-    } catch (error) {
-      console.error(error);
-      setErrorMessage("Something went wrong while saving.");
-    } finally {
-      setSaving(false);
-    }
   };
 
   const renderDropZone = (
@@ -456,11 +482,7 @@ export default function VisionMission() {
               Enter.
             </p>
           </div>
-          <div className="vm-hero-art" aria-hidden>
-            <span className="vm-hero-art-icon">
-              <Crosshair size={42} strokeWidth={1.7} />
-            </span>
-          </div>
+          
         </section>
 
         {loading ? (

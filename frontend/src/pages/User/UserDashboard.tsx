@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
   ClipboardList,
+  FileSpreadsheet,
   FileText,
   LayoutDashboard,
   MessageSquareText,
@@ -35,7 +36,7 @@ type ModuleCard = {
   title: string;
   description: string;
   path: string;
-  theme: "pink" | "blue" | "green" | "yellow" | "coral";
+  theme: "pink" | "blue" | "green" | "yellow" | "coral" | "slate";
   icon: LucideIcon;
   access: "preOd" | "feedback" | "open";
 };
@@ -90,6 +91,16 @@ const MODULE_CARDS: ModuleCard[] = [
     theme: "coral",
     icon: MessageSquareText,
     access: "feedback",
+  },
+  {
+    key: "reports",
+    title: "Reports",
+    description:
+      "Summary of key insights, participant reflections & actionables for this workshop.",
+    path: "/reports",
+    theme: "slate",
+    icon: FileSpreadsheet,
+    access: "open",
   },
 ];
 

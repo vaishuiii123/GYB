@@ -1,0 +1,226 @@
+.add-act-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10070;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(17, 24, 39, 0.45);
+  backdrop-filter: blur(3px);
+}
+
+.add-act-modal {
+  width: min(560px, 100%);
+  max-height: min(90vh, 720px);
+  overflow: auto;
+  background: #ffffff;
+  border-radius: 18px;
+  border: 1px solid #eceff3;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.add-act-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 22px 14px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.add-act-header h2 {
+  margin: 0 0 6px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.add-act-header p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #6b7280;
+}
+
+.add-act-close {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 10px;
+  background: #f3f4f6;
+  color: #4b5563;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.add-act-close:hover:not(:disabled) {
+  background: #e5e7eb;
+}
+
+.add-act-close:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.add-act-body {
+  padding: 18px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.add-act-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.add-act-field label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #374151;
+}
+
+.add-act-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.add-act-label-row span {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.add-act-readonly {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #f8fafc;
+  color: #1f2937;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.add-act-field textarea,
+.add-act-input-wrap input,
+.add-act-input-wrap textarea {
+  width: 100%;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 14px;
+  color: #1f2937;
+  background: #fff;
+  resize: vertical;
+}
+
+.add-act-field textarea:focus,
+.add-act-input-wrap input:focus,
+.add-act-input-wrap textarea:focus {
+  outline: none;
+  border-color: #c4a0aa;
+  box-shadow: 0 0 0 3px rgba(106, 14, 36, 0.08);
+}
+
+.add-act-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  color: #6b7280;
+}
+
+.add-act-input-wrap-top {
+  align-items: flex-start;
+  padding-top: 10px;
+}
+
+.add-act-input-wrap input,
+.add-act-input-wrap textarea {
+  border: none;
+  padding: 10px 4px;
+  box-shadow: none;
+}
+
+.add-act-input-wrap input:focus,
+.add-act-input-wrap textarea:focus {
+  box-shadow: none;
+}
+
+.add-act-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.add-act-error {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.add-act-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 22px 18px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.add-act-btn-secondary,
+.add-act-btn-primary {
+  min-width: 120px;
+  height: 40px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  border: 1px solid transparent;
+}
+
+.add-act-btn-secondary {
+  background: #f3f4f6;
+  color: #374151;
+  border-color: #e5e7eb;
+}
+
+.add-act-btn-secondary:hover:not(:disabled) {
+  background: #e5e7eb;
+}
+
+.add-act-btn-primary {
+  background: #6a0e24;
+  color: #ffffff;
+}
+
+.add-act-btn-primary:hover:not(:disabled) {
+  background: #560b1c;
+}
+
+.add-act-btn-secondary:disabled,
+.add-act-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .add-act-grid {
+    grid-template-columns: 1fr;
+  }
+}

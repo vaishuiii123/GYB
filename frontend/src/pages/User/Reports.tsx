@@ -1,102 +1,47 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import UserLayout from "./UserLayout";
+import { FileSpreadsheet, Search } from "lucide-react";
 import {
-  getParticipantFromStorage,
-  getSelectedWorkshop,
-} from "../../utils/selectedWorkshop";
-import {
-  getFeedbackAccessStatus,
-  getPreOdAccessStatus,
+  getActiveWorkshopContext,
   getWorkshopModuleAccessStatus,
-  workshopFromSelected,
 } from "../../utils/workshopCache";
+import UserLayout from "./UserLayout";
 import "../../styles/UserReports.css";
 
-type ReportSection = {
-  title: string;
+type ReportRow = {
+  id: string;
+  participantId: string;
+  participant: string;
+  categoryName: string;
+  categoryPath: string;
   description: string;
-  path: string;
-  access: "preOd" | "feedback" | "module";
+  timeline: string;
+  responsiblePersons: string;
+  comments: string;
 };
 
-const reportSections: ReportSection[] = [
-  {
-    title: "Pre-Workshop Questionnaire",
-    description: "Review your questionnaire responses for this workshop.",
-    path: "/pre-od-workshop",
-    access: "preOd",
-  },
-  {
-    title: "Vision & Mission",
-    description: "View your vision and mission statements.",
-    path: "/vision-mission",
-    access: "module",
-  },
-  {
-    title: "Unlock Value",
-    description: "Open your OD questionnaire responses.",
-    path: "/od-chart",
-    access: "module",
-  },
-  {
-    title: "Actionables",
-    description: "Track priorities and takeaways from the workshop.",
-    path: "/actionables",
-    access: "module",
-  },
-  {
-    title: "Workshop Feedback",
-    description: "Open workshop feedback after the session ends.",
-    path: "/workshop-feedback",
-    access: "feedback",
-  },
-];
+function categoryLabel(row: ReportRow) {
+  if (row.categoryName?.trim()) {
+    return row.categoryName.trim();
+  }
+  const fromPath = row.categoryPath?.split(">").pop()?.trim();
+  return fromPath || "-";
+}
 
 export default function Reports() {
   const navigate = useNavigate();
-  const participant = getParticipantFromStorage();
-  const selectedWorkshop = getSelectedWorkshop();
-  const [workshopName, setWorkshopName] = useState("");
+  const {
+    participant,
+    workshop: selectedWorkshop,
+  } = getActiveWorkshopContext();
 
-  const preOdStatus = getPreOdAccessStatus(selectedWorkshop);
-  const feedbackStatus = getFeedbackAccessStatus(selectedWorkshop);
-  const moduleStatus = getWorkshopModuleAccessStatus(
-    selectedWorkshop ? workshopFromSelected(selectedWorkshop) : null
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [rows, setRows] = useState<ReportRow[]>([]);
+  const [search, setSearch] = useState("");
+  const [workshopName, setWorkshopName] = useState(
+    selectedWorkshop?.workshopName || ""
   );
-
-  const sections = useMemo(() => {
-    return reportSections.map((section) => {
-      if (section.access === "preOd") {
-        return {
-          ...section,
-          enabled: preOdStatus.enabled,
-          note: preOdStatus.message,
-        };
-      }
-
-      if (section.access === "feedback") {
-        return {
-          ...section,
-          enabled: feedbackStatus.enabled,
-          note: feedbackStatus.message,
-        };
-      }
-
-      return {
-        ...section,
-        enabled: moduleStatus.enabled,
-        note: moduleStatus.message,
-      };
-    });
-  }, [
-    preOdStatus.enabled,
-    preOdStatus.message,
-    feedbackStatus.enabled,
-    feedbackStatus.message,
-    moduleStatus.enabled,
-    moduleStatus.message,
-  ]);
 
   useEffect(() => {
     if (!participant?.id) {
@@ -109,45 +54,151 @@ export default function Reports() {
       return;
     }
 
-    setWorkshopName(selectedWorkshop.workshopName || "Workshop");
-  }, [navigate, participant?.id, selectedWorkshop?.id, selectedWorkshop?.workshopName]);
+    if (!getWorkshopModuleAccessStatus(selectedWorkshop).enabled) {
+      navigate("/userdashboard", { replace: true });
+    }
+  }, [navigate, participant?.id, selectedWorkshop]);
+
+  useEffect(() => {
+    const loadReport = async () => {
+      if (!participant?.id || !selectedWorkshop?.id) {
+        setErrorMessage("Please select a workshop and try again.");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setErrorMessage("");
+
+        const response = await fetch(
+          `/api/get-workshop-actionables?workshopId=${encodeURIComponent(
+            selectedWorkshop.id
+          )}&participantId=${encodeURIComponent(participant.id)}`
+        );
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          setErrorMessage(data.message || "Unable to load workshop report.");
+          setRows([]);
+          return;
+        }
+
+        setWorkshopName(
+          data.workshop?.workshopName || selectedWorkshop.workshopName || ""
+        );
+        setRows(Array.isArray(data.data) ? data.data : []);
+      } catch (error) {
+        console.error(error);
+        setErrorMessage("Something went wrong while loading the report.");
+        setRows([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void loadReport();
+  }, [participant?.id, selectedWorkshop?.id, selectedWorkshop?.workshopName]);
+
+  const filteredRows = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) {
+      return rows;
+    }
+
+    return rows.filter((row) => {
+      const haystack = [
+        row.participant,
+        row.categoryName,
+        row.categoryPath,
+        row.description,
+        row.timeline,
+        row.responsiblePersons,
+        row.comments,
+      ]
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(query);
+    });
+  }, [rows, search]);
 
   return (
-    <UserLayout>
+    <UserLayout contentClassName="user-layout-main-reports">
       <div className="user-reports-page">
         <div className="user-reports-header">
-          <h1>Reports</h1>
-          <p>
-            Summary of key insights, participant reflections, and actionables
-            {workshopName ? ` for ${workshopName}` : ""}.
+          <span className="user-reports-header-icon" aria-hidden>
+            <FileSpreadsheet size={22} strokeWidth={2.1} />
+          </span>
+          <div>
+            <h1>Reports</h1>
+            <p>
+              Workshop-wide report for{" "}
+              <strong>{workshopName || "this workshop"}</strong>, including all
+              participants.
+            </p>
+          </div>
+        </div>
+
+        <div className="user-reports-toolbar">
+          <div className="user-reports-search">
+            <Search size={16} strokeWidth={2.2} aria-hidden />
+            <input
+              type="text"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search by participant, category, or keyword..."
+              aria-label="Search report"
+            />
+          </div>
+          <p className="user-reports-count">
+            {filteredRows.length} item{filteredRows.length === 1 ? "" : "s"}
           </p>
         </div>
 
-        <div className="user-reports-grid">
-          {sections.map((section) => (
-            <button
-              key={section.path}
-              type="button"
-              className={`user-reports-card ${
-                section.enabled ? "" : "is-disabled"
-              }`}
-              onClick={() => section.enabled && navigate(section.path)}
-              disabled={!section.enabled}
-              title={section.enabled ? undefined : section.note}
-            >
-              <span className="user-reports-card-icon" aria-hidden="true">
-                ❖
-              </span>
-              <div>
-                <h2>{section.title}</h2>
-                <p>{section.description}</p>
-                {!section.enabled && section.note ? (
-                  <p className="user-reports-card-note">{section.note}</p>
-                ) : null}
-              </div>
-            </button>
-          ))}
-        </div>
+        {errorMessage ? (
+          <div className="user-reports-alert">{errorMessage}</div>
+        ) : null}
+
+        {loading ? (
+          <p className="user-reports-empty">Loading workshop report...</p>
+        ) : (
+          <div className="user-reports-table-wrap">
+            <table className="user-reports-table">
+              <thead>
+                <tr>
+                  <th>Participant</th>
+                  <th>Category</th>
+                  <th>Description</th>
+                  <th>Timeline</th>
+                  <th>Responsible</th>
+                  <th>Comments</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={6}>No report items found.</td>
+                  </tr>
+                ) : (
+                  filteredRows.map((item, index) => (
+                    <tr key={`${item.participantId}-${item.id || index}`}>
+                      <td>{item.participant || "-"}</td>
+                      <td>{categoryLabel(item)}</td>
+                      <td className="user-reports-text">
+                        {item.description || "-"}
+                      </td>
+                      <td>{item.timeline || "-"}</td>
+                      <td>{item.responsiblePersons || "-"}</td>
+                      <td className="user-reports-text">
+                        {item.comments || "-"}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </UserLayout>
   );

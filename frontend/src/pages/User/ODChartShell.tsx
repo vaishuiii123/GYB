@@ -1,6 +1,7 @@
-import { useNavigate, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import UserLayout from "./UserLayout";
+import { useUnsavedChanges } from "../../utils/unsavedChanges";
 import "../../styles/ODChart.css";
 
 type ODChartShellProps = {
@@ -8,8 +9,8 @@ type ODChartShellProps = {
 };
 
 export default function ODChartShell({ children }: ODChartShellProps) {
-  const navigate = useNavigate();
   const location = useLocation();
+  const { tryNavigate } = useUnsavedChanges();
   const isQuestionsPage = location.pathname.startsWith("/od-chart/questions");
 
   return (
@@ -20,7 +21,9 @@ export default function ODChartShell({ children }: ODChartShellProps) {
             <button
               type="button"
               className="user-btn-secondary od-back-btn"
-              onClick={() => navigate("/userdashboard")}
+              onClick={() => {
+                void tryNavigate("/userdashboard");
+              }}
             >
               <ArrowLeft size={18} strokeWidth={2} />
               Back to Dashboard

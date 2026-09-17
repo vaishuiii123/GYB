@@ -7,6 +7,7 @@ import {
   workshopFromSelected,
 } from "../../utils/workshopCache";
 import { getSelectedWorkshop } from "../../utils/selectedWorkshop";
+import { useUnsavedChanges } from "../../utils/unsavedChanges";
 import "../../styles/UserNavDrawer.css";
 
 type UserNavDrawerProps = {
@@ -15,8 +16,8 @@ type UserNavDrawerProps = {
 };
 
 export default function UserNavDrawer({ open, onClose }: UserNavDrawerProps) {
-  const navigate = useNavigate();
   const location = useLocation();
+  const { tryNavigate } = useUnsavedChanges();
   const selectedWorkshop = getSelectedWorkshop();
   const workshopRecord = selectedWorkshop
     ? workshopFromSelected(selectedWorkshop)
@@ -28,7 +29,7 @@ export default function UserNavDrawer({ open, onClose }: UserNavDrawerProps) {
   const handleNavigate = (path: string | null) => {
     if (!path) return;
     onClose();
-    navigate(path);
+    void tryNavigate(path);
   };
 
   return (

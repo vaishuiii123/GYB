@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import WorkshopEditBanner from "../../components/WorkshopEditBanner";
+import AddActionableModal, {
+  type AddActionablePreset,
+} from "../../components/AddActionableModal";
 import ODChartShell from "./ODChartShell";
 import {
   clearCachedPageData,
@@ -11,10 +14,14 @@ import {
   getWorkshopModuleAccessStatus,
   setCachedPageData,
 } from "../../utils/workshopCache";
+import {
+  useRegisterUnsavedGuard,
+  useUnsavedChanges,
+} from "../../utils/unsavedChanges";
 import "../../styles/ODChart.css";
 import { OD_CHART_NAV_KEY } from "./ODChart";
 import type { ODQuestionsNavState, Question } from "./ODChart";
-
+import { ClipboardPlus } from "lucide-react";
 const STATUS_OPTIONS = [
   { value: "Red", label: "Red", className: "status-red" },
   { value: "Yellow", label: "Yellow", className: "status-yellow" },
@@ -110,11 +117,13 @@ export default function ODChartQuestions() {
   const [successMessage, setSuccessMessage] = useState("");
   const [canEdit, setCanEdit] = useState(true);
   const [editMessage, setEditMessage] = useState("");
-  const [showLeaveDialog, setShowLeaveDialog] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const [actionableOpen, setActionableOpen] = useState(false);
   const answersDirtyRef = useRef(false);
   const loadRequestIdRef = useRef(0);
   const loadedLeafIdRef = useRef<string>("");
 
+  const { tryNavigate } = useUnsavedChanges();
   const { participant } = getActiveWorkshopContext();
   const leafId =
     (location.state as ODQuestionsNavState | null)?.leaf?.id ||
@@ -146,6 +155,7 @@ export default function ODChartQuestions() {
     const leafChanged = loadedLeafIdRef.current !== state.leaf.id;
     if (leafChanged) {
       answersDirtyRef.current = false;
+      setIsDirty(false);
       loadedLeafIdRef.current = state.leaf.id;
       setAnswers({});
       setPendingFiles({});
@@ -331,6 +341,7 @@ export default function ODChartQuestions() {
     }
 
     answersDirtyRef.current = true;
+    setIsDirty(true);
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
   };
 
@@ -354,6 +365,7 @@ export default function ODChartQuestions() {
     }
 
     answersDirtyRef.current = true;
+    setIsDirty(true);
     setPendingFiles((prev) => ({
       ...prev,
       [questionId]: {
@@ -451,6 +463,7 @@ export default function ODChartQuestions() {
       setSavedAttachments(uploadedAttachments);
       setPendingFiles({});
       answersDirtyRef.current = false;
+      setIsDirty(false);
 
       if (navState) {
         const cacheKey = `od-questions:${navState.workshop.id}:${navState.leaf.id}:${participant.id}`;
@@ -482,28 +495,23 @@ export default function ODChartQuestions() {
     }
   };
 
+  useRegisterUnsavedGuard(isDirty && canEdit, handleSave);
+
   const requestBackToChart = () => {
-    if (answersDirtyRef.current) {
-      setShowLeaveDialog(true);
-      return;
-    }
-    navigate("/od-chart");
+    void tryNavigate("/od-chart");
   };
 
-  const leaveWithoutSaving = () => {
-    answersDirtyRef.current = false;
-    setShowLeaveDialog(false);
-    navigate("/od-chart");
-  };
-
-  const saveAndLeave = async () => {
-    const saved = await handleSave();
-    if (!saved) {
-      return;
-    }
-    setShowLeaveDialog(false);
-    navigate("/od-chart");
-  };
+  const actionablePreset: AddActionablePreset | null =
+    navState && participant?.id
+      ? {
+          participantId: String(participant.id),
+          workshopId: navState.workshop.id,
+          organizationId: String(participant.organizationId || ""),
+          categoryId: navState.leaf.id,
+          categoryName: navState.leaf.name,
+          categoryPath: navState.leaf.fullPath || navState.leaf.name,
+        }
+      : null;
 
   const renderQuestionInput = (question: Question) => {
     const currentValue = answers[question.id] || "";
@@ -729,6 +737,15 @@ export default function ODChartQuestions() {
           </button>
           <button
             type="button"
+            className="user-btn-secondary"
+            onClick={() => setActionableOpen(true)}
+            disabled={saving || loading || !canEdit || !actionablePreset}
+          >
+            <ClipboardPlus size={16} strokeWidth={2.2} aria-hidden />
+            Add as Actionable
+          </button>
+          <button
+            type="button"
             className="user-btn-primary"
             onClick={() => {
               void handleSave();
@@ -740,54 +757,12 @@ export default function ODChartQuestions() {
         </div>
       </div>
 
-      {showLeaveDialog ? (
-        <div
-          className="od-leave-modal-backdrop"
-          role="presentation"
-          onClick={() => setShowLeaveDialog(false)}
-        >
-          <div
-            className="od-leave-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="od-leave-title"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <h2 id="od-leave-title">Unsaved responses</h2>
-            <p>
-              You have not saved your answer. Do you want to save your response?
-            </p>
-            <div className="od-leave-modal-actions">
-              <button
-                type="button"
-                className="user-btn-secondary"
-                onClick={() => setShowLeaveDialog(false)}
-                disabled={saving}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="user-btn-secondary"
-                onClick={leaveWithoutSaving}
-                disabled={saving}
-              >
-                Don&apos;t Save
-              </button>
-              <button
-                type="button"
-                className="user-btn-primary"
-                onClick={() => {
-                  void saveAndLeave();
-                }}
-                disabled={saving || !canEdit}
-              >
-                {saving ? "Saving..." : "Save"}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <AddActionableModal
+        open={actionableOpen}
+        preset={actionablePreset}
+        canEdit={canEdit}
+        onClose={() => setActionableOpen(false)}
+      />
     </ODChartShell>
   );
 }

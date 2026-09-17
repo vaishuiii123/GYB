@@ -1,6 +1,9 @@
 const { randomUUID } = require("crypto");
 const { ensureTableClient } = require("../shared/tableHelper");
-const { assertWorkshopEditable } = require("../shared/workshopAccess");
+const {
+  assertWorkshopEditable,
+  getWorkshopById,
+} = require("../shared/workshopAccess");
 
 module.exports = async function (context, req) {
   try {
@@ -16,6 +19,7 @@ module.exports = async function (context, req) {
       timeline,
       responsiblePersons,
       comments,
+      allowAfterEnd,
     } = req.body || {};
 
     if (!participantId) {
@@ -54,16 +58,33 @@ module.exports = async function (context, req) {
       return;
     }
 
-    const access = await assertWorkshopEditable({ workshopId, organizationId });
-    if (!access.allowed) {
-      context.res = {
-        status: access.status,
-        body: {
-          success: false,
-          message: access.message,
-        },
-      };
-      return;
+    if (allowAfterEnd) {
+      const workshop = workshopId ? await getWorkshopById(workshopId) : null;
+      if (!workshop) {
+        context.res = {
+          status: 404,
+          body: {
+            success: false,
+            message: "Workshop not found.",
+          },
+        };
+        return;
+      }
+    } else {
+      const access = await assertWorkshopEditable({
+        workshopId,
+        organizationId,
+      });
+      if (!access.allowed) {
+        context.res = {
+          status: access.status,
+          body: {
+            success: false,
+            message: access.message,
+          },
+        };
+        return;
+      }
     }
 
     const tableClient = await ensureTableClient("ActionableItem");

@@ -1,12 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
+import SearchableSelect from "../../components/SearchableSelect";
+import AddActionableModal, {
+  type AddActionablePreset,
+} from "../../components/AddActionableModal";
 import * as XLSX from "xlsx";
 import JSZip from "jszip";
 import {
-  BarChart3,
   Building2,
   CalendarDays,
+  ClipboardPlus,
   Eye,
   Folder,
   HelpCircle,
@@ -14,7 +18,6 @@ import {
   List,
   Search,
   SlidersHorizontal,
-  Users,
   Zap,
 } from "lucide-react";
 import "../../styles/Export.css";
@@ -38,9 +41,14 @@ type Workshop = {
 
 type ExportRow = {
   participant: string;
+  participantId?: string;
   organization: string;
+  organizationId?: string;
   workshop: string;
+  workshopId?: string;
   category: string;
+  categoryId?: string;
+  categoryPath?: string;
   question: string;
   questionId?: string;
   questionType?: string;
@@ -112,6 +120,8 @@ type ResponseData = {
   workshop?: {
     workshopName?: string;
     organizationName?: string;
+    organizationId?: string;
+    id?: string;
   };
   participants?: any[];
   preOdQuestions?: Array<{
@@ -134,20 +144,47 @@ type Category = {
   }>;
 };
 
-const PIE_COLORS = [
-  "#9B304A",
-  "#00A88F",
-  "#2563EB",
-  "#CA8A04",
-  "#7C3AED",
-  "#DC2626",
-  "#0891B2",
-  "#EA580C",
-  "#4F46E5",
-  "#059669",
-  "#DB2777",
-  "#64748B",
-];
+/** Single-hue blue family — darker → lighter by slice index. */
+function shadeOfBase(index: number, total: number) {
+  const steps = Math.max(total, 1);
+  // Lightness from ~32% (dark) to ~78% (light)
+  const t = steps === 1 ? 0.45 : index / Math.max(steps - 1, 1);
+  const lightness = Math.round(32 + t * 46);
+  return `hsl(210, 78%, ${lightness}%)`;
+}
+
+/** Yes → chart green, No → chart red (reference pie palette); other answers = blue shades. */
+function colorForPieSlice(label: string, index: number, total: number) {
+  const lower = String(label || "")
+    .trim()
+    .toLowerCase();
+
+  if (
+    lower === "yes" ||
+    lower === "y" ||
+    lower === "true" ||
+    lower === "agree"
+  ) {
+    return "#00A651";
+  }
+
+  if (
+    lower === "no" ||
+    lower === "n" ||
+    lower === "false" ||
+    lower === "disagree"
+  ) {
+    return "#ED1C24";
+  }
+
+  return shadeOfBase(index, total);
+}
+
+type PieSlice = {
+  label: string;
+  value: number;
+  participants: string[];
+};
 
 const KNOWN_CHOICE_ANSWERS = new Set([
   "yes",
@@ -255,9 +292,10 @@ function isChoiceQuestionType(questionType?: string) {
 }
 
 function buildAnswerSlices(
-  responses: string[],
+  rows: Array<{ response: string; participant?: string }>,
   options?: { forceCategorical?: boolean }
-) {
+): PieSlice[] | null {
+  const responses = rows.map((row) => row.response);
   const tokens = responses.flatMap((response) => expandAnswerTokens(response));
   if (tokens.length === 0) {
     return null;
@@ -267,14 +305,29 @@ function buildAnswerSlices(
     return null;
   }
 
-  // Forced choice types: need at least one answer; prefer 2+ distinct for a real pie.
   const counts = new Map<string, number>();
-  tokens.forEach((token) => {
-    counts.set(token, (counts.get(token) || 0) + 1);
+  const people = new Map<string, string[]>();
+
+  rows.forEach((row) => {
+    const name = String(row.participant || "").trim() || "Unknown";
+    expandAnswerTokens(row.response).forEach((token) => {
+      counts.set(token, (counts.get(token) || 0) + 1);
+      const list = people.get(token) || [];
+      if (!list.includes(name)) {
+        list.push(name);
+      }
+      people.set(token, list);
+    });
   });
 
   const slices = Array.from(counts.entries())
-    .map(([label, value]) => ({ label, value }))
+    .map(([label, value]) => ({
+      label,
+      value,
+      participants: (people.get(label) || []).sort((a, b) =>
+        a.localeCompare(b)
+      ),
+    }))
     .sort((a, b) => b.value - a.value);
 
   if (slices.length < 1) {
@@ -321,8 +374,9 @@ function SummaryPieChart({
   slices,
 }: {
   title: string;
-  slices: Array<{ label: string; value: number }>;
+  slices: PieSlice[];
 }) {
+  const [hoveredLabel, setHoveredLabel] = useState<string | null>(null);
   const total = slices.reduce((sum, item) => sum + item.value, 0);
   if (total <= 0 || slices.length < 1) {
     return null;
@@ -347,46 +401,84 @@ function SummaryPieChart({
           ? undefined
           : describeSlice(cx, cy, radius, startAngle, endAngle),
       fullCircle: sweep >= 359.999,
-      color: PIE_COLORS[index % PIE_COLORS.length],
+      color: colorForPieSlice(slice.label, index, slices.length),
       percent: Math.round((slice.value / total) * 100),
     };
   });
+
+  const hovered = arcs.find((arc) => arc.label === hoveredLabel) || null;
 
   return (
     <div className="export-pie-panel">
       <h3 className="export-pie-title">{title}</h3>
       <div className="export-pie-layout">
-        <svg
-          className="export-pie-svg"
-          width={size}
-          height={size}
-          viewBox={`0 0 ${size} ${size}`}
-          role="img"
-          aria-label={title}
-        >
-          {arcs.map((arc) =>
-            arc.fullCircle ? (
-              <circle
-                key={arc.label}
-                cx={cx}
-                cy={cy}
-                r={radius}
-                fill={arc.color}
-              />
-            ) : (
-              <path
-                key={arc.label}
-                d={arc.path}
-                fill={arc.color}
-                stroke="#ffffff"
-                strokeWidth={1.5}
-              />
-            )
-          )}
-        </svg>
+        <div className="export-pie-chart-wrap">
+          <svg
+            className="export-pie-svg"
+            width={size}
+            height={size}
+            viewBox={`0 0 ${size} ${size}`}
+            role="img"
+            aria-label={title}
+          >
+            {arcs.map((arc) =>
+              arc.fullCircle ? (
+                <circle
+                  key={arc.label}
+                  cx={cx}
+                  cy={cy}
+                  r={radius}
+                  fill={arc.color}
+                  className="export-pie-slice"
+                  onMouseEnter={() => setHoveredLabel(arc.label)}
+                  onMouseLeave={() => setHoveredLabel(null)}
+                />
+              ) : (
+                <path
+                  key={arc.label}
+                  d={arc.path}
+                  fill={arc.color}
+                  stroke="#ffffff"
+                  strokeWidth={1.5}
+                  className="export-pie-slice"
+                  onMouseEnter={() => setHoveredLabel(arc.label)}
+                  onMouseLeave={() => setHoveredLabel(null)}
+                />
+              )
+            )}
+          </svg>
+
+          {hovered ? (
+            <div className="export-pie-tooltip" role="status">
+              <p className="export-pie-tooltip-title">
+                {hovered.label}{" "}
+                <span>
+                  {hovered.value} ({hovered.percent}%)
+                </span>
+              </p>
+              {hovered.participants.length === 0 ? (
+                <p className="export-pie-tooltip-empty">No participants</p>
+              ) : (
+                <ul className="export-pie-tooltip-list">
+                  {hovered.participants.map((name) => (
+                    <li key={name}>{name}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ) : null}
+        </div>
+
         <ul className="export-pie-legend">
           {arcs.map((arc) => (
-            <li key={arc.label}>
+            <li
+              key={arc.label}
+              className={
+                hoveredLabel === arc.label ? "is-hovered" : undefined
+              }
+              onMouseEnter={() => setHoveredLabel(arc.label)}
+              onMouseLeave={() => setHoveredLabel(null)}
+            >
               <span
                 className="export-pie-swatch"
                 style={{ background: arc.color }}
@@ -446,9 +538,11 @@ export default function Export({ user }: PageProps) {
     useState("");
 
   const [activeView, setActiveView] =
-    useState<"all" | "summary" | "vision" | "actionable">("summary");
+    useState<"all" | "summary" | "vision" | "actionable">("all");
 
   const [exportingZip, setExportingZip] = useState(false);
+  const [actionablePreset, setActionablePreset] =
+    useState<AddActionablePreset | null>(null);
 
   /*
    * --------------------------------------------------
@@ -609,6 +703,13 @@ export default function Export({ user }: PageProps) {
               data.workshop?.organizationName || "";
             const workshopName =
               data.workshop?.workshopName || "";
+            const organizationId =
+              data.workshop?.organizationId ||
+              organizationWorkshops.find(
+                (item) => item.id === selectedWorkshop
+              )?.organizationId ||
+              "";
+            const workshopId = selectedWorkshop;
 
             /*
              * Pre OD
@@ -678,12 +779,18 @@ export default function Export({ user }: PageProps) {
                         selectedWorkshop
                       )}&questionId=${encodeURIComponent(questionId)}`
                     : "-";
+                  const categoryMeta = getCategoryMetaForQuestion(questionId);
 
                   rows.push({
                     participant: participantName,
+                    participantId: String(participant.participantId || ""),
                     organization: organizationName,
+                    organizationId,
                     workshop: workshopName,
-                    category: getCategoryForQuestion(questionId),
+                    workshopId,
+                    category: categoryMeta.path,
+                    categoryId: categoryMeta.id,
+                    categoryPath: categoryMeta.path,
                     question:
                       data.questionLabels?.[questionId] || questionId,
                     questionId,
@@ -711,11 +818,18 @@ export default function Export({ user }: PageProps) {
                   return;
                 }
 
+                const categoryMeta = getCategoryMetaForQuestion(questionId);
+
                 rows.push({
                   participant: participantName,
+                  participantId: String(participant.participantId || ""),
                   organization: organizationName,
+                  organizationId,
                   workshop: workshopName,
+                  workshopId,
                   category: getCategoryForQuestion(questionId),
+                  categoryId: categoryMeta.id,
+                  categoryPath: categoryMeta.path,
                   question:
                     data.questionLabels?.[questionId] || questionId,
                   questionId,
@@ -843,7 +957,7 @@ export default function Export({ user }: PageProps) {
     };
 
     loadResponses();
-  }, [selectedWorkshop, categories]);
+  }, [selectedWorkshop, categories, organizationWorkshops]);
 
   /*
    * --------------------------------------------------
@@ -871,6 +985,26 @@ export default function Export({ user }: PageProps) {
     }
 
     return "OD Chart";
+  };
+
+  const getCategoryMetaForQuestion = (questionId: string) => {
+    for (const category of categories) {
+      if (
+        category.questions?.some(
+          (question) => String(question.id) === String(questionId)
+        )
+      ) {
+        return {
+          id: String(category.id || ""),
+          name: String(category.categoryName || ""),
+          path:
+            category.fullPath ||
+            category.categoryName ||
+            "Category",
+        };
+      }
+    }
+    return { id: "", name: "", path: "OD Chart" };
   };
 
   const getQuestionTypeForQuestion = (
@@ -961,49 +1095,48 @@ const availableCategories = useMemo(() => {
    * --------------------------------------------------
    */
 const availableQuestions = useMemo(() => {
-  if (!selectedCategory) {
+  if (!selectedWorkshop) {
     return [];
   }
 
   if (exportType === "preod") {
+    const rows = responses.filter((item) => item.source === "preod");
+    const scoped = selectedCategory
+      ? rows.filter((item) => item.category === selectedCategory)
+      : rows;
+
     return Array.from(
-      new Set(
-        responses
-          .filter(
-            (item) =>
-              item.source === "preod" &&
-              item.category === selectedCategory
-          )
-          .map((item) => item.question)
-          .filter(Boolean)
-      )
+      new Set(scoped.map((item) => item.question).filter(Boolean))
     ).sort();
   }
 
-  const selectedCategoryData =
-    categories.find(
-      (category) =>
-        String(category.id) ===
-        String(selectedCategory)
-    );
+  const scopedCategories = categories.filter((category) => {
+    if (
+      assignedCategoryIds.length > 0 &&
+      !assignedCategoryIds.includes(String(category.id))
+    ) {
+      return false;
+    }
+    if (selectedCategory) {
+      return String(category.id) === String(selectedCategory);
+    }
+    return true;
+  });
 
-  if (
-    !selectedCategoryData ||
-    !selectedCategoryData.questions
-  ) {
-    return [];
-  }
-
-  return selectedCategoryData.questions
-    .map(
-      (question) =>
-        question.question
+  return Array.from(
+    new Set(
+      scopedCategories.flatMap((category) =>
+        (category.questions || [])
+          .map((question) => question.question)
+          .filter(Boolean)
+      )
     )
-    .filter(Boolean)
-    .sort();
+  ).sort();
 }, [
   categories,
   selectedCategory,
+  selectedWorkshop,
+  assignedCategoryIds,
   exportType,
   responses,
 ]);
@@ -1247,11 +1380,69 @@ const availableQuestions = useMemo(() => {
   }
 };
 
-  const handleCategoryChange = (
-    value: string
-  ) => {
+  const handleCategoryChange = (value: string) => {
     setSelectedCategory(value);
-    setSelectedQuestion("");
+    if (!value) {
+      setSelectedQuestion("");
+      return;
+    }
+
+    // Keep question only if it still belongs to the newly selected category.
+    if (!selectedQuestion) {
+      return;
+    }
+
+    if (exportType === "preod") {
+      const stillValid = responses.some(
+        (item) =>
+          item.source === "preod" &&
+          item.category === value &&
+          item.question === selectedQuestion
+      );
+      if (!stillValid) {
+        setSelectedQuestion("");
+      }
+      return;
+    }
+
+    const category = categories.find(
+      (item) => String(item.id) === String(value)
+    );
+    const stillValid = category?.questions?.some(
+      (question) => question.question === selectedQuestion
+    );
+    if (!stillValid) {
+      setSelectedQuestion("");
+    }
+  };
+
+  const handleQuestionChange = (value: string) => {
+    setSelectedQuestion(value);
+    if (!value) {
+      return;
+    }
+
+    // Vice versa: selecting a question reveals its category.
+    if (exportType === "preod") {
+      const match = responses.find(
+        (item) =>
+          item.source === "preod" && item.question === value
+      );
+      if (match?.category) {
+        setSelectedCategory(match.category);
+      }
+      return;
+    }
+
+    const category = categories.find(
+      (item) =>
+        (assignedCategoryIds.length === 0 ||
+          assignedCategoryIds.includes(String(item.id))) &&
+        item.questions?.some((question) => question.question === value)
+    );
+    if (category) {
+      setSelectedCategory(category.id);
+    }
   };
 
   /*
@@ -1431,41 +1622,18 @@ const availableQuestions = useMemo(() => {
 
   /*
    * --------------------------------------------------
-   * Summary
+   * Summary pies (choice / rating answers only)
    * --------------------------------------------------
    */
-
-  const summary = useMemo(() => {
-    const map = new Map<
-      string,
-      number
-    >();
-
-    filteredResponses.forEach(
-      (item) => {
-        map.set(
-          item.category,
-          (map.get(item.category) || 0) +
-            1
-        );
-      }
-    );
-
-    return Array.from(
-      map.entries()
-    ).map(
-      ([category, count]) => ({
-        category,
-        count,
-      })
-    );
-  }, [filteredResponses]);
 
   /** Answer pies for Multiple/Single Choice & Rating across all participants. */
   const answerPieCharts = useMemo(() => {
     const byQuestion = new Map<
       string,
-      { questionType: string; responses: string[] }
+      {
+        questionType: string;
+        rows: Array<{ response: string; participant: string }>;
+      }
     >();
 
     filteredResponses.forEach((item) => {
@@ -1482,18 +1650,21 @@ const availableQuestions = useMemo(() => {
 
       const existing = byQuestion.get(question) || {
         questionType: item.questionType || "",
-        responses: [],
+        rows: [],
       };
       if (!existing.questionType && item.questionType) {
         existing.questionType = item.questionType;
       }
-      existing.responses.push(String(item.response || ""));
+      existing.rows.push({
+        response: String(item.response || ""),
+        participant: String(item.participant || "Unknown"),
+      });
       byQuestion.set(question, existing);
     });
 
     const charts: Array<{
       title: string;
-      slices: Array<{ label: string; value: number }>;
+      slices: PieSlice[];
     }> = [];
 
     byQuestion.forEach((entry, question) => {
@@ -1502,7 +1673,7 @@ const availableQuestions = useMemo(() => {
         return;
       }
 
-      const slices = buildAnswerSlices(entry.responses, {
+      const slices = buildAnswerSlices(entry.rows, {
         forceCategorical: true,
       });
       if (!slices || slices.length < 1) {
@@ -1573,18 +1744,17 @@ const availableQuestions = useMemo(() => {
             </span>
             <label htmlFor="export-org">Select Organization</label>
           </div>
-          <select
+          <SearchableSelect
             id="export-org"
             value={selectedOrganization}
-            onChange={(e) => handleOrganizationChange(e.target.value)}
-          >
-            <option value="">Select Organization</option>
-            {organizations.map((organization) => (
-              <option key={organization.id} value={organization.id}>
-                {organization.organizationName}
-              </option>
-            ))}
-          </select>
+            placeholder="Select Organization"
+            searchPlaceholder="Search organization..."
+            onChange={handleOrganizationChange}
+            options={organizations.map((organization) => ({
+              value: organization.id,
+              label: organization.organizationName,
+            }))}
+          />
         </div>
 
         <div className="export-filter-card">
@@ -1594,19 +1764,18 @@ const availableQuestions = useMemo(() => {
             </span>
             <label htmlFor="export-workshop">Select Workshop</label>
           </div>
-          <select
+          <SearchableSelect
             id="export-workshop"
             value={selectedWorkshop}
-            onChange={(e) => handleWorkshopChange(e.target.value)}
+            placeholder="Select Workshop"
+            searchPlaceholder="Search workshop..."
             disabled={!selectedOrganization}
-          >
-            <option value="">Select Workshop</option>
-            {organizationWorkshops.map((workshop) => (
-              <option key={workshop.id} value={workshop.id}>
-                {workshop.workshopName}
-              </option>
-            ))}
-          </select>
+            onChange={handleWorkshopChange}
+            options={organizationWorkshops.map((workshop) => ({
+              value: workshop.id,
+              label: workshop.workshopName || workshop.id,
+            }))}
+          />
         </div>
 
         <div className="export-filter-card">
@@ -1616,19 +1785,18 @@ const availableQuestions = useMemo(() => {
             </span>
             <label htmlFor="export-category">Select Category</label>
           </div>
-          <select
+          <SearchableSelect
             id="export-category"
             value={selectedCategory}
-            onChange={(e) => handleCategoryChange(e.target.value)}
+            placeholder="Select Category"
+            searchPlaceholder="Search category..."
             disabled={!selectedWorkshop}
-          >
-            <option value="">Select Category</option>
-            {availableCategories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
+            onChange={handleCategoryChange}
+            options={availableCategories.map((category) => ({
+              value: category.id,
+              label: category.name,
+            }))}
+          />
         </div>
 
         <div className="export-filter-card">
@@ -1638,19 +1806,18 @@ const availableQuestions = useMemo(() => {
             </span>
             <label htmlFor="export-question">Select Question</label>
           </div>
-          <select
+          <SearchableSelect
             id="export-question"
             value={selectedQuestion}
-            onChange={(e) => setSelectedQuestion(e.target.value)}
-            disabled={!selectedCategory}
-          >
-            <option value="">Select Question</option>
-            {availableQuestions.map((question, index) => (
-              <option key={`${question}-${index}`} value={question}>
-                {question}
-              </option>
-            ))}
-          </select>
+            placeholder="Select Question"
+            searchPlaceholder="Search question..."
+            disabled={!selectedWorkshop}
+            onChange={handleQuestionChange}
+            options={availableQuestions.map((question) => ({
+              value: question,
+              label: question,
+            }))}
+          />
         </div>
       </div>
 
@@ -1660,6 +1827,15 @@ const availableQuestions = useMemo(() => {
       ========================================= */}
       <div className="export-toolbar">
         <div className="export-tabs">
+          <button
+            type="button"
+            className={activeView === "all" ? "active" : ""}
+            onClick={() => setActiveView("all")}
+          >
+            <List size={16} strokeWidth={2.2} />
+            All Responses
+          </button>
+
           {exportType === "od" ? (
             <button
               type="button"
@@ -1670,15 +1846,6 @@ const availableQuestions = useMemo(() => {
               Summary View
             </button>
           ) : null}
-
-          <button
-            type="button"
-            className={activeView === "all" ? "active" : ""}
-            onClick={() => setActiveView("all")}
-          >
-            <List size={16} strokeWidth={2.2} />
-            All Responses
-          </button>
 
           {exportType === "od" ? (
             <>
@@ -1697,7 +1864,7 @@ const availableQuestions = useMemo(() => {
                 onClick={() => setActiveView("actionable")}
               >
                 <Zap size={16} strokeWidth={2.2} />
-                Actionable
+                Actionables
               </button>
             </>
           ) : null}
@@ -1752,7 +1919,7 @@ const availableQuestions = useMemo(() => {
 
 
         /* =========================================
-           SUMMARY VIEW
+           SUMMARY VIEW — pie charts only
         ========================================= */
         <section className="export-table-card">
 
@@ -1767,58 +1934,6 @@ const availableQuestions = useMemo(() => {
               ))}
             </div>
           ) : null}
-
-          {summary.length === 0 ? (
-            <div className="export-summary-empty">
-              <div className="export-summary-empty-headers">
-                <div className="export-summary-empty-header">
-                  <span className="export-summary-empty-icon is-category" aria-hidden>
-                    <BarChart3 size={15} strokeWidth={2.2} />
-                  </span>
-                  <span>Category</span>
-                </div>
-                <div className="export-summary-empty-header">
-                  <span className="export-summary-empty-icon is-responses" aria-hidden>
-                    <Users size={15} strokeWidth={2.2} />
-                  </span>
-                  <span>Responses</span>
-                </div>
-              </div>
-
-              <div className="export-summary-empty-body">
-                <div className="export-summary-empty-art" aria-hidden>
-                  <div className="export-summary-empty-box">
-                    <span className="export-summary-empty-doc" />
-                    <span className="export-summary-empty-plane export-summary-empty-plane-1" />
-                    <span className="export-summary-empty-plane export-summary-empty-plane-2" />
-                    <span className="export-summary-empty-plane export-summary-empty-plane-3" />
-                    <span className="export-summary-empty-trail" />
-                  </div>
-                </div>
-                <h3>No data to display</h3>
-                <p>Please select filters to view responses.</p>
-              </div>
-            </div>
-          ) : (
-            <table className="export-table">
-              <thead>
-                <tr>
-                  <th>Category</th>
-                  <th>Responses</th>
-                </tr>
-              </thead>
-              <tbody>
-                {summary.map((item) => (
-                  <tr key={item.category}>
-                    <td>
-                      {item.category?.split(">").pop()?.trim() || "-"}
-                    </td>
-                    <td>{item.count}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
 
         </section>
 
@@ -1930,6 +2045,7 @@ const availableQuestions = useMemo(() => {
                   <th>Question</th>
                   <th>Response</th>
                   <th>Attachment</th>
+                  <th>Action</th>
                 </tr>
               </thead>
 
@@ -1940,7 +2056,7 @@ const availableQuestions = useMemo(() => {
 
                   <tr>
 
-                    <td colSpan={5}>
+                    <td colSpan={6}>
                       No responses found.
                     </td>
 
@@ -1977,30 +2093,8 @@ const availableQuestions = useMemo(() => {
 
 
                         {/* RESPONSE */}
-                        <td>
-
-                          {item.response ? (
-
-                            <span className="export-response-pill">
-
-                              <span className="export-response-check">
-                                ✓
-                              </span>
-
-                              <span>
-                                {item.response}
-                              </span>
-
-                            </span>
-
-                          ) : (
-
-                            <span>
-                              -
-                            </span>
-
-                          )}
-
+                        <td className="export-text-cell">
+                          {item.response ? item.response : "-"}
                         </td>
 
 
@@ -2036,6 +2130,45 @@ const availableQuestions = useMemo(() => {
 
                         </td>
 
+                        <td>
+                          {item.source === "od" &&
+                          item.participantId &&
+                          item.categoryId &&
+                          item.workshopId ? (
+                            <button
+                              type="button"
+                              className="export-add-actionable-btn"
+                              title="Add as Actionable"
+                              onClick={() =>
+                                setActionablePreset({
+                                  participantId: item.participantId!,
+                                  workshopId: item.workshopId!,
+                                  organizationId: item.organizationId || "",
+                                  categoryId: item.categoryId!,
+                                  categoryName:
+                                    item.category
+                                      ?.split(">")
+                                      .pop()
+                                      ?.trim() ||
+                                    item.category ||
+                                    "Category",
+                                  categoryPath:
+                                    item.categoryPath ||
+                                    item.category ||
+                                    "",
+                                  participantLabel: item.participant,
+                                  allowAfterEnd: true,
+                                })
+                              }
+                            >
+                              <ClipboardPlus size={15} strokeWidth={2.2} />
+                              <span>Add as Actionable</span>
+                            </button>
+                          ) : (
+                            <span className="export-no-attachment">-</span>
+                          )}
+                        </td>
+
                       </tr>
 
                     )
@@ -2052,6 +2185,12 @@ const availableQuestions = useMemo(() => {
         </section>
 
       )}
+
+      <AddActionableModal
+        open={Boolean(actionablePreset)}
+        preset={actionablePreset}
+        onClose={() => setActionablePreset(null)}
+      />
 
     </main>
 

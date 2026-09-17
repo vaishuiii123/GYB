@@ -1,5 +1,5 @@
 .ws-dash {
-  --ws-maroon: #7b0f2c;
+  --ws-maroon: #3d0010;
   --ws-maroon-soft: #f8e9ee;
   --ws-ink: #1f2937;
   --ws-muted: #6b7280;
@@ -78,7 +78,7 @@
 }
 
 .ws-dash-empty-note {
-  color: #7b0f2c !important;
+  color: #3d0010 !important;
   font-weight: 600;
 }
 
@@ -299,6 +299,24 @@
   background: #c2410c;
 }
 
+.ws-dash-module.theme-slate .ws-dash-module-rail {
+  background: #e8eef5;
+  color: #1e3a5f;
+}
+
+.ws-dash-module.theme-slate h3 {
+  color: #1e3a5f;
+}
+
+.ws-dash-module.theme-slate .ws-dash-module-status {
+  color: #1e3a5f;
+}
+
+.ws-dash-module.theme-slate .ws-dash-module-arrow {
+  background: #1e3a5f;
+}
+
+
 .ws-dash-banner {
   display: flex;
   align-items: center;
@@ -340,7 +358,7 @@
 
 .ws-dash-banner p {
   margin: 0;
-  color: #7b0f2c;
+  color: #3d0010;
   opacity: 0.8;
   font-size: 14px;
 }

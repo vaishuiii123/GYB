@@ -11,10 +11,12 @@ import { clearAllCachedPageData } from "../../utils/workshopCache";
 import knavLogo from "../../images/KNAV logo1.png";
 import "../../styles/UserHeader.css";
 import { appConfirm } from "../../utils/appDialog";
+import { useUnsavedChanges } from "../../utils/unsavedChanges";
 
 export default function UserHeader() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { tryNavigate, confirmLeave } = useUnsavedChanges();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -50,12 +52,18 @@ export default function UserHeader() {
       variant: "warning",
     });
 
-    if (confirmed) {
-      clearSelectedWorkshop();
-      clearAllCachedPageData();
-      localStorage.removeItem("participant");
-      navigate("/");
+    if (!confirmed) {
+      return;
     }
+
+    if (!(await confirmLeave())) {
+      return;
+    }
+
+    clearSelectedWorkshop();
+    clearAllCachedPageData();
+    localStorage.removeItem("participant");
+    navigate("/");
   };
 
   return (
@@ -104,7 +112,7 @@ export default function UserHeader() {
                       role="menuitem"
                       onClick={() => {
                         setMenuOpen(false);
-                        navigate("/userdashboard");
+                        void tryNavigate("/userdashboard");
                       }}
                     >
                       Home

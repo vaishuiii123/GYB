@@ -151,8 +151,8 @@
 
   background: linear-gradient(
     90deg,
-    #7b0f2c 0%,
-    #9b304a 100%
+    #3d0010 0%,
+    #6a0e24 100%
   );
 
   color: #ffffff;
@@ -182,7 +182,7 @@
 .od-dash-banner h1 {
   margin: 0;
 
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--gyb-font-display, "Roboto Condensed", "Lato", sans-serif);
 
   font-size: 19px;
   font-weight: 700;
@@ -410,7 +410,7 @@
 }
 
 .od-dash-column-header.is-assigned {
-  background: #9b304a;
+  background: #6a0e24;
 
   box-shadow:
     0 2px 8px rgba(155, 48, 74, 0.25);
@@ -455,6 +455,10 @@
   --od-link-w: 2px;
   --od-link-gap: 14px;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
 }
 
 .od-dash-empty {
@@ -500,6 +504,8 @@
   flex-shrink: 0;
   position: relative;
   z-index: 0;
+  /* Overlap bus/drop by 1px to kill zoom/subpixel gaps */
+  margin-bottom: -1px;
 }
 
 .od-fork-stem.is-long {
@@ -512,6 +518,7 @@
   flex-shrink: 0;
   position: relative;
   z-index: 0;
+  margin-bottom: -1px;
 }
 
 .od-fork-row {
@@ -539,6 +546,7 @@
   flex-shrink: 0;
   position: relative;
   z-index: 0;
+  margin-bottom: -1px;
 }
 
 .od-fork-block {
@@ -768,9 +776,9 @@
 .od-dash-middle.is-assigned {
   background: #fff1f3;
 
-  border-color: #9b304a;
+  border-color: #6a0e24;
 
-  color: #7b0f2c;
+  color: #3d0010;
 
   box-shadow:
     0 2px 6px rgba(155, 48, 74, 0.10);
@@ -807,9 +815,9 @@
 .od-dash-parent.is-assigned {
   background: #fff1f3;
 
-  border-color: #9b304a;
+  border-color: #6a0e24;
 
-  color: #7b0f2c;
+  color: #3d0010;
 
   font-weight: 700;
 
@@ -861,9 +869,9 @@
 }
 
 .od-dash-leaf.is-assigned {
-  background: #9b304a;
+  background: #6a0e24;
 
-  border-color: #7b0f2c;
+  border-color: #3d0010;
 
   color: #ffffff;
 
@@ -888,7 +896,7 @@
 }
 
 .od-dash-leaf.is-restore-focus {
-  outline: 2px solid #9b304a;
+  outline: 2px solid #6a0e24;
   outline-offset: 3px;
   box-shadow: 0 0 0 5px rgba(155, 48, 74, 0.2);
   animation: od-restore-pulse 1.4s ease-out 1;
@@ -1156,9 +1164,9 @@
 .od-dash-tool-btn:hover {
   background: #ffffff;
 
-  border-color: #9b304a;
+  border-color: #6a0e24;
 
-  color: #7b0f2c;
+  color: #3d0010;
 
   box-shadow:
     0 2px 5px rgba(15, 23, 42, 0.08);
@@ -1219,7 +1227,7 @@
 }
 
 .od-dash-search:focus-within {
-  border-color: #9b304a;
+  border-color: #6a0e24;
 
   box-shadow:
     0 0 0 3px rgba(155, 48, 74, 0.10);
@@ -1344,9 +1352,9 @@
 .od-dash-middle.is-assigned {
   background: #fff1f3;
 
-  color: #7b0f2c;
+  color: #3d0010;
 
-  border-color: #9b304a;
+  border-color: #6a0e24;
 
   box-shadow:
     0 2px 6px rgba(155, 48, 74, 0.10);
@@ -1488,8 +1496,8 @@
 
 .od-dash-middle.is-assigned {
   background: #fff1f3 !important;
-  color: #7b0f2c !important;
-  border-color: #9b304a !important;
+  color: #3d0010 !important;
+  border-color: #6a0e24 !important;
 }
 
 /* Third hierarchy - WHITE */
@@ -1550,7 +1558,7 @@
 }
 
 .question-attachment-link {
-  color: #9b304a;
+  color: #6a0e24;
   font-weight: 600;
   text-decoration: none;
 }
@@ -1625,7 +1633,7 @@
 
 .question-block textarea:focus {
   outline: none;
-  border-color: #9b304a;
+  border-color: #6a0e24;
   box-shadow: 0 0 0 3px rgba(155, 48, 74, 0.12);
 }
 
@@ -1650,13 +1658,13 @@
 
 .option-btn:hover:not(:disabled),
 .status-btn:hover:not(:disabled) {
-  border-color: #9b304a;
+  border-color: #6a0e24;
 }
 
 .option-btn.selected,
 .status-btn.selected {
-  background: #9b304a;
-  border-color: #9b304a;
+  background: #6a0e24;
+  border-color: #6a0e24;
   color: #ffffff;
 }
 
@@ -1735,6 +1743,13 @@
   gap: 12px;
   flex-wrap: wrap;
   margin-top: 20px;
+}
+
+.od-chart-actions .user-btn-secondary,
+.od-chart-actions .user-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .od-chart-error {

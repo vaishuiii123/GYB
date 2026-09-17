@@ -1,82 +1,171 @@
+.user-layout-main-reports {
+  background: #f4f5f7;
+}
+
 .user-reports-page {
   max-width: none;
   margin: 0;
   width: 100%;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  padding: 28px 32px;
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.05);
+}
+
+.user-reports-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 20px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.user-reports-header-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #1e3a5f;
+  flex-shrink: 0;
 }
 
 .user-reports-header h1 {
   margin: 0 0 8px;
-  color: #111827;
-  font-size: 32px;
+  color: #243447;
+  font-size: 30px;
   font-weight: 700;
+  line-height: 1.15;
 }
 
 .user-reports-header p {
-  margin: 0 0 24px;
-  color: #6b7280;
-  font-size: 15px;
-  line-height: 1.5;
-}
-
-.user-reports-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.user-reports-card {
-  display: flex;
-  gap: 14px;
-  align-items: flex-start;
-  text-align: left;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 18px;
-  cursor: pointer;
-  font-family: inherit;
-}
-
-.user-reports-card:hover:not(:disabled) {
-  border-color: #c4a0aa;
-  box-shadow: 0 4px 14px rgba(123, 15, 44, 0.08);
-}
-
-.user-reports-card.is-disabled,
-.user-reports-card:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-  box-shadow: none;
-}
-
-.user-reports-card-note {
-  margin-top: 8px !important;
-  color: #9a3412 !important;
-  font-size: 13px !important;
-}
-
-.user-reports-card-icon {
-  color: #7b0f2c;
-  font-size: 22px;
-  line-height: 1;
-}
-
-.user-reports-card h2 {
-  margin: 0 0 6px;
-  color: #7b0f2c;
-  font-size: 17px;
-  font-weight: 700;
-}
-
-.user-reports-card p {
   margin: 0;
-  color: #4b5563;
+  color: #6b7280;
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
-@media (max-width: 700px) {
-  .user-reports-grid {
-    grid-template-columns: 1fr;
+.user-reports-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.user-reports-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: min(420px, 100%);
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  color: #6b7280;
+}
+
+.user-reports-search input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 14px;
+  color: #1f2937;
+}
+
+.user-reports-count {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.user-reports-alert {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  font-size: 14px;
+}
+
+.user-reports-empty {
+  margin: 24px 0;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.user-reports-table-wrap {
+  overflow: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.user-reports-table {
+  width: 100%;
+  min-width: 920px;
+  border-collapse: collapse;
+}
+
+.user-reports-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  text-align: left;
+  padding: 14px 16px;
+  background: #fbfafa;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 13px;
+  font-weight: 700;
+  color: #243447;
+  white-space: nowrap;
+}
+
+.user-reports-table tbody td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #eef0f3;
+  font-size: 14px;
+  color: #374151;
+  vertical-align: top;
+}
+
+.user-reports-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.user-reports-table tbody tr:hover {
+  background: #fafbfc;
+}
+
+.user-reports-text {
+  max-width: 280px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 860px) {
+  .user-reports-page {
+    padding: 20px 16px;
+  }
+
+  .user-reports-header h1 {
+    font-size: 24px;
+  }
+
+  .user-reports-toolbar {
+    align-items: stretch;
+  }
+
+  .user-reports-search {
+    min-width: 0;
   }
 }

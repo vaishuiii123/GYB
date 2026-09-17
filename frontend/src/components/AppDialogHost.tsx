@@ -10,8 +10,10 @@ import {
   bindAppDialog,
   dismissToast,
   resolveConfirm,
+  resolveUnsaved,
   type AppConfirmRequest,
   type AppToastItem,
+  type AppUnsavedRequest,
 } from "../utils/appDialog";
 import "../styles/AppDialog.css";
 
@@ -25,28 +27,37 @@ function toastIcon(variant: AppToastItem["variant"]) {
 export default function AppDialogHost() {
   const [toasts, setToasts] = useState<AppToastItem[]>([]);
   const [confirm, setConfirm] = useState<AppConfirmRequest | null>(null);
+  const [unsaved, setUnsaved] = useState<AppUnsavedRequest | null>(null);
 
   useEffect(() => {
     return bindAppDialog((event) => {
       setToasts(event.toasts);
       setConfirm(event.confirm);
+      setUnsaved(event.unsaved);
     });
   }, []);
 
   useEffect(() => {
-    if (!confirm) {
+    if (!confirm && !unsaved) {
       return;
     }
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
+      if (event.key !== "Escape") {
+        return;
+      }
+      if (unsaved) {
+        resolveUnsaved(unsaved.id, "cancel");
+        return;
+      }
+      if (confirm) {
         resolveConfirm(confirm.id, false);
       }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [confirm]);
+  }, [confirm, unsaved]);
 
   return (
     <>
@@ -114,6 +125,56 @@ export default function AppDialogHost() {
                 onClick={() => resolveConfirm(confirm.id, true)}
               >
                 {confirm.confirmLabel || "Confirm"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {unsaved ? (
+        <div
+          className="app-confirm-overlay"
+          role="presentation"
+          onClick={() => resolveUnsaved(unsaved.id, "cancel")}
+        >
+          <div
+            className="app-confirm-card app-confirm-warning"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby={`app-unsaved-title-${unsaved.id}`}
+            aria-describedby={`app-unsaved-desc-${unsaved.id}`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="app-confirm-icon" aria-hidden>
+              <AlertTriangle size={22} strokeWidth={2.2} />
+            </div>
+
+            <h3 id={`app-unsaved-title-${unsaved.id}`}>
+              {unsaved.title || "Unsaved changes"}
+            </h3>
+            <p id={`app-unsaved-desc-${unsaved.id}`}>{unsaved.message}</p>
+
+            <div className="app-confirm-actions app-confirm-actions-triple">
+              <button
+                type="button"
+                className="app-confirm-cancel"
+                onClick={() => resolveUnsaved(unsaved.id, "cancel")}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="app-confirm-discard"
+                onClick={() => resolveUnsaved(unsaved.id, "discard")}
+              >
+                Discard
+              </button>
+              <button
+                type="button"
+                className="app-confirm-ok"
+                onClick={() => resolveUnsaved(unsaved.id, "save")}
+              >
+                Save
               </button>
             </div>
           </div>

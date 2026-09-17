@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   CalendarDays,
@@ -18,6 +18,7 @@ import {
   getWorkshopModuleAccessStatus,
 } from "../../utils/workshopCache";
 import { fetchOnce } from "../../utils/adminListCache";
+import { useRegisterUnsavedGuard } from "../../utils/unsavedChanges";
 import UserLayout from "./UserLayout";
 import WorkshopEditBanner from "../../components/WorkshopEditBanner";
 import "../../styles/Actionables.css";
@@ -58,6 +59,19 @@ function createEmptyForm(): FormEntry {
   };
 }
 
+function snapshotForms(forms: FormEntry[]) {
+  return JSON.stringify(
+    forms.map((form) => ({
+      savedId: form.savedId || "",
+      categoryId: form.categoryId,
+      description: form.description,
+      timeline: form.timeline,
+      responsiblePersons: form.responsiblePersons,
+      comments: form.comments,
+    }))
+  );
+}
+
 export default function ActionableForm() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -69,6 +83,7 @@ export default function ActionableForm() {
   const [forms, setForms] = useState<FormEntry[]>([createEmptyForm()]);
   const [canEdit, setCanEdit] = useState(true);
   const [editMessage, setEditMessage] = useState("");
+  const savedSnapshotRef = useRef(snapshotForms([createEmptyForm()]));
 
   const {
     participant,
@@ -76,6 +91,13 @@ export default function ActionableForm() {
     canEdit: initialCanEdit,
     editMessage: initialEditMessage,
   } = getActiveWorkshopContext();
+
+  const isDirty = useMemo(() => {
+    if (!canEdit || loading) {
+      return false;
+    }
+    return snapshotForms(forms) !== savedSnapshotRef.current;
+  }, [canEdit, loading, forms]);
 
   useEffect(() => {
     if (!getWorkshopModuleAccessStatus(selectedWorkshop).enabled) {
@@ -146,8 +168,11 @@ export default function ActionableForm() {
           );
 
           setForms(loadedForms);
+          savedSnapshotRef.current = snapshotForms(loadedForms);
         } else {
-          setForms([createEmptyForm()]);
+          const empty = [createEmptyForm()];
+          setForms(empty);
+          savedSnapshotRef.current = snapshotForms(empty);
         }
 
         const editStatus = getWorkshopEditStatus(selectedWorkshop);
@@ -227,7 +252,7 @@ export default function ActionableForm() {
         editMessage ||
           "The workshop has ended. You can no longer edit actionables."
       );
-      return;
+      return false;
     }
 
     const formsToSave = forms.filter(
@@ -241,7 +266,7 @@ export default function ActionableForm() {
 
     if (formsToSave.length === 0) {
       setErrorMessage("Add at least one actionable item.");
-      return;
+      return false;
     }
 
     for (const form of formsToSave) {
@@ -249,29 +274,29 @@ export default function ActionableForm() {
 
       if (!category) {
         setErrorMessage("Please select a category for each form.");
-        return;
+        return false;
       }
 
       if (!form.description.trim()) {
         setErrorMessage("Description is required for each form.");
-        return;
+        return false;
       }
 
       if (!form.timeline.trim()) {
         setErrorMessage("Timeline is required for each form.");
-        return;
+        return false;
       }
 
       if (!form.responsiblePersons.trim()) {
         setErrorMessage("Person/s responsible is required for each form.");
-        return;
+        return false;
       }
     }
 
     const categoryIds = formsToSave.map((form) => form.categoryId);
-    if (new Set(categoryIds).size !== categoryIds.length) {
+    if (new Set(categoryIds).size !== categoryIds.size) {
       setErrorMessage("Each form must use a different category.");
-      return;
+      return false;
     }
 
     try {
@@ -303,71 +328,91 @@ export default function ActionableForm() {
         });
 
         const result = await response.json();
-
         if (!response.ok || !result.success) {
           setErrorMessage(result.message || "Failed to save actionables.");
-          return;
+          return false;
         }
       }
 
-      setSuccessMessage("Actionables saved successfully.");
-
       const refreshRes = await fetch(
-        `/api/get-actionables?participantId=${participant.id}&workshopId=${
-          workshop?.id || ""
-        }`
+        `/api/get-actionables?participantId=${participant.id}&workshopId=${workshop?.id || ""}`
       );
       const refreshData = await refreshRes.json();
 
       if (refreshData.success && refreshData.data?.length > 0) {
-        setForms(
-          refreshData.data.map(
-            (item: {
-              id: string;
-              categoryId: string;
-              description: string;
-              timeline: string;
-              responsiblePersons: string;
-              comments: string;
-            }) => ({
-              key: crypto.randomUUID(),
-              savedId: item.id,
-              categoryId: item.categoryId || "",
-              description: item.description || "",
-              timeline: item.timeline || "",
-              responsiblePersons: item.responsiblePersons || "",
-              comments: item.comments || "",
-            })
-          )
+        const refreshed = refreshData.data.map(
+          (item: {
+            id: string;
+            categoryId: string;
+            description: string;
+            timeline: string;
+            responsiblePersons: string;
+            comments: string;
+          }) => ({
+            key: crypto.randomUUID(),
+            savedId: item.id,
+            categoryId: item.categoryId || "",
+            description: item.description || "",
+            timeline: item.timeline || "",
+            responsiblePersons: item.responsiblePersons || "",
+            comments: item.comments || "",
+          })
         );
+        setForms(refreshed);
+        savedSnapshotRef.current = snapshotForms(refreshed);
+      } else {
+        savedSnapshotRef.current = snapshotForms(formsToSave);
       }
+
+      setSuccessMessage("Actionables saved successfully.");
+      return true;
     } catch (error) {
       console.error(error);
       setErrorMessage("Something went wrong while saving.");
+      return false;
     } finally {
       setSaving(false);
     }
   };
 
+  useRegisterUnsavedGuard(isDirty, handleSubmit);
+
   return (
     <UserLayout contentClassName="user-layout-main-actionables">
       <div className="act-page">
         <div className="act-panel">
-          <section className="act-hero">
-            <div className="act-hero-copy">
-              <span className="act-hero-icon" aria-hidden>
-                <ClipboardCheck size={22} strokeWidth={2.1} />
-              </span>
-              <div>
-                <h1>Actionable Items</h1>
-                <p>
-                  Add key priorities and initiatives from the workshop. Select a
-                  category, fill in the details, and save your actionable items.
-                </p>
+          <div className="act-sticky-chrome">
+            <section className="act-hero">
+              <div className="act-hero-copy">
+                <span className="act-hero-icon" aria-hidden>
+                  <ClipboardCheck size={22} strokeWidth={2.1} />
+                </span>
+                <div>
+                  <h1>Actionable Items</h1>
+                  <p>
+                    Add key priorities and initiatives from the workshop. Select
+                    a category, fill in the details, and save your actionable
+                    items.
+                  </p>
+                </div>
               </div>
-            </div>
-            <div className="act-hero-art" aria-hidden />
-          </section>
+              <div className="act-hero-art" aria-hidden />
+            </section>
+
+            {!loading && categories.length > 0 ? (
+              <div className="act-sticky-toolbar">
+                <button
+                  type="button"
+                  className="act-add-btn"
+                  onClick={addAnotherForm}
+                  disabled={!canEdit || forms.length >= categories.length}
+                >
+                  <Plus size={18} strokeWidth={2.2} />
+                  Add Actionable Item
+                </button>
+              </div>
+            ) : null}
+          </div>
 
           {loading ? (
             <p className="act-empty">Loading form...</p>
@@ -549,16 +594,6 @@ export default function ActionableForm() {
               </div>
 
               <div className="act-actions">
-                <button
-                  type="button"
-                  className="act-add-btn"
-                  onClick={addAnotherForm}
-                  disabled={!canEdit || forms.length >= categories.length}
-                >
-                  <Plus size={18} strokeWidth={2.2} />
-                  Add Actionable Item
-                </button>
-
                 <button
                   type="button"
                   className="act-save-btn"

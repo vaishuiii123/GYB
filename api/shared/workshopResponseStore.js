@@ -425,6 +425,7 @@ async function buildWorkshopResponsePayload(workshop) {
       id: workshop.id,
       workshopName: workshop.workshopName,
       organizationName: workshop.organizationName,
+      organizationId: workshop.organizationId || "",
       startDate: workshop.startDate,
       endDate: workshop.endDate,
     },

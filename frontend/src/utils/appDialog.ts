@@ -16,18 +16,33 @@ export type AppConfirmRequest = {
   resolve: (value: boolean) => void;
 };
 
+export type UnsavedChoice = "save" | "discard" | "cancel";
+
+export type AppUnsavedRequest = {
+  id: number;
+  message: string;
+  title?: string;
+  resolve: (value: UnsavedChoice) => void;
+};
+
 type DialogListener = (event: {
   toasts: AppToastItem[];
   confirm: AppConfirmRequest | null;
+  unsaved: AppUnsavedRequest | null;
 }) => void;
 
 let listener: DialogListener | null = null;
 let toasts: AppToastItem[] = [];
 let confirmRequest: AppConfirmRequest | null = null;
+let unsavedRequest: AppUnsavedRequest | null = null;
 let nextId = 1;
 
 function emit() {
-  listener?.({ toasts: [...toasts], confirm: confirmRequest });
+  listener?.({
+    toasts: [...toasts],
+    confirm: confirmRequest,
+    unsaved: unsavedRequest,
+  });
 }
 
 export function bindAppDialog(next: DialogListener | null) {
@@ -109,6 +124,10 @@ export function appConfirm(
     if (confirmRequest) {
       confirmRequest.resolve(false);
     }
+    if (unsavedRequest) {
+      unsavedRequest.resolve("cancel");
+      unsavedRequest = null;
+    }
 
     confirmRequest = {
       id: nextId++,
@@ -128,6 +147,36 @@ export function appConfirm(
   });
 }
 
+export function appConfirmUnsaved(options?: {
+  title?: string;
+  message?: string;
+}): Promise<UnsavedChoice> {
+  return new Promise((resolve) => {
+    if (unsavedRequest) {
+      unsavedRequest.resolve("cancel");
+    }
+    if (confirmRequest) {
+      confirmRequest.resolve(false);
+      confirmRequest = null;
+    }
+
+    unsavedRequest = {
+      id: nextId++,
+      title: options?.title || "Unsaved changes",
+      message:
+        String(options?.message || "").trim() ||
+        "You have made changes. Would you like to save or discard them?",
+      resolve: (value) => {
+        unsavedRequest = null;
+        emit();
+        resolve(value);
+      },
+    };
+
+    emit();
+  });
+}
+
 export function resolveConfirm(id: number, value: boolean) {
   if (!confirmRequest || confirmRequest.id !== id) {
     return;
@@ -135,6 +184,17 @@ export function resolveConfirm(id: number, value: boolean) {
 
   const { resolve } = confirmRequest;
   confirmRequest = null;
+  emit();
+  resolve(value);
+}
+
+export function resolveUnsaved(id: number, value: UnsavedChoice) {
+  if (!unsavedRequest || unsavedRequest.id !== id) {
+    return;
+  }
+
+  const { resolve } = unsavedRequest;
+  unsavedRequest = null;
   emit();
   resolve(value);
 }
