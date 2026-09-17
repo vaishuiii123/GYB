@@ -294,7 +294,7 @@ export default function ActionableForm() {
     }
 
     const categoryIds = formsToSave.map((form) => form.categoryId);
-    if (new Set(categoryIds).size !== categoryIds.size) {
+    if (new Set(categoryIds).size !== categoryIds.length) {
       setErrorMessage("Each form must use a different category.");
       return false;
     }
