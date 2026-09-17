@@ -7,6 +7,7 @@ import { MsalProvider } from "@azure/msal-react";
 import App from "./App";
 import { msalConfig } from "./authConfig";
 import { installAppDialogOverrides } from "./utils/appDialog";
+import "./index.css";
 import "./styles/AdminButtons.css";
 import "./styles/UserButtons.css";
 

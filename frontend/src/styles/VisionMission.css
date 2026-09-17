@@ -284,6 +284,17 @@
   font-size: 13px;
 }
 
+.vm-active-target {
+  margin: 0;
+  color: var(--vm-muted);
+  font-size: 13px;
+}
+
+.vm-active-target strong {
+  color: var(--vm-maroon);
+  font-weight: 700;
+}
+
 .vm-zone-btn {
   border: 1px solid #d1d5db;
   background: #f8fafc;
@@ -393,6 +404,7 @@
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
   width: 100%;
   box-sizing: border-box;
+  cursor: pointer;
 }
 
 .vm-statement-card + .vm-statement-card {
@@ -402,6 +414,22 @@
 .vm-statement-card.is-drop-ready {
   border-color: #e4b7c3;
   box-shadow: 0 0 0 3px rgba(123, 15, 44, 0.08);
+}
+
+.vm-statement-card.is-active {
+  border-color: var(--vm-maroon);
+  box-shadow: 0 0 0 3px rgba(123, 15, 44, 0.12);
+}
+
+.vm-statement-hint {
+  margin: 4px 0 0;
+  color: var(--vm-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.vm-statement-card.is-active .vm-statement-hint {
+  color: var(--vm-maroon);
 }
 
 .vm-statement-header {

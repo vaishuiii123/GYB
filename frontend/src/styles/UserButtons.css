@@ -1,9 +1,9 @@
 /* Shared user button system — keep action buttons consistent across user pages */
 
 :root {
-  --user-brand: #9b304a;
-  --user-brand-hover: #7e263c;
-  --user-brand-disabled: #c4a0ab;
+  --user-brand: var(--gyb-brand, #9b304a);
+  --user-brand-hover: var(--gyb-brand-hover, #7e263c);
+  --user-brand-disabled: var(--gyb-brand-muted, #c4a0ab);
   --user-btn-height: 40px;
   --user-btn-radius: 8px;
   --user-btn-font: 14px;

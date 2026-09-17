@@ -4,7 +4,7 @@
  * `gyb_last_seen_version` to show "New updates available" (NAO pattern).
  */
 
-export const GYB_APP_VERSION = "1.0.0";
+export const GYB_APP_VERSION = "1.0.1";
 
 export type GybReleaseNote = {
   version: string;
@@ -15,6 +15,17 @@ export type GybReleaseNote = {
 
 /** Newest first. */
 export const GYB_RELEASE_NOTES: GybReleaseNote[] = [
+  {
+    version: "1.0.1",
+    date: "2026-09-17",
+    title: "Client UI polish",
+    bullets: [
+      "Global brand styles load correctly on the participant app.",
+      "About Us layout and Next actions aligned to the latest design.",
+      "Vision & Mission active-statement highlighting and hints.",
+      "Unlock Value chart, Home in the menu, and hollow RYG status swatches.",
+    ],
+  },
   {
     version: "1.0.0",
     date: "2026-08-24",
