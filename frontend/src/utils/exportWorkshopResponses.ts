@@ -146,7 +146,7 @@ function buildPreOdRows(input: WorkshopExportInput) {
         ),
         Organization: input.organizationName || "",
         Workshop: input.workshopName || "",
-        "Category Name": question.category || "Pre OD",
+        "Category Name": question.category || "Pre-Organizational Development",
         Question: question.question,
         Response:
           participant.preOd?.answers[String(question.srNo)] || "",
@@ -298,7 +298,7 @@ function fileSafeName(value: string) {
 export function exportWorkshopResponsesExcel(input: WorkshopExportInput) {
   const workbook = XLSX.utils.book_new();
 
-  addSheet(workbook, "Pre OD", buildPreOdRows(input));
+  addSheet(workbook, "Pre-Organizational Development", buildPreOdRows(input));
   addSheet(workbook, "OD Chart", buildOdChartRows(input));
   addSheet(workbook, "Vision and Mission", buildVisionMissionRows(input));
   addSheet(workbook, "Actions", buildActionablesRows(input));

@@ -9,6 +9,13 @@ import {
 import { getEmailError, isValidEmail } from "../../utils/validation";
 import "../../styles/Organization.css";
 import { appAlert, appConfirm } from "../../utils/appDialog";
+import {
+  ADMIN_CACHE_KEYS,
+  fetchOnce,
+  isAdminListCacheFresh,
+  readAdminListCache,
+  writeAdminListCache,
+} from "../../utils/adminListCache";
 
 type PageProps = {
   user?: any;
@@ -69,29 +76,21 @@ export default function Organization({ user }: PageProps) {
   const [newParticipantError, setNewParticipantError] = useState("");
   const [savingNewParticipant, setSavingNewParticipant] = useState(false);
 
- const ORGANIZATIONS_CACHE_KEY = "organizations_cache";
+ const ORGANIZATIONS_CACHE_KEY = ADMIN_CACHE_KEYS.organizations;
 
 useEffect(() => {
-  const cachedOrganizations = sessionStorage.getItem(
+  const cachedOrganizations = readAdminListCache<any[]>(
     ORGANIZATIONS_CACHE_KEY
   );
 
   if (cachedOrganizations) {
-    try {
-      const parsedOrganizations = JSON.parse(cachedOrganizations);
+    setOrganizations(cachedOrganizations);
+    setLoading(false);
 
-      if (Array.isArray(parsedOrganizations)) {
-        setOrganizations(parsedOrganizations);
-        setLoading(false);
-
-        // Refresh in the background.
-        fetchOrganizations(true);
-        return;
-      }
-    } catch (error) {
-      console.error("Invalid organization cache:", error);
-      sessionStorage.removeItem(ORGANIZATIONS_CACHE_KEY);
+    if (!isAdminListCacheFresh(ORGANIZATIONS_CACHE_KEY)) {
+      fetchOrganizations(true);
     }
+    return;
   }
 
   fetchOrganizations(false);
@@ -120,7 +119,7 @@ useEffect(() => {
 
     setFetchError("");
 
-    const res = await fetch("/api/get-organizations");
+    const res = await fetchOnce("/api/get-organizations");
 
     if (!res.ok) {
       throw new Error(
@@ -143,10 +142,7 @@ useEffect(() => {
     setOrganizations(organizationList);
 
     // Save latest data
-    sessionStorage.setItem(
-      ORGANIZATIONS_CACHE_KEY,
-      JSON.stringify(organizationList)
-    );
+    writeAdminListCache(ORGANIZATIONS_CACHE_KEY, organizationList);
   } catch (err: any) {
     console.error("Failed to load organizations:", err);
 
@@ -250,9 +246,9 @@ const handleCreateOrganization = async () => {
     )
   );
 
-  sessionStorage.setItem(
+  writeAdminListCache(
     ORGANIZATIONS_CACHE_KEY,
-    JSON.stringify(updatedOrganizations)
+    updatedOrganizations
   );
 
   return updatedOrganizations;
@@ -339,10 +335,7 @@ const handleCreateOrganization = async () => {
         : organization
   );
 
-  sessionStorage.setItem(
-    ORGANIZATIONS_CACHE_KEY,
-    JSON.stringify(updated)
-  );
+  writeAdminListCache(ORGANIZATIONS_CACHE_KEY, updated);
 
   return updated;
 });
@@ -396,10 +389,7 @@ const handleCreateOrganization = async () => {
         (item) => item.id !== org.id
       );
 
-      sessionStorage.setItem(
-        ORGANIZATIONS_CACHE_KEY,
-        JSON.stringify(updated)
-      );
+      writeAdminListCache(ORGANIZATIONS_CACHE_KEY, updated);
 
       return updated;
     });
@@ -685,7 +675,6 @@ setNewParticipantError("");
 
           <div className="organization-content">
             <div className="org-page-header">
-              <h1 className="org-page-title">Organization</h1>
               <button
                 onClick={async () => {
                   setSelectedParticipantIds([]);
@@ -871,7 +860,7 @@ setNewParticipantError("");
             </div>
 
             <div className="org-section-header">
-              <h3>Assigned Participants ({assignedParticipants.length})</h3>
+              <h3>Participant Assignment ({assignedParticipants.length})</h3>
               <button
                 className="org-btn org-btn-add-participant"
                 onClick={() => setShowAddParticipants((prev) => !prev)}
@@ -886,6 +875,7 @@ setNewParticipantError("");
                   <tr>
                     <th>Sr No</th>
                     <th>Participant Name</th>
+                    <th>Login Username</th>
                     <th>Email</th>
                     <th>Actions</th>
                   </tr>
@@ -898,6 +888,11 @@ setNewParticipantError("");
                         <td>
                           {participant.firstName} {participant.lastName}
                         </td>
+                        <td>
+                          <span className="org-username-badge">
+                            {participant.username || participant.email || "-"}
+                          </span>
+                        </td>
                         <td>{participant.email}</td>
                         <td>
                           <DeleteIconBtn
@@ -908,7 +903,7 @@ setNewParticipantError("");
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={4} className="org-empty-cell">
+                      <td colSpan={5} className="org-empty-cell">
                         No Participants Assigned
                       </td>
                     </tr>

@@ -1,6 +1,6 @@
 const { getTableClient } = require("../shared/tableHelper");
-
 const { validateWorkshopDateOrder } = require("../shared/workshopDates");
+const { CACHE_KEYS, invalidate, invalidatePrefix } = require("../shared/listCache");
 
 module.exports = async function (context, req) {
   try {
@@ -79,6 +79,9 @@ module.exports = async function (context, req) {
       CreatedBy: createdBy || "",
       CreatedDate: new Date().toISOString(),
     });
+
+    invalidate(CACHE_KEYS.workshops);
+    invalidatePrefix("list:workshop-by-org:");
 
     context.res = {
       status: 200,

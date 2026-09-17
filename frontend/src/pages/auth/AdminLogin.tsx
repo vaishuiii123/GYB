@@ -20,13 +20,7 @@ type LoginProps = {
 
 const ADMIN_ROLES = ["organizer", "admin"];
 
-const getCheckEmailUrl = () => {
-  // Bypass Vite proxy locally — it can return intermittent 502s after MSAL redirect.
-  if (import.meta.env.DEV) {
-    return "http://127.0.0.1:7071/api/check-email";
-  }
-  return "/api/check-email";
-};
+const getCheckEmailUrl = () => "/api/check-email";
 
 export default function AdminLogin({ onLogin }: LoginProps) {
   const [email, setEmail] = useState("");
@@ -163,12 +157,15 @@ export default function AdminLogin({ onLogin }: LoginProps) {
       console.error("Admin verification failed:", err);
       if (err?.name === "AbortError") {
         setMessage("Admin verification is taking too long. Please try again.");
+      } else if (
+        err instanceof TypeError ||
+        (err instanceof Error && /failed to fetch|networkerror/i.test(err.message))
+      ) {
+        setMessage(
+          "Unable to reach the login service. Make sure the API is running, then try again."
+        );
       } else {
-        const detail =
-          err instanceof Error && err.message
-            ? ` (${err.message})`
-            : "";
-        setMessage(`Unable to validate email.${detail}`);
+        setMessage("Unable to validate email. Please try again.");
       }
     })
     .finally(() => {
@@ -188,7 +185,16 @@ export default function AdminLogin({ onLogin }: LoginProps) {
       await verifyAdminEmail(email.trim());
     } catch (err) {
       console.error(err);
-      setMessage("Unable to validate email.");
+      if (
+        err instanceof TypeError ||
+        (err instanceof Error && /failed to fetch|networkerror/i.test(err.message))
+      ) {
+        setMessage(
+          "Unable to reach the login service. Make sure the API is running, then try again."
+        );
+      } else {
+        setMessage("Unable to validate email. Please try again.");
+      }
     } finally {
       setLoading(false);
     }

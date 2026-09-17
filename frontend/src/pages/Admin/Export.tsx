@@ -3,6 +3,20 @@ import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import * as XLSX from "xlsx";
 import JSZip from "jszip";
+import {
+  BarChart3,
+  Building2,
+  CalendarDays,
+  Eye,
+  Folder,
+  HelpCircle,
+  LineChart,
+  List,
+  Search,
+  SlidersHorizontal,
+  Users,
+  Zap,
+} from "lucide-react";
 import "../../styles/Export.css";
 
 type PageProps = {
@@ -432,7 +446,7 @@ export default function Export({ user }: PageProps) {
     useState("");
 
   const [activeView, setActiveView] =
-    useState<"all" | "summary" | "vision" | "actionable">("all");
+    useState<"all" | "summary" | "vision" | "actionable">("summary");
 
   const [exportingZip, setExportingZip] = useState(false);
 
@@ -631,7 +645,7 @@ export default function Export({ user }: PageProps) {
                     workshop: workshopName,
                     category:
                       question.category ||
-                      "Pre Organization Development",
+                      "Pre-Organizational Development",
                     question: question.question,
                     response: hasAnswer ? String(answer) : "",
                     attachment: attachmentUrl,
@@ -1135,7 +1149,7 @@ const availableQuestions = useMemo(() => {
   useEffect(() => {
     if (
       exportType === "preod" &&
-      (activeView === "vision" || activeView === "actionable")
+      activeView !== "all"
     ) {
       setActiveView("all");
     }
@@ -1506,15 +1520,6 @@ const availableQuestions = useMemo(() => {
     <Sidebar />
 
     <main className="export-content">
-
-      {/* =========================================
-          PAGE TITLE
-      ========================================= */}
-      <h1 className="export-title">
-        Export
-      </h1>
-
-
       {/* =========================================
           PRE-OD / OD
       ========================================= */}
@@ -1528,12 +1533,13 @@ const availableQuestions = useMemo(() => {
             checked={exportType === "preod"}
             onChange={() => {
               setExportType("preod");
+              setActiveView("all");
               setSelectedCategory("");
               setSelectedQuestion("");
             }}
           />
 
-          <span>Pre-OD</span>
+          <span>Pre-Organizational Development</span>
         </label>
 
 
@@ -1560,194 +1566,92 @@ const availableQuestions = useMemo(() => {
           FILTERS
       ========================================= */}
       <div className="export-filters">
-
-
-        {/* =====================================
-            ORGANIZATION
-        ===================================== */}
-        <div className="export-filter">
-
-          <label>
-            Select Organization
-          </label>
-
-          <div className="export-select-wrapper">
-
-            <span className="export-select-icon">
-              🏢
+        <div className="export-filter-card">
+          <div className="export-filter-card-top">
+            <span className="export-filter-badge is-org" aria-hidden>
+              <Building2 size={16} strokeWidth={2.2} />
             </span>
-
-            <select
-              value={selectedOrganization}
-              onChange={(e) =>
-                handleOrganizationChange(
-                  e.target.value
-                )
-              }
-            >
-
-              <option value="">
-                Select Organization
-              </option>
-
-              {organizations.map(
-                (organization) => (
-                  <option
-                    key={organization.id}
-                    value={organization.id}
-                  >
-                    {organization.organizationName}
-                  </option>
-                )
-              )}
-
-            </select>
-
+            <label htmlFor="export-org">Select Organization</label>
           </div>
-
+          <select
+            id="export-org"
+            value={selectedOrganization}
+            onChange={(e) => handleOrganizationChange(e.target.value)}
+          >
+            <option value="">Select Organization</option>
+            {organizations.map((organization) => (
+              <option key={organization.id} value={organization.id}>
+                {organization.organizationName}
+              </option>
+            ))}
+          </select>
         </div>
 
-
-        {/* =====================================
-            WORKSHOP
-        ===================================== */}
-        <div className="export-filter">
-
-          <label>
-            Select Workshop
-          </label>
-
-          <div className="export-select-wrapper">
-
-            <span className="export-select-icon">
-              📅
+        <div className="export-filter-card">
+          <div className="export-filter-card-top">
+            <span className="export-filter-badge is-workshop" aria-hidden>
+              <CalendarDays size={16} strokeWidth={2.2} />
             </span>
-
-            <select
-              value={selectedWorkshop}
-              onChange={(e) =>
-                handleWorkshopChange(
-                  e.target.value
-                )
-              }
-              disabled={!selectedOrganization}
-            >
-
-              <option value="">
-                Select Workshop
-              </option>
-
-              {organizationWorkshops.map(
-                (workshop) => (
-                  <option
-                    key={workshop.id}
-                    value={workshop.id}
-                  >
-                    {workshop.workshopName}
-                  </option>
-                )
-              )}
-
-            </select>
-
+            <label htmlFor="export-workshop">Select Workshop</label>
           </div>
-
+          <select
+            id="export-workshop"
+            value={selectedWorkshop}
+            onChange={(e) => handleWorkshopChange(e.target.value)}
+            disabled={!selectedOrganization}
+          >
+            <option value="">Select Workshop</option>
+            {organizationWorkshops.map((workshop) => (
+              <option key={workshop.id} value={workshop.id}>
+                {workshop.workshopName}
+              </option>
+            ))}
+          </select>
         </div>
 
-
-        {/* =====================================
-            CATEGORY
-        ===================================== */}
-        <div className="export-filter">
-
-          <label>
-            Select Category
-          </label>
-
-          <div className="export-select-wrapper">
-
-            <span className="export-select-icon">
-              📁
+        <div className="export-filter-card">
+          <div className="export-filter-card-top">
+            <span className="export-filter-badge is-category" aria-hidden>
+              <Folder size={16} strokeWidth={2.2} />
             </span>
-
-            <select
-              value={selectedCategory}
-              onChange={(e) =>
-                handleCategoryChange(
-                  e.target.value
-                )
-              }
-              disabled={!selectedWorkshop}
-            >
-
-              <option value="">
-                Select Category
-              </option>
-
-              {availableCategories.map(
-                (category) => (
-                  <option
-                    key={category.id}
-                    value={category.id}
-                  >
-                    {category.name}
-                  </option>
-                )
-              )}
-
-            </select>
-
+            <label htmlFor="export-category">Select Category</label>
           </div>
-
+          <select
+            id="export-category"
+            value={selectedCategory}
+            onChange={(e) => handleCategoryChange(e.target.value)}
+            disabled={!selectedWorkshop}
+          >
+            <option value="">Select Category</option>
+            {availableCategories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </select>
         </div>
 
-
-        {/* =====================================
-            QUESTION
-        ===================================== */}
-        <div className="export-filter">
-
-          <label>
-            Select Question
-          </label>
-
-          <div className="export-select-wrapper">
-
-            <span className="export-select-icon">
-              ❓
+        <div className="export-filter-card">
+          <div className="export-filter-card-top">
+            <span className="export-filter-badge is-question" aria-hidden>
+              <HelpCircle size={16} strokeWidth={2.2} />
             </span>
-
-            <select
-              value={selectedQuestion}
-              onChange={(e) =>
-                setSelectedQuestion(
-                  e.target.value
-                )
-              }
-              disabled={!selectedCategory}
-            >
-
-              <option value="">
-                Select Question
-              </option>
-
-              {availableQuestions.map(
-                (question, index) => (
-                  <option
-                    key={`${question}-${index}`}
-                    value={question}
-                  >
-                    {question}
-                  </option>
-                )
-              )}
-
-            </select>
-
+            <label htmlFor="export-question">Select Question</label>
           </div>
-
+          <select
+            id="export-question"
+            value={selectedQuestion}
+            onChange={(e) => setSelectedQuestion(e.target.value)}
+            disabled={!selectedCategory}
+          >
+            <option value="">Select Question</option>
+            {availableQuestions.map((question, index) => (
+              <option key={`${question}-${index}`} value={question}>
+                {question}
+              </option>
+            ))}
+          </select>
         </div>
-
       </div>
 
 
@@ -1755,110 +1659,77 @@ const availableQuestions = useMemo(() => {
           TABS + SEARCH + EXCEL
       ========================================= */}
       <div className="export-toolbar">
-
-
-        {/* =====================================
-            TABS
-        ===================================== */}
         <div className="export-tabs">
+          {exportType === "od" ? (
+            <button
+              type="button"
+              className={activeView === "summary" ? "active" : ""}
+              onClick={() => setActiveView("summary")}
+            >
+              <LineChart size={16} strokeWidth={2.2} />
+              Summary View
+            </button>
+          ) : null}
 
           <button
             type="button"
-            className={
-              activeView === "all"
-                ? "active"
-                : ""
-            }
-            onClick={() =>
-              setActiveView("all")
-            }
+            className={activeView === "all" ? "active" : ""}
+            onClick={() => setActiveView("all")}
           >
+            <List size={16} strokeWidth={2.2} />
             All Responses
           </button>
 
+          {exportType === "od" ? (
+            <>
+              <button
+                type="button"
+                className={activeView === "vision" ? "active" : ""}
+                onClick={() => setActiveView("vision")}
+              >
+                <Eye size={16} strokeWidth={2.2} />
+                Vision & Mission
+              </button>
 
-          <button
-            type="button"
-            className={
-              activeView === "summary"
-                ? "active"
-                : ""
-            }
-            onClick={() =>
-              setActiveView("summary")
-            }
-          >
-            Summary View
-          </button>
-
-          <button
-            type="button"
-            className={activeView === "vision" ? "active" : ""}
-            onClick={() => setActiveView("vision")}
-            disabled={exportType !== "od"}
-            title={
-              exportType !== "od"
-                ? "Available for OD export only"
-                : "Vision & Mission responses"
-            }
-          >
-            Vision & Mission
-          </button>
-
-          <button
-            type="button"
-            className={activeView === "actionable" ? "active" : ""}
-            onClick={() => setActiveView("actionable")}
-            disabled={exportType !== "od"}
-            title={
-              exportType !== "od"
-                ? "Available for OD export only"
-                : "Actionable items"
-            }
-          >
-            Actionable
-          </button>
-
+              <button
+                type="button"
+                className={activeView === "actionable" ? "active" : ""}
+                onClick={() => setActiveView("actionable")}
+              >
+                <Zap size={16} strokeWidth={2.2} />
+                Actionable
+              </button>
+            </>
+          ) : null}
         </div>
 
-
-        {/* =====================================
-            SEARCH + EXCEL
-        ===================================== */}
         <div className="export-actions">
-
           <div className="export-search-wrapper">
-
-            <span className="export-search-icon">
-              🔍
+            <span className="export-search-icon" aria-hidden>
+              <Search size={16} strokeWidth={2.2} />
             </span>
-
             <input
               type="text"
-              placeholder="Search by Keyword or type..."
+              placeholder="Search by keyword or type..."
               value={search}
-              onChange={(e) =>
-                setSearch(e.target.value)
-              }
+              onChange={(e) => setSearch(e.target.value)}
             />
-
           </div>
-
 
           <button
             type="button"
             className="export-excel-button"
             onClick={handleExportZip}
-            disabled={
-              filteredResponses.length === 0 || exportingZip
-            }
+            disabled={filteredResponses.length === 0 || exportingZip}
             title="Download ZIP (Excel + attachments)"
           >
-            {exportingZip ? "…" : "📦"}
+            {exportingZip ? (
+              "…"
+            ) : (
+              <SlidersHorizontal size={18} strokeWidth={2.2} />
+            )}
           </button>
-
         </div>
-
       </div>
 
 
@@ -1897,65 +1768,57 @@ const availableQuestions = useMemo(() => {
             </div>
           ) : null}
 
-          <table className="export-table">
+          {summary.length === 0 ? (
+            <div className="export-summary-empty">
+              <div className="export-summary-empty-headers">
+                <div className="export-summary-empty-header">
+                  <span className="export-summary-empty-icon is-category" aria-hidden>
+                    <BarChart3 size={15} strokeWidth={2.2} />
+                  </span>
+                  <span>Category</span>
+                </div>
+                <div className="export-summary-empty-header">
+                  <span className="export-summary-empty-icon is-responses" aria-hidden>
+                    <Users size={15} strokeWidth={2.2} />
+                  </span>
+                  <span>Responses</span>
+                </div>
+              </div>
 
-            <thead>
-
-              <tr>
-
-                <th>
-                  Category
-                </th>
-
-                <th>
-                  Responses
-                </th>
-
-              </tr>
-
-            </thead>
-
-
-            <tbody>
-
-              {summary.length === 0 ? (
-
+              <div className="export-summary-empty-body">
+                <div className="export-summary-empty-art" aria-hidden>
+                  <div className="export-summary-empty-box">
+                    <span className="export-summary-empty-doc" />
+                    <span className="export-summary-empty-plane export-summary-empty-plane-1" />
+                    <span className="export-summary-empty-plane export-summary-empty-plane-2" />
+                    <span className="export-summary-empty-plane export-summary-empty-plane-3" />
+                    <span className="export-summary-empty-trail" />
+                  </div>
+                </div>
+                <h3>No data to display</h3>
+                <p>Please select filters to view responses.</p>
+              </div>
+            </div>
+          ) : (
+            <table className="export-table">
+              <thead>
                 <tr>
-
-                  <td colSpan={2}>
-                    No data
-                  </td>
-
+                  <th>Category</th>
+                  <th>Responses</th>
                 </tr>
-
-              ) : (
-
-                summary.map((item) => (
-
-                  <tr
-                    key={item.category}
-                  >
-
+              </thead>
+              <tbody>
+                {summary.map((item) => (
+                  <tr key={item.category}>
                     <td>
-                      {item.category
-                        ?.split(">")
-                        .pop()
-                        ?.trim() || "-"}
+                      {item.category?.split(">").pop()?.trim() || "-"}
                     </td>
-
-                    <td>
-                      {item.count}
-                    </td>
-
+                    <td>{item.count}</td>
                   </tr>
-
-                ))
-
-              )}
-
-            </tbody>
-
-          </table>
+                ))}
+              </tbody>
+            </table>
+          )}
 
         </section>
 
@@ -1967,8 +1830,6 @@ const availableQuestions = useMemo(() => {
               <thead>
                 <tr>
                   <th>Participant</th>
-                  <th>Organization</th>
-                  <th>Workshop</th>
                   <th>Category</th>
                   <th>Vision</th>
                   <th>Mission</th>
@@ -1977,7 +1838,7 @@ const availableQuestions = useMemo(() => {
               <tbody>
                 {filteredVisionMission.length === 0 ? (
                   <tr>
-                    <td colSpan={6}>
+                    <td colSpan={4}>
                       No Vision & Mission responses found.
                     </td>
                   </tr>
@@ -1985,8 +1846,6 @@ const availableQuestions = useMemo(() => {
                   filteredVisionMission.map((item, index) => (
                     <tr key={`${item.participant}-vm-${index}`}>
                       <td>{item.participant}</td>
-                      <td>{item.organization}</td>
-                      <td>{item.workshop}</td>
                       <td>Vision & Mission</td>
                       <td className="export-text-cell">
                         {item.visionKeywords.length > 0
@@ -2012,8 +1871,6 @@ const availableQuestions = useMemo(() => {
               <thead>
                 <tr>
                   <th>Participant</th>
-                  <th>Organization</th>
-                  <th>Workshop</th>
                   <th>Category</th>
                   <th>Description</th>
                   <th>Timeline</th>
@@ -2024,14 +1881,12 @@ const availableQuestions = useMemo(() => {
               <tbody>
                 {filteredActionables.length === 0 ? (
                   <tr>
-                    <td colSpan={8}>No actionable items found.</td>
+                    <td colSpan={6}>No actionable items found.</td>
                   </tr>
                 ) : (
                   filteredActionables.map((item, index) => (
                     <tr key={`${item.participant}-act-${index}`}>
                       <td>{item.participant}</td>
-                      <td>{item.organization}</td>
-                      <td>{item.workshop}</td>
                       <td>
                         {item.categoryName ||
                           item.categoryPath
@@ -2070,37 +1925,12 @@ const availableQuestions = useMemo(() => {
               <thead>
 
                 <tr>
-
-                  <th>
-                    Participant
-                  </th>
-
-                  <th>
-                    Organization
-                  </th>
-
-                  <th>
-                    Workshop
-                  </th>
-
-                  <th>
-                    Category
-                  </th>
-
-                  <th>
-                    Question
-                  </th>
-
-                  <th>
-                    Response
-                  </th>
-
-                  <th>
-                    Attachment
-                  </th>
-
+                  <th>Participant</th>
+                  <th>Category</th>
+                  <th>Question</th>
+                  <th>Response</th>
+                  <th>Attachment</th>
                 </tr>
-
               </thead>
 
 
@@ -2110,7 +1940,7 @@ const availableQuestions = useMemo(() => {
 
                   <tr>
 
-                    <td colSpan={7}>
+                    <td colSpan={5}>
                       No responses found.
                     </td>
 
@@ -2128,18 +1958,6 @@ const availableQuestions = useMemo(() => {
                         {/* PARTICIPANT */}
                         <td>
                           {item.participant}
-                        </td>
-
-
-                        {/* ORGANIZATION */}
-                        <td>
-                          {item.organization}
-                        </td>
-
-
-                        {/* WORKSHOP */}
-                        <td>
-                          {item.workshop}
                         </td>
 
 

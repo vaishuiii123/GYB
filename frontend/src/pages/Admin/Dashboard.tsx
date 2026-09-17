@@ -17,6 +17,8 @@ import {
   prefetchAdminLists,
   readAdminListCache,
   writeAdminListCache,
+  fetchOnce,
+  isAdminListCacheFresh,
 } from "../../utils/adminListCache";
 import "../../styles/AdminDashboard.css";
 
@@ -104,7 +106,7 @@ export default function Dashboard({ user }: PageProps) {
       if (!backgroundRefresh) {
         setLoading(true);
       }
-      const response = await fetch("/api/get-workshops");
+      const response = await fetchOnce("/api/get-workshops");
       const data = await response.json();
       if (response.ok && data.success) {
         const list = data.workshops || [];
@@ -127,7 +129,9 @@ export default function Dashboard({ user }: PageProps) {
     if (cached) {
       setWorkshops(cached);
       setLoading(false);
-      void loadWorkshops(true);
+      if (!isAdminListCacheFresh(ADMIN_CACHE_KEYS.workshops)) {
+        void loadWorkshops(true);
+      }
       return;
     }
 
@@ -251,9 +255,7 @@ export default function Dashboard({ user }: PageProps) {
       <Sidebar />
 
       <div className="admin-dashboard-content adh-content">
-        <div className="adh-title-row">
-          <h1>Dashboard</h1>
-        </div>
+       
 
         <section className="adh-stats">
           <article className="adh-stat-card">

@@ -8,6 +8,7 @@ import {
   CopyIconBtn,
   DeleteIconBtn,
   DownloadIconBtn,
+  UploadIconBtn,
   ViewIconBtn,
 } from "../../components/AdminActionIcons";
 import "../../styles/Template.css";
@@ -60,7 +61,9 @@ const normalizeTemplateType = (value: unknown): "OD" | "Pre OD" => {
     raw === "pre od" ||
     raw === "pre-od" ||
     raw === "preod" ||
-    raw === "pre_od"
+    raw === "pre_od" ||
+    raw === "pre-organizational development" ||
+    raw === "pre organizational development"
   ) {
     return "Pre OD";
   }
@@ -140,6 +143,8 @@ export default function Template({ user }: PageProps) {
   const navigate = useNavigate();
   const uploadInputRef = useRef<HTMLInputElement>(null);
   const preOdUploadInputRef = useRef<HTMLInputElement>(null);
+  const replaceOdUploadInputRef = useRef<HTMLInputElement>(null);
+  const replacePreOdUploadInputRef = useRef<HTMLInputElement>(null);
   const [templates, setTemplates] = useState<any[]>([]);
   const [filter, setFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState<"All" | "OD" | "Pre OD">("OD");
@@ -155,6 +160,16 @@ export default function Template({ user }: PageProps) {
   const [uploadTemplateType, setUploadTemplateType] = useState<"OD" | "Pre OD">(
     "OD"
   );
+  const [replaceUploadTarget, setReplaceUploadTarget] = useState<{
+    id: string;
+    name: string;
+    templateType: "OD" | "Pre OD";
+  } | null>(null);
+  const replaceUploadTargetRef = useRef<{
+    id: string;
+    name: string;
+    templateType: "OD" | "Pre OD";
+  } | null>(null);
   const [importing, setImporting] = useState(false);
 
   useEffect(() => {
@@ -877,12 +892,44 @@ export default function Template({ user }: PageProps) {
     setUploadSuccess(false);
     setUploadTemplateName("");
     setUploadTemplateType(typeFilter === "Pre OD" ? "Pre OD" : "OD");
+    setReplaceUploadTarget(null);
+    replaceUploadTargetRef.current = null;
     setImporting(false);
     if (uploadInputRef.current) {
       uploadInputRef.current.value = "";
     }
     if (preOdUploadInputRef.current) {
       preOdUploadInputRef.current.value = "";
+    }
+    if (replaceOdUploadInputRef.current) {
+      replaceOdUploadInputRef.current.value = "";
+    }
+    if (replacePreOdUploadInputRef.current) {
+      replacePreOdUploadInputRef.current.value = "";
+    }
+  };
+
+  const openReplaceUpload = (template: {
+    id: string;
+    name: string;
+    templateType?: string;
+  }) => {
+    const templateType =
+      template.templateType === "Pre OD" ? "Pre OD" : "OD";
+    const target = {
+      id: template.id,
+      name: template.name,
+      templateType,
+    } as const;
+    replaceUploadTargetRef.current = target;
+    setReplaceUploadTarget(target);
+    setUploadTemplateName(template.name || "");
+    setUploadTemplateType(templateType);
+
+    if (templateType === "Pre OD") {
+      replacePreOdUploadInputRef.current?.click();
+    } else {
+      replaceOdUploadInputRef.current?.click();
     }
   };
 
@@ -905,7 +952,7 @@ export default function Template({ user }: PageProps) {
     const categoriesData = await categoriesResponse.json();
 
     if (!bankResponse.ok || !data.success) {
-      throw new Error(data.message || "Unable to load Pre OD questions.");
+      throw new Error(data.message || "Unable to load Pre-Organizational Development questions.");
     }
 
     if (!categoriesResponse.ok || !categoriesData.success) {
@@ -947,7 +994,7 @@ export default function Template({ user }: PageProps) {
     ];
 
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet("Pre OD Questions");
+    const worksheet = workbook.addWorksheet("Pre-Organizational Development Questions");
     const listsWorksheet = workbook.addWorksheet("Lists");
     listsWorksheet.state = "hidden";
 
@@ -1124,7 +1171,7 @@ export default function Template({ user }: PageProps) {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error(error);
-      alert("Unable to download Pre OD blank template.");
+      alert("Unable to download Pre-Organizational Development blank template.");
     } finally {
       setDownloadingId("");
     }
@@ -1159,7 +1206,7 @@ export default function Template({ user }: PageProps) {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error(error);
-      alert("Unable to download Pre OD template.");
+      alert("Unable to download Pre-Organizational Development template.");
     } finally {
       setDownloadingId("");
     }
@@ -1183,17 +1230,19 @@ export default function Template({ user }: PageProps) {
       setUploadRows([]);
       setUploadTemplateType("Pre OD");
       setUploadTemplateName(
-        file.name
-          .replace(/\.xlsx$/i, "")
-          .replace(/_PreOD_Template$/i, "")
-          .replace(/Blank_PreOD_Template/i, "")
-          .trim() || "Pre OD Template"
+        replaceUploadTargetRef.current?.name ||
+          file.name
+            .replace(/\.xlsx$/i, "")
+            .replace(/_PreOD_Template$/i, "")
+            .replace(/Blank_PreOD_Template/i, "")
+            .trim() ||
+          "Pre-Organizational Development Template"
       );
 
       const bankResponse = await fetch("/api/get-pre-od-questions");
       const bankData = await bankResponse.json();
       if (!bankResponse.ok || !bankData.success) {
-        throw new Error(bankData.message || "Unable to load Pre OD questions.");
+        throw new Error(bankData.message || "Unable to load Pre-Organizational Development questions.");
       }
 
       const categoriesResponse = await fetch("/api/get-all-categories");
@@ -1226,10 +1275,10 @@ export default function Template({ user }: PageProps) {
       const workbook = new ExcelJS.Workbook();
       await workbook.xlsx.load(buffer);
       const worksheet =
-        workbook.getWorksheet("Pre OD Questions") || workbook.worksheets[0];
+        workbook.getWorksheet("Pre-Organizational Development Questions") || workbook.getWorksheet("Pre OD Questions") || workbook.worksheets[0];
 
       if (!worksheet) {
-        alert("Invalid Pre OD template Excel file.");
+        alert("Invalid Pre-Organizational Development template Excel file.");
         event.target.value = "";
         return;
       }
@@ -1271,33 +1320,32 @@ export default function Template({ user }: PageProps) {
         }
 
         const rowErrors: string[] = [];
-        // Prefer exact bank text match. S.No. alone is not enough — wrong text + wrong
-        // S.No. was mapping Attachment flags onto unrelated bank questions.
+        // Prefer question text match and auto-resolve S.No. from the bank.
+        // Blank or mismatched S.No. values should not block re-upload after users
+        // download a template, add rows, or renumber rows in Excel.
         const matchedByText = question
           ? bankByText.get(normalizeText(question))
           : undefined;
         const matchedBySrNo = srNo ? bankBySrNo.get(srNo) : undefined;
         let matched = matchedByText || undefined;
 
-        if (matchedBySrNo && matchedByText) {
-          if (String(matchedBySrNo.srNo) !== String(matchedByText.srNo)) {
-            rowErrors.push(
-              `S.No. ${srNo} does not match this question text in the Pre OD bank`
-            );
-          } else {
-            matched = matchedBySrNo;
-          }
-        } else if (matchedBySrNo && !matchedByText) {
+        if (matchedByText) {
+          matched = matchedByText;
+        } else if (matchedBySrNo && !question) {
+          matched = matchedBySrNo;
+        } else if (matchedBySrNo && question && !matchedByText) {
           rowErrors.push(
-            `Question text does not match Pre OD bank S.No. ${srNo}. Use the exact bank question text (or leave S.No. blank and match by text).`
+            `Question text does not match bank S.No. ${srNo}. Use the exact bank question text (S.No. is optional and will be auto-filled).`
           );
           matched = undefined;
         } else if (!matchedByText && !matchedBySrNo) {
-          rowErrors.push("Question is not in the Pre OD bank");
+          rowErrors.push(
+            "Question is not in the questionnaire bank. Download the template and keep bank question text."
+          );
         }
 
         if (matched && seen.has(String(matched.srNo))) {
-          rowErrors.push("Duplicate Pre OD question");
+          rowErrors.push("Duplicate questionnaire question");
         } else if (matched) {
           seen.add(String(matched.srNo));
         }
@@ -1347,7 +1395,7 @@ export default function Template({ user }: PageProps) {
 
       if (rows.length === 0) {
         alert(
-          "No Pre OD questions found. Keep only the rows you want, then upload again."
+          "No Pre-Organizational Development questions found. Keep only the rows you want, then upload again."
         );
         event.target.value = "";
         return;
@@ -1359,7 +1407,7 @@ export default function Template({ user }: PageProps) {
       setShowUploadModal(true);
     } catch (error) {
       console.error(error);
-      alert("Unable to read the Pre OD Excel file.");
+      alert("Unable to read the Pre-Organizational Development Excel file.");
     } finally {
       if (event.target) {
         event.target.value = "";
@@ -1386,7 +1434,8 @@ export default function Template({ user }: PageProps) {
       setUploadErrors([]);
       setUploadRows([]);
       setUploadTemplateName(
-        file.name.replace(/\.xlsx$/i, "").replace(/_Template$/i, "").trim()
+        replaceUploadTargetRef.current?.name ||
+          file.name.replace(/\.xlsx$/i, "").replace(/_Template$/i, "").trim()
       );
 
       const [categoriesResponse, tagsResponse, questionsResponse] =
@@ -1853,7 +1902,12 @@ export default function Template({ user }: PageProps) {
 
     const duplicateName = templates.some(
       (item) =>
-        normalizeText(item.name) === normalizeText(uploadTemplateName.trim())
+        normalizeText(item.name) === normalizeText(uploadTemplateName.trim()) &&
+        !(
+          replaceUploadTarget &&
+          String(item.id) === String(replaceUploadTarget.id) &&
+          String(item.templateType || "OD") === replaceUploadTarget.templateType
+        )
     );
     if (duplicateName) {
       alert("A template with this name already exists. Please choose another name.");
@@ -1864,6 +1918,7 @@ export default function Template({ user }: PageProps) {
       setImporting(true);
 
       const createdBy = user?.email || user?.name || "Admin";
+      const isReplace = Boolean(replaceUploadTarget?.id);
 
       if (uploadTemplateType === "Pre OD") {
         const matchedSrNos: string[] = [];
@@ -1880,23 +1935,42 @@ export default function Template({ user }: PageProps) {
         }
 
         if (matchedSrNos.length === 0) {
-          throw new Error("No valid Pre OD bank questions found in the file.");
+          throw new Error("No valid Pre-Organizational Development bank questions found in the file.");
         }
 
-        const response = await fetch("/api/create-pre-od-template", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            templateName: uploadTemplateName.trim(),
-            questionSrNos: matchedSrNos,
-            questionAttachments,
-            createdBy,
-          }),
-        });
+        const response = await fetch(
+          isReplace
+            ? "/api/update-pre-od-template"
+            : "/api/create-pre-od-template",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(
+              isReplace
+                ? {
+                    templateId: replaceUploadTarget!.id,
+                    templateName: uploadTemplateName.trim(),
+                    questionSrNos: matchedSrNos,
+                    questionAttachments,
+                    modifiedBy: createdBy,
+                  }
+                : {
+                    templateName: uploadTemplateName.trim(),
+                    questionSrNos: matchedSrNos,
+                    questionAttachments,
+                    createdBy,
+                  }
+            ),
+          }
+        );
         const data = await response.json();
         if (!response.ok || !data.success) {
           throw new Error(
-            data.message || data.error || "Failed to create Pre OD template."
+            data.message ||
+              data.error ||
+              (isReplace
+                ? "Failed to update Pre-Organizational Development template."
+                : "Failed to create Pre-Organizational Development template.")
           );
         }
 
@@ -1904,7 +1978,9 @@ export default function Template({ user }: PageProps) {
         clearAdminListCache(ADMIN_CACHE_KEYS.templates);
         setTypeFilter("Pre OD");
         alert(
-          `Pre OD template "${uploadTemplateName.trim()}" created successfully.\n${matchedSrNos.length} question(s) included.`
+          isReplace
+            ? `Pre-Organizational Development template "${uploadTemplateName.trim()}" updated successfully.\n${matchedSrNos.length} question(s) included.`
+            : `Pre-Organizational Development template "${uploadTemplateName.trim()}" created successfully.\n${matchedSrNos.length} question(s) included.`
         );
         await loadTemplates();
         resetUploadState();
@@ -2061,23 +2137,44 @@ export default function Template({ user }: PageProps) {
       }
 
       const categories = [...categoryMap.values()];
-      const response = await fetch("/api/create-template", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          templateName: uploadTemplateName.trim(),
-          categoryIds: categories.map((item) => item.id),
-          categoryNames: categories.map((item) => item.name),
-          categoryPaths: categories.map((item) => item.path),
-          questionIds: uniqueQuestionIds,
-          createdBy,
-        }),
-      });
+      const response = await fetch(
+        isReplace ? "/api/update-template" : "/api/create-template",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(
+            isReplace
+              ? {
+                  templateId: replaceUploadTarget!.id,
+                  templateName: uploadTemplateName.trim(),
+                  categoryIds: categories.map((item) => item.id),
+                  categoryNames: categories.map((item) => item.name),
+                  categoryPaths: categories.map((item) => item.path),
+                  questionIds: uniqueQuestionIds,
+                  modifiedBy: createdBy,
+                }
+              : {
+                  templateName: uploadTemplateName.trim(),
+                  categoryIds: categories.map((item) => item.id),
+                  categoryNames: categories.map((item) => item.name),
+                  categoryPaths: categories.map((item) => item.path),
+                  questionIds: uniqueQuestionIds,
+                  createdBy,
+                }
+          ),
+        }
+      );
 
       const data = await response.json();
 
       if (!data.success) {
-        alert(data.message || data.error || "Failed to create template.");
+        alert(
+          data.message ||
+            data.error ||
+            (isReplace
+              ? "Failed to update template."
+              : "Failed to create template.")
+        );
         return;
       }
 
@@ -2087,7 +2184,9 @@ export default function Template({ user }: PageProps) {
       setTypeFilter("OD");
 
       alert(
-        `OD template "${uploadTemplateName.trim()}" created successfully.\n` +
+        (isReplace
+          ? `OD template "${uploadTemplateName.trim()}" updated successfully.\n`
+          : `OD template "${uploadTemplateName.trim()}" created successfully.\n`) +
           `${uniqueQuestionIds.length} unique question(s) in template` +
           (createdQuestionCount
             ? `\n${createdQuestionCount} new question(s) added to Question Management`
@@ -2119,10 +2218,8 @@ export default function Template({ user }: PageProps) {
         <Header user={user} />
 
         <div className="template-body">
-          <div className="breadcrumb">Template</div>
 
           <div className="template-page-header">
-            <h1 className="page-title">Template</h1>
             <div className="template-page-actions">
               {typeFilter === "OD" && (
                 <>
@@ -2139,7 +2236,11 @@ export default function Template({ user }: PageProps) {
                   <button
                     className="create-btn"
                     type="button"
-                    onClick={() => uploadInputRef.current?.click()}
+                    onClick={() => {
+                      replaceUploadTargetRef.current = null;
+                      setReplaceUploadTarget(null);
+                      uploadInputRef.current?.click();
+                    }}
                   >
                     Upload Template
                   </button>
@@ -2167,7 +2268,11 @@ export default function Template({ user }: PageProps) {
                   <button
                     className="create-btn"
                     type="button"
-                    onClick={() => preOdUploadInputRef.current?.click()}
+                    onClick={() => {
+                      replaceUploadTargetRef.current = null;
+                      setReplaceUploadTarget(null);
+                      preOdUploadInputRef.current?.click();
+                    }}
                   >
                     Upload Template
                   </button>
@@ -2180,6 +2285,20 @@ export default function Template({ user }: PageProps) {
                   />
                 </>
               )}
+              <input
+                ref={replaceOdUploadInputRef}
+                type="file"
+                accept=".xlsx"
+                style={{ display: "none" }}
+                onChange={handleTemplateExcelUpload}
+              />
+              <input
+                ref={replacePreOdUploadInputRef}
+                type="file"
+                accept=".xlsx"
+                style={{ display: "none" }}
+                onChange={handlePreOdExcelUpload}
+              />
               {typeFilter === "OD" || typeFilter === "All" ? (
                 <button
                   className="create-btn"
@@ -2221,7 +2340,7 @@ export default function Template({ user }: PageProps) {
               >
                 <option value="All">All</option>
                 <option value="OD">OD</option>
-                <option value="Pre OD">Pre OD</option>
+                <option value="Pre OD">Pre-Organizational Development</option>
               </select>
             </div>
 
@@ -2240,7 +2359,13 @@ export default function Template({ user }: PageProps) {
                   <tr>
                     <td colSpan={5} className="empty-row">
                       No{" "}
-                      {typeFilter === "All" ? "" : `${typeFilter} `}
+                      {typeFilter === "All"
+                        ? ""
+                        : `${
+                            typeFilter === "Pre OD"
+                              ? "Pre-Organizational Development"
+                              : typeFilter
+                          } `}
                       templates found
                     </td>
                   </tr>
@@ -2249,7 +2374,7 @@ export default function Template({ user }: PageProps) {
                     <tr key={`${template.templateType}-${template.id}`}>
                       <td>{(page - 1) * pageSize + index + 1}</td>
                       <td>{template.name}</td>
-                      <td>{template.templateType || "OD"}</td>
+                      <td>{template.templateType === "Pre OD" ? "Pre-Organizational Development" : (template.templateType || "OD")}</td>
                       <td>{template.questionCount}</td>
                       <td>
                         <div className="action-icons">
@@ -2275,6 +2400,10 @@ export default function Template({ user }: PageProps) {
                                   downloadTemplate(template.id, template.name)
                                 }
                               />
+                              <UploadIconBtn
+                                title="Upload changes to this template"
+                                onClick={() => openReplaceUpload(template)}
+                              />
                             </>
                           ) : (
                             <>
@@ -2294,7 +2423,7 @@ export default function Template({ user }: PageProps) {
                                 }
                               />
                               <DownloadIconBtn
-                                title="Download Pre OD template"
+                                title="Download Pre-Organizational Development template"
                                 disabled={downloadingId === template.id}
                                 onClick={() =>
                                   downloadPreOdTemplate(
@@ -2304,6 +2433,10 @@ export default function Template({ user }: PageProps) {
                                     template.questionAttachments || {}
                                   )
                                 }
+                              />
+                              <UploadIconBtn
+                                title="Upload changes to this template"
+                                onClick={() => openReplaceUpload(template)}
                               />
                             </>
                           )}
@@ -2369,10 +2502,22 @@ export default function Template({ user }: PageProps) {
             }}
           >
             <h2>
-              {uploadTemplateType === "Pre OD"
-                ? "Upload Pre OD Template"
-                : "Upload OD Template"}
+              {replaceUploadTarget
+                ? uploadTemplateType === "Pre OD"
+                  ? "Update Pre-Organizational Development Template"
+                  : "Update OD Template"
+                : uploadTemplateType === "Pre OD"
+                  ? "Upload Pre-Organizational Development Template"
+                  : "Upload OD Template"}
             </h2>
+
+            {replaceUploadTarget ? (
+              <p style={{ marginTop: 0, marginBottom: 14, color: "#64748b" }}>
+                Replacing questions in{" "}
+                <strong>{replaceUploadTarget.name}</strong>. Download, edit, then
+                upload the Excel file here.
+              </p>
+            ) : null}
 
             {uploadSuccess && (
               <div
@@ -2398,6 +2543,7 @@ export default function Template({ user }: PageProps) {
                 value={uploadTemplateName}
                 onChange={(e) => setUploadTemplateName(e.target.value)}
                 placeholder="Enter template name"
+                disabled={Boolean(replaceUploadTarget)}
               />
             </div>
 
@@ -2493,7 +2639,7 @@ export default function Template({ user }: PageProps) {
               <tbody>
                 {uploadRows.map((item, index) => (
                   <tr key={index}>
-                    <td>{item.rowNumber}</td>
+                    <td>{index + 1}</td>
                     {uploadTemplateType === "Pre OD" ? (
                       <>
                         <td>{item.srNo || "-"}</td>
@@ -2548,7 +2694,13 @@ export default function Template({ user }: PageProps) {
                   !uploadTemplateName.trim()
                 }
               >
-                {importing ? "Importing..." : "Import Template"}
+                {importing
+                  ? replaceUploadTarget
+                    ? "Updating..."
+                    : "Importing..."
+                  : replaceUploadTarget
+                    ? "Update Template"
+                    : "Import Template"}
               </button>
             </div>
           </div>

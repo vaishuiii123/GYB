@@ -1,5 +1,5 @@
 const { getTableClient } = require("../shared/tableHelper");
-
+const { CACHE_KEYS, getOrLoad } = require("../shared/listCache");
 
 const DEFAULT_KEYWORDS = [
   "Integrity",
@@ -54,40 +54,44 @@ function parseKeywords(raw) {
   }
 }
 
+async function loadVisionMissionKeywords() {
+  const tableClient = getTableClient("VisionMission");
+
+  try {
+    const entity = await tableClient.getEntity("VisionMission", "default");
+    return {
+      keywords: parseKeywords(entity.Keywords),
+      modifiedBy: entity.ModifiedBy || "",
+      modifiedDate: entity.ModifiedDate || "",
+    };
+  } catch {
+    return {
+      keywords: DEFAULT_KEYWORDS,
+      modifiedBy: "",
+      modifiedDate: "",
+    };
+  }
+}
+
 module.exports = async function (context, req) {
   try {
-    const tableClient = getTableClient("VisionMission");
+    const { value: data, cacheHit } = await getOrLoad(
+      CACHE_KEYS.visionMissionKeywords,
+      loadVisionMissionKeywords,
+      5 * 60 * 1000
+    );
 
-    try {
-      const entity = await tableClient.getEntity(
-        "VisionMission",
-        "default"
-      );
-
-      context.res = {
-        status: 200,
-        body: {
-          success: true,
-          data: {
-            keywords: parseKeywords(entity.Keywords),
-            modifiedBy: entity.ModifiedBy || "",
-            modifiedDate: entity.ModifiedDate || "",
-          },
-        },
-      };
-    } catch {
-      context.res = {
-        status: 200,
-        body: {
-          success: true,
-          data: {
-            keywords: DEFAULT_KEYWORDS,
-            modifiedBy: "",
-            modifiedDate: "",
-          },
-        },
-      };
-    }
+    context.res = {
+      status: 200,
+      headers: {
+        "Cache-Control": "private, max-age=60",
+        "X-List-Cache": cacheHit ? "HIT" : "MISS",
+      },
+      body: {
+        success: true,
+        data,
+      },
+    };
   } catch (error) {
     context.res = {
       status: 500,

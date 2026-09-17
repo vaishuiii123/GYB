@@ -316,7 +316,7 @@ export default function WorkshopResponses({ user }: PageProps) {
         <div className="admin-dashboard-tabs">
           {(
             [
-              ["preOd", "Pre OD"],
+              ["preOd", "Pre-Organizational Development"],
               ["odChart", "OD Chart"],
               ["visionMission", "Vision & Mission"],
               ["actionables", "Actionables"],

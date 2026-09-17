@@ -1,5 +1,5 @@
 const { getTableClient } = require("../shared/tableHelper");
-
+const { CACHE_KEYS, invalidate, invalidatePrefix } = require("../shared/listCache");
 
 module.exports = async function (context, req) {
   try {
@@ -19,6 +19,9 @@ module.exports = async function (context, req) {
     const client = getTableClient("Workshop");
 
     await client.deleteEntity("Workshop", workshopId);
+
+    invalidate(CACHE_KEYS.workshops);
+    invalidatePrefix("list:workshop-by-org:");
 
     context.res = {
       status: 200,

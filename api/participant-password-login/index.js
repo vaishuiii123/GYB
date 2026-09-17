@@ -60,12 +60,18 @@ module.exports = async function (context, req) {
     }
 
     const { participant, organizationId, orgName } = loginContext;
+    const user = buildUserResponse(participant, orgName, organizationId);
+    const smsBypass =
+      String(process.env.SMS_DEV_BYPASS || "").toLowerCase() === "true" ||
+      String(process.env.SMS_PROVIDER || "").toLowerCase() === "mock";
 
     context.res = {
       status: 200,
       body: {
         success: true,
-        user: buildUserResponse(participant, orgName, organizationId),
+        // Local/dev: skip SMS OTP when bypass is enabled.
+        skipOtp: smsBypass,
+        user,
       },
     };
   } catch (error) {

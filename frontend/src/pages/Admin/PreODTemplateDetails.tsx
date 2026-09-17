@@ -29,7 +29,7 @@ export default function PreODTemplateDetails({ user }: PageProps) {
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        setError(data.message || "Unable to load Pre OD template.");
+        setError(data.message || "Unable to load Pre-Organizational Development template.");
         setTemplate(null);
         return;
       }
@@ -37,7 +37,7 @@ export default function PreODTemplateDetails({ user }: PageProps) {
       setTemplate(data.template);
     } catch (err) {
       console.error(err);
-      setError("Unable to load Pre OD template.");
+      setError("Unable to load Pre-Organizational Development template.");
       setTemplate(null);
     }
   };
@@ -104,10 +104,10 @@ export default function PreODTemplateDetails({ user }: PageProps) {
               Template
             </span>
             {" > "}
-            <span>Pre OD Template Details</span>
+            <span>Pre-Organizational Development Template Details</span>
           </div>
 
-          <h1 className="page-title">Pre OD Template Details</h1>
+          <h1 className="page-title">Pre-Organizational Development Template Details</h1>
 
           <div className="template-card">
             <div className="form-row">
@@ -117,7 +117,7 @@ export default function PreODTemplateDetails({ user }: PageProps) {
               </div>
               <div className="form-group">
                 <label>Type</label>
-                <input value="Pre OD" disabled />
+                <input value="Pre-Organizational Development" disabled />
               </div>
             </div>
 

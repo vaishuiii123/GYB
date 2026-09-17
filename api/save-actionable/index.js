@@ -109,6 +109,16 @@ module.exports = async function (context, req) {
       await tableClient.createEntity(entity);
     }
 
+    try {
+      const { invalidate } = require("../shared/listCache");
+      invalidate(
+        `list:actionables:${participantId}:${workshopId || ""}`
+      );
+      invalidate(`list:actionables:${participantId}:`);
+    } catch {
+      // ignore cache invalidate errors
+    }
+
     context.res = {
       status: 200,
       body: {

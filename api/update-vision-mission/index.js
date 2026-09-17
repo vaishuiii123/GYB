@@ -1,4 +1,5 @@
 const { getTableClient } = require("../shared/tableHelper");
+const { CACHE_KEYS, invalidate } = require("../shared/listCache");
 
 
 module.exports = async function (context, req) {
@@ -47,6 +48,8 @@ module.exports = async function (context, req) {
     } catch {
       await tableClient.createEntity(entity);
     }
+
+    invalidate(CACHE_KEYS.visionMissionKeywords);
 
     context.res = {
       status: 200,

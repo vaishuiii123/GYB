@@ -1,7 +1,7 @@
 const { getTableClient } = require("../shared/tableHelper");
+const { CACHE_KEYS, invalidate, invalidatePrefix } = require("../shared/listCache");
 
 const { PRE_OD_QUESTIONS } = require("../shared/preOdQuestions");
-const { canEditPreOd } = require("../shared/workshopAccess");
 const {
   normalizeCustomQuestions,
   serializeCustomQuestions,
@@ -50,7 +50,7 @@ module.exports = async function (context, req) {
         body: {
           success: false,
           message:
-            "Select at least one Pre OD question or add a custom question.",
+            "Select at least one Pre-Organizational Development question or add a custom question.",
         },
       };
       return;
@@ -67,18 +67,6 @@ module.exports = async function (context, req) {
         body: {
           success: false,
           message: "Workshop not found.",
-        },
-      };
-      return;
-    }
-
-    if (!canEditPreOd({ startDate: workshop.StartDate })) {
-      context.res = {
-        status: 403,
-        body: {
-          success: false,
-          message:
-            "This workshop has started. Pre OD can no longer be created or edited.",
         },
       };
       return;
@@ -106,11 +94,14 @@ module.exports = async function (context, req) {
       "Merge"
     );
 
+    invalidate(CACHE_KEYS.workshops);
+    invalidatePrefix("list:workshop-by-org:");
+
     context.res = {
       status: 200,
       body: {
         success: true,
-        message: "Pre OD assigned to workshop successfully.",
+        message: "Pre-Organizational Development assigned to workshop successfully.",
         workshopId,
         workshopName: workshop.WorkshopName || "",
         questionSrNos: filteredSrNos,

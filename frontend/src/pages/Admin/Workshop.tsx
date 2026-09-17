@@ -14,6 +14,8 @@ import {
   ADMIN_CACHE_KEYS,
   readAdminListCache,
   writeAdminListCache,
+  fetchOnce,
+  isAdminListCacheFresh,
 } from "../../utils/adminListCache";
 import {
   getWorkshopLifecycleStatus,
@@ -83,20 +85,6 @@ export default function Workshop({ user }: PageProps) {
     )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
   };
 
-  /** Admin can edit workshop details until the workshop start time. */
-  const canEditWorkshop = (workshop: any) => {
-    if (!workshop?.startDate) {
-      return true;
-    }
-
-    const startMs = new Date(workshop.startDate).getTime();
-    if (Number.isNaN(startMs)) {
-      return true;
-    }
-
-    return Date.now() < startMs;
-  };
-
   const formatDateTime = (value?: string) => {
     if (!value) {
       return "-";
@@ -136,10 +124,18 @@ export default function Workshop({ user }: PageProps) {
     if (cachedPreOd) setPreOdTemplates(cachedPreOd);
     if (cachedOrgs) setOrganizations(cachedOrgs);
 
-    loadTemplates();
-    loadPreOdTemplates();
-    loadOrganizations();
-    loadWorkshops();
+    if (!isAdminListCacheFresh(ADMIN_CACHE_KEYS.templates)) {
+      loadTemplates();
+    }
+    if (!isAdminListCacheFresh(ADMIN_CACHE_KEYS.preOdTemplates)) {
+      loadPreOdTemplates();
+    }
+    if (!isAdminListCacheFresh(ADMIN_CACHE_KEYS.organizations)) {
+      loadOrganizations();
+    }
+    if (!isAdminListCacheFresh(ADMIN_CACHE_KEYS.workshops)) {
+      loadWorkshops();
+    }
   }, [user?.email, user?.role]);
 
   const filteredWorkshops = useMemo(() => {
@@ -204,7 +200,7 @@ export default function Workshop({ user }: PageProps) {
 
   const loadOrganizations = async () => {
     try {
-      const response = await fetch("/api/get-organizations");
+      const response = await fetchOnce("/api/get-organizations");
       const data = await response.json();
 
       if (data.success) {
@@ -335,15 +331,28 @@ export default function Workshop({ user }: PageProps) {
 
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.success) {
-        throw new Error(
-          data.message || data.error || "Failed to send workshop emails."
-        );
+        const resultErrors = Array.isArray(data.results)
+          ? data.results
+              .filter((item: any) => !item.success && item.error)
+              .map((item: any) => `${item.name || item.email}: ${item.error}`)
+          : [];
+        const detail =
+          resultErrors.length > 0
+            ? resultErrors.slice(0, 3).join("; ")
+            : data.message || data.error;
+        throw new Error(detail || "Failed to send workshop emails.");
       }
 
+      const usedBypass = Array.isArray(data.results)
+        ? data.results.some((item: any) => item.provider === "mock")
+        : false;
+
       appAlert(
-        data.message ||
-          `Sent ${data.sentCount || 0} of ${data.total || targets.length} emails.`,
-        "success"
+        usedBypass
+          ? "Email was not sent to inboxes. Local API is in EMAIL_DEV_BYPASS mode — add Graph email settings to send real mail."
+          : data.message ||
+              `Sent ${data.sentCount || 0} of ${data.total || targets.length} emails.`,
+        usedBypass ? "warning" : "success"
       );
     } catch (error: any) {
       console.error(error);
@@ -360,11 +369,6 @@ export default function Workshop({ user }: PageProps) {
   };
 
   const openEditPopup = async (workshop: any) => {
-    if (!canEditWorkshop(workshop)) {
-      alert("This workshop has started and can no longer be edited.");
-      return;
-    }
-
     setModalMode("edit");
     setEditingWorkshopId(workshop.id);
     setFormData({
@@ -414,7 +418,7 @@ export default function Workshop({ user }: PageProps) {
     const data = await response.json();
 
     if (!response.ok || !data.success) {
-      throw new Error(data.message || "Failed to assign Pre OD questions");
+      throw new Error(data.message || "Failed to assign Pre-Organizational Development questions");
     }
   };
 
@@ -443,7 +447,7 @@ export default function Workshop({ user }: PageProps) {
       !(preOdStartMs < startMs && startMs < endMs)
     ) {
       alert(
-        "Dates must be in order: Pre OD Start < Workshop Start < Workshop End."
+        "Dates must be in order: Pre-Organizational Development Start < Workshop Start < Workshop End."
       );
       return;
     }
@@ -526,7 +530,7 @@ export default function Workshop({ user }: PageProps) {
 
   const loadWorkshops = async () => {
     try {
-      const response = await fetch("/api/get-workshops");
+      const response = await fetchOnce("/api/get-workshops");
       const data = await response.json();
 
       if (data.success) {
@@ -656,7 +660,7 @@ export default function Workshop({ user }: PageProps) {
                 <div className={styles.formGridThree}>
                   <div className={styles.formGroup}>
                     <label className={styles.label}>
-                      Pre OD Start Date-Time *
+                      Pre-Organizational Development Start Date-Time *
                     </label>
 
                     <input
@@ -671,7 +675,7 @@ export default function Workshop({ user }: PageProps) {
                       }
                     />
                     <p className={styles.fieldHint}>
-                      Participants can fill Pre OD from this time.
+                      Participants can fill Pre-Organizational Development from this time.
                     </p>
                   </div>
 
@@ -692,7 +696,7 @@ export default function Workshop({ user }: PageProps) {
                       }
                     />
                     <p className={styles.fieldHint}>
-                      Pre OD closes and admin editing locks at this time.
+                      Pre-Organizational Development closes for participants at this time.
                     </p>
                   </div>
 
@@ -721,7 +725,7 @@ export default function Workshop({ user }: PageProps) {
                 <div className={styles.formGridTwo}>
                   <div className={styles.formGroup}>
                     <label className={styles.label}>
-                      Select Pre OD Template *
+                      Select Pre-Organizational Development Template *
                     </label>
 
                     <select
@@ -734,7 +738,7 @@ export default function Workshop({ user }: PageProps) {
                         })
                       }
                     >
-                      <option value="">Select Pre OD Template</option>
+                      <option value="">Select Pre-Organizational Development Template</option>
                       {preOdTemplates.map((template: any) => (
                         <option key={template.id} value={template.id}>
                           {template.templateName}
@@ -791,27 +795,6 @@ export default function Workshop({ user }: PageProps) {
 
                 {formData.organizationId && (
                   <div className={styles.modalParticipants}>
-                    {formData.preOdTemplateId && (
-                      <p className={styles.selectedTemplateName}>
-                        Pre OD Template:{" "}
-                        <strong>
-                          {preOdTemplates.find(
-                            (t) => t.id === formData.preOdTemplateId
-                          )?.templateName || "-"}
-                        </strong>
-                      </p>
-                    )}
-
-                    {formData.templateId && (
-                      <p className={styles.selectedTemplateName}>
-                        OD Template:{" "}
-                        <strong>
-                          {templates.find((t) => t.id === formData.templateId)
-                            ?.templateName || "-"}
-                        </strong>
-                      </p>
-                    )}
-
                     <h4 className={styles.modalParticipantsTitle}>
                       Participants in selected organization (
                       {participants.length})
@@ -884,9 +867,9 @@ export default function Workshop({ user }: PageProps) {
                   <th className={styles.th}>Sr No</th>
                   <th className={styles.th}>Workshop Name</th>
                   <th className={styles.th}>OD Template</th>
-                  <th className={styles.th}>Pre OD Questions</th>
+                  <th className={styles.th}>Pre-Organizational Development Questions</th>
                   <th className={styles.th}>Organization</th>
-                  <th className={styles.th}>Pre OD Start</th>
+                  <th className={styles.th}>Pre-Organizational Development Start</th>
                   <th className={styles.th}>Workshop Start</th>
                   <th className={styles.th}>Workshop End</th>
                   <th className={styles.th}>Participants</th>
@@ -929,19 +912,10 @@ export default function Workshop({ user }: PageProps) {
                             }
                             disabled={loadingOrgView}
                           />
-                          {canEditWorkshop(workshop) ? (
-                            <EditIconBtn
-                              onClick={() => openEditPopup(workshop)}
-                              title="Edit workshop (available before workshop start)"
-                            />
-                          ) : (
-                            <span
-                              className={styles.fieldHint}
-                              title="Editing locks when the workshop starts"
-                            >
-                              Locked
-                            </span>
-                          )}
+                          <EditIconBtn
+                            onClick={() => openEditPopup(workshop)}
+                            title="Edit workshop templates and timings"
+                          />
                           <DeleteIconBtn
                             onClick={() => handleDeleteWorkshop(workshop)}
                             disabled={deletingWorkshopId === workshop.id}
@@ -1012,14 +986,14 @@ export default function Workshop({ user }: PageProps) {
                       </div>
                       <div>
                         <span className={styles.infoLabel}>
-                          Pre OD Template
+                          Pre-Organizational Development Template
                         </span>
                         <p className={styles.infoValue}>
                           {viewWorkshopDetails.preOdTemplateName || "-"}
                         </p>
                       </div>
                       <div>
-                        <span className={styles.infoLabel}>Pre OD Start</span>
+                        <span className={styles.infoLabel}>Pre-Organizational Development Start</span>
                         <p className={styles.infoValue}>
                           {formatDateTime(viewWorkshopDetails.preOdStartDate)}
                         </p>

@@ -37,7 +37,7 @@ function validateWorkshopDateOrder({ preOdStartDate, startDate, endDate }) {
   if (preOdStartMs === null || startMs === null || endMs === null) {
     return {
       ok: false,
-      message: "Pre OD Start, Workshop Start, and Workshop End are required.",
+      message: "Pre-Organizational Development Start, Workshop Start, and Workshop End are required.",
     };
   }
 
@@ -45,7 +45,7 @@ function validateWorkshopDateOrder({ preOdStartDate, startDate, endDate }) {
     return {
       ok: false,
       message:
-        "Dates must be in order: Pre OD Start < Workshop Start < Workshop End.",
+        "Dates must be in order: Pre-Organizational Development Start < Workshop Start < Workshop End.",
     };
   }
 

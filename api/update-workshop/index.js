@@ -1,7 +1,6 @@
 const { getTableClient } = require("../shared/tableHelper");
-
-const { parseWorkshopStartMs } = require("../shared/workshopAccess");
 const { validateWorkshopDateOrder } = require("../shared/workshopDates");
+const { CACHE_KEYS, invalidate, invalidatePrefix } = require("../shared/listCache");
 
 module.exports = async function (context, req) {
   try {
@@ -65,18 +64,6 @@ module.exports = async function (context, req) {
       return;
     }
 
-    const startMs = parseWorkshopStartMs(workshop.StartDate);
-    if (startMs !== null && Date.now() >= startMs) {
-      context.res = {
-        status: 403,
-        body: {
-          success: false,
-          message: "This workshop has started and can no longer be edited.",
-        },
-      };
-      return;
-    }
-
     await client.updateEntity(
       {
         partitionKey: "Workshop",
@@ -93,6 +80,9 @@ module.exports = async function (context, req) {
       },
       "Merge"
     );
+
+    invalidate(CACHE_KEYS.workshops);
+    invalidatePrefix("list:workshop-by-org:");
 
     context.res = {
       status: 200,

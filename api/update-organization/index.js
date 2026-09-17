@@ -1,6 +1,6 @@
 const { getTableClient } = require("../shared/tableHelper");
-
 const { isValidEmail } = require("../shared/validation");
+const { CACHE_KEYS, invalidate } = require("../shared/listCache");
 
 module.exports = async function (context, req) {
   try {
@@ -50,6 +50,8 @@ module.exports = async function (context, req) {
       },
       "Merge"
     );
+
+    invalidate(CACHE_KEYS.organizations);
 
     context.res = {
       status: 200,

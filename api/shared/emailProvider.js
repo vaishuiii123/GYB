@@ -5,6 +5,36 @@ function isEmailBypassEnabled() {
   );
 }
 
+function isGraphEmailConfigured() {
+  const tenantId = process.env.GRAPH_TENANT_ID || process.env.AZURE_TENANT_ID;
+  const clientId = process.env.GRAPH_CLIENT_ID || process.env.AZURE_CLIENT_ID;
+  const clientSecret =
+    process.env.GRAPH_CLIENT_SECRET || process.env.AZURE_CLIENT_SECRET;
+  const from =
+    process.env.EMAIL_FROM ||
+    process.env.GRAPH_SENDER_EMAIL ||
+    process.env.WORKSHOP_EMAIL_FROM;
+
+  return Boolean(tenantId && clientId && clientSecret && from);
+}
+
+function shouldUseEmailBypass() {
+  if (isEmailBypassEnabled()) {
+    return true;
+  }
+
+  const runtimeEnv = String(
+    process.env.AZURE_FUNCTIONS_ENVIRONMENT || ""
+  ).toLowerCase();
+
+  // Local `func start` runs as Development; log emails instead of failing.
+  if (runtimeEnv === "development" && !isGraphEmailConfigured()) {
+    return true;
+  }
+
+  return false;
+}
+
 async function getGraphAccessToken() {
   const tenantId = process.env.GRAPH_TENANT_ID || process.env.AZURE_TENANT_ID;
   const clientId = process.env.GRAPH_CLIENT_ID || process.env.AZURE_CLIENT_ID;
@@ -105,7 +135,7 @@ async function sendEmail({ to, subject, text, html }) {
     throw new Error("Email recipient is required");
   }
 
-  if (isEmailBypassEnabled()) {
+  if (shouldUseEmailBypass()) {
     console.log("[EMAIL BYPASS]", {
       to: recipient,
       subject,
@@ -119,6 +149,11 @@ async function sendEmail({ to, subject, text, html }) {
 
   const provider = String(process.env.EMAIL_PROVIDER || "graph").toLowerCase();
   if (provider === "graph") {
+    if (!isGraphEmailConfigured()) {
+      throw new Error(
+        "Workshop email is not configured. Set EMAIL_FROM and Graph credentials (GRAPH_TENANT_ID, GRAPH_CLIENT_ID, GRAPH_CLIENT_SECRET), or EMAIL_DEV_BYPASS=true for local testing."
+      );
+    }
     return sendViaGraph({ to: recipient, subject, text, html });
   }
 
@@ -128,4 +163,6 @@ async function sendEmail({ to, subject, text, html }) {
 module.exports = {
   sendEmail,
   isEmailBypassEnabled,
+  isGraphEmailConfigured,
+  shouldUseEmailBypass,
 };

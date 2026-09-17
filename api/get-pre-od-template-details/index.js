@@ -33,7 +33,7 @@ module.exports = async function (context, req) {
           status: 404,
           body: {
             success: false,
-            message: "Pre OD template not found.",
+            message: "Pre-Organizational Development template not found.",
           },
         };
         return;

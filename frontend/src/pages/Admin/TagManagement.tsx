@@ -79,7 +79,7 @@ export default function TagManagement({ user }: PageProps) {
 
         if(!tagName.trim() || !tagColor.trim()){
 
-            alert("Please enter Tag Name and Color");
+            alert("Please enter name and color");
 
             return;
 
@@ -250,7 +250,7 @@ export default function TagManagement({ user }: PageProps) {
 
         const confirmDelete =
             await appConfirm(
-                "Are you sure you want to delete this tag?"
+                "Are you sure you want to delete this item?"
             );
 
 
@@ -300,72 +300,29 @@ export default function TagManagement({ user }: PageProps) {
     return (
 
         <div className="tag-page">
-
-
             <Sidebar />
-
-
             <div className="tag-content">
-
-
                 <Header user={user}/>
-
-
-
                 <div className="tag-body">
-
-
-                    <div className="breadcrumb">
-
-                        Tag Management
-
-                    </div>
-
-
-
-
-                    <div className="page-header">
-
-
-                        <h1 className="page-title">
-
-                            Tags
-
-                        </h1>
-
-
+                    <div className="page-header page-header-end">
                         <button
-
                             className="create-btn"
-
-                            onClick={()=>{
-
+                            onClick={() => {
                                 setEditMode(false);
-
                                 setTagName("");
-
                                 setTagColor("");
-
                                 setShowModal(true);
-
                             }}
-
                         >
-
-                            + Create Tag
-
+                            + Create
                         </button>
-
-
                     </div>
 
                     <div className="tag-card">
                         <table className="tag-table">
                             <thead>
                                 <tr>
-                                    <th>
-                                        Tag Name
-                                    </th>
+                                    <th>Name</th>
                                     <th>
                                         Actions
                                     </th>
@@ -379,7 +336,7 @@ export default function TagManagement({ user }: PageProps) {
                                     <tr>
 
                                         <td>
-                                            No Tags Available
+                                            No records available
                                         </td>
 
                                         <td></td>
@@ -473,13 +430,7 @@ export default function TagManagement({ user }: PageProps) {
 
                             <h2>
 
-                                {
-                                    editMode
-                                    ?
-                                    "Edit Tag"
-                                    :
-                                    "Create Tag"
-                                }
+                                {editMode ? "Edit" : "Create"}
 
                             </h2>
 
@@ -487,9 +438,7 @@ export default function TagManagement({ user }: PageProps) {
 
                             <div className="form-group">
 
-                                <label>
-                                    Tag Name
-                                </label>
+                                <label>Name</label>
 
 
                                 <input
@@ -510,9 +459,7 @@ export default function TagManagement({ user }: PageProps) {
 
                             <div className="form-group">
 
-                                <label>
-                                    Tag Color
-                                </label>
+                                <label>Color</label>
 
 
                                 <input

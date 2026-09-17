@@ -1,5 +1,9 @@
 const { ensureTableClient } = require("../shared/tableHelper");
 const { assertWorkshopEditable } = require("../shared/workshopAccess");
+const {
+  invalidate,
+  visionMissionResponseKey,
+} = require("../shared/listCache");
 
 function cleanKeywords(value) {
   if (!Array.isArray(value)) {
@@ -110,6 +114,11 @@ module.exports = async function (context, req) {
         await tableClient.createEntity(workshopEntity);
       }
     }
+
+    invalidate(
+      visionMissionResponseKey(String(participantId), String(resolvedWorkshopId || workshopId || ""))
+    );
+    invalidate(visionMissionResponseKey(String(participantId), ""));
 
     context.res = {
       status: 200,

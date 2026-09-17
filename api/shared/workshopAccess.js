@@ -37,17 +37,9 @@ function parseWorkshopStartMs(startDate) {
   return date.getTime();
 }
 
-function canEditPreOd(workshop, nowMs = Date.now()) {
-  // Admin may assign/edit Pre OD until the workshop starts.
-  const startMs = parseWorkshopStartMs(
-    workshop?.startDate || workshop?.StartDate
-  );
-
-  if (startMs === null) {
-    return true;
-  }
-
-  return nowMs < startMs;
+function canEditPreOd(_workshop, _nowMs = Date.now()) {
+  // Admin may assign/edit Pre OD templates and timings at any time.
+  return true;
 }
 
 function canFillPreOdWindow(workshop, nowMs = Date.now()) {
@@ -61,14 +53,14 @@ function canFillPreOdWindow(workshop, nowMs = Date.now()) {
   if (workshopStartMs !== null && nowMs >= workshopStartMs) {
     return {
       canFill: false,
-      message: "The workshop has started. Pre OD is now closed.",
+      message: "The workshop has started. Pre-Organizational Development is now closed.",
     };
   }
 
   if (preOdStartMs !== null && nowMs < preOdStartMs) {
     return {
       canFill: false,
-      message: "Pre OD is not open yet. Please check back at the Pre OD start time.",
+      message: "Pre-Organizational Development is not open yet. Please check back at the Pre-Organizational Development start time.",
     };
   }
 
@@ -94,7 +86,7 @@ function getWorkshopEditStatus(workshop, nowMs = Date.now()) {
     return {
       canEdit: false,
       message:
-        "Workshop modules open once the workshop starts. You can complete Pre OD until then.",
+        "Workshop modules open once the workshop starts. You can complete Pre-Organizational Development until then.",
       endDate: workshop.endDate || workshop.EndDate || "",
     };
   }
@@ -458,7 +450,7 @@ function getPreOdFillStatus(workshop, nowMs = Date.now()) {
     return {
       available: false,
       canFill: false,
-      message: "Pre OD has not been assigned for this workshop yet.",
+      message: "Pre-Organizational Development has not been assigned for this workshop yet.",
     };
   }
 

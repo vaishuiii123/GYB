@@ -141,7 +141,7 @@ module.exports = async function (context, req) {
         status: 404,
         body: {
           success: false,
-          message: "No Pre OD questions are assigned to this workshop.",
+          message: "No Pre-Organizational Development questions are assigned to this workshop.",
         },
       };
       return;
@@ -173,8 +173,8 @@ module.exports = async function (context, req) {
       body: {
         success: true,
         message: isDraft
-          ? "Pre OD draft saved successfully."
-          : "Pre OD submitted successfully.",
+          ? "Pre-Organizational Development draft saved successfully."
+          : "Pre-Organizational Development submitted successfully.",
         data: {
           participantId,
           workshopId: workshop.id,

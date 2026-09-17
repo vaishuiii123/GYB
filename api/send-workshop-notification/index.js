@@ -263,8 +263,8 @@ module.exports = async function (context, req) {
               loginId,
               password: loginPassword,
               loginUrl: appLoginUrl,
-              startDate: formatDate(workshop.startDate),
-              endDate: formatDate(workshop.endDate),
+              startDate: workshop.startDate,
+              endDate: workshop.endDate,
             });
 
             const emailResult = await sendEmail({
@@ -324,6 +324,10 @@ module.exports = async function (context, req) {
 
     const sentCount = results.filter((item) => item.success).length;
     const failedCount = results.length - sentCount;
+    const firstFailure = results.find((item) => !item.success);
+    const failureHint = firstFailure?.error
+      ? String(firstFailure.error)
+      : "Failed to send notifications";
 
     context.res = {
       status: 200,
@@ -339,7 +343,7 @@ module.exports = async function (context, req) {
             ? "Workshop notifications sent successfully"
             : sentCount > 0
               ? `Sent ${sentCount} of ${results.length} notifications`
-              : "Failed to send notifications",
+              : failureHint,
       },
     };
   } catch (error) {

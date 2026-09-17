@@ -1,9 +1,27 @@
 /* Shared admin button system — keep sizes/colors consistent across admin pages */
 
 :root {
-  --admin-brand: #9b304a;
-  --admin-brand-hover: #7e263c;
-  --admin-brand-disabled: #c4a0ab;
+  --admin-brand: var(--gyb-brand, #9b304a);
+  --admin-brand-hover: var(--gyb-brand-hover, #7e263c);
+  --admin-brand-disabled: var(--gyb-brand-muted, #c4a0ab);
+}
+
+.create-btn,
+.save-btn,
+.org-btn-primary,
+.admin-dashboard-link-btn,
+.pre-od-save-btn,
+.admin-btn-primary,
+.cancel-btn,
+.org-btn-cancel,
+.pre-od-cancel-btn,
+.admin-btn-cancel,
+.admin-dashboard-secondary-btn,
+.org-btn,
+.org-field-label,
+.org-modal-title,
+.org-page-title {
+  font-family: var(--gyb-font, "Segoe UI", Tahoma, Geneva, Verdana, sans-serif);
 }
 
 .create-btn,

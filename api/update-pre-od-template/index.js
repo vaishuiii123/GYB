@@ -7,8 +7,27 @@ const {
 
 module.exports = async function (context, req) {
   try {
-    const { templateName, questionSrNos, questionAttachments, createdBy } =
-      req.body || {};
+    const body =
+      typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
+
+    const {
+      templateId,
+      templateName,
+      questionSrNos,
+      questionAttachments,
+      modifiedBy,
+    } = body;
+
+    if (!templateId) {
+      context.res = {
+        status: 400,
+        body: {
+          success: false,
+          message: "Template ID is required.",
+        },
+      };
+      return;
+    }
 
     if (!templateName || !String(templateName).trim()) {
       context.res = {
@@ -39,7 +58,9 @@ module.exports = async function (context, req) {
       return;
     }
 
-    const validSrNos = new Set(PRE_OD_QUESTIONS.map((item) => String(item.srNo)));
+    const validSrNos = new Set(
+      PRE_OD_QUESTIONS.map((item) => String(item.srNo))
+    );
     const filteredSrNos = srNos.filter((srNo) => validSrNos.has(String(srNo)));
 
     if (filteredSrNos.length === 0) {
@@ -60,33 +81,42 @@ module.exports = async function (context, req) {
 
     const client = getTableClient("PreODTemplate");
 
+    let existing;
     try {
-      await client.createTable();
-    } catch (error) {
-      if (!error.message?.includes("TableAlreadyExists")) {
-        throw error;
-      }
+      existing = await client.getEntity("PreODTemplate", String(templateId));
+    } catch {
+      context.res = {
+        status: 404,
+        body: {
+          success: false,
+          message: "Pre-Organizational Development template not found.",
+        },
+      };
+      return;
     }
 
-    const templateId = Date.now().toString();
-
-    await client.createEntity({
-      partitionKey: "PreODTemplate",
-      rowKey: templateId,
-      TemplateName: String(templateName).trim(),
-      QuestionSrNos: filteredSrNos.join(","),
-      QuestionAttachments: serializeQuestionAttachments(attachmentsMap),
-      CreatedBy: createdBy || "Admin",
-      CreatedDate: new Date().toISOString(),
-    });
+    await client.updateEntity(
+      {
+        partitionKey: "PreODTemplate",
+        rowKey: String(templateId),
+        TemplateName: String(templateName).trim(),
+        QuestionSrNos: filteredSrNos.join(","),
+        QuestionAttachments: serializeQuestionAttachments(attachmentsMap),
+        CreatedBy: existing.CreatedBy || "Admin",
+        CreatedDate: existing.CreatedDate || new Date().toISOString(),
+        ModifiedBy: modifiedBy || "Admin",
+        ModifiedDate: new Date().toISOString(),
+      },
+      "Replace"
+    );
 
     context.res = {
-      status: 201,
+      status: 200,
       body: {
         success: true,
-        message: "Pre-Organizational Development template created successfully.",
+        message: "Pre-Organizational Development template updated successfully.",
         template: {
-          id: templateId,
+          id: String(templateId),
           templateName: String(templateName).trim(),
           templateType: "Pre OD",
           questionSrNos: filteredSrNos,

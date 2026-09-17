@@ -1,4 +1,8 @@
 const { getTableClient } = require("../shared/tableHelper");
+const {
+  getOrLoad,
+  visionMissionResponseKey,
+} = require("../shared/listCache");
 
 function parseJsonArray(value) {
   if (Array.isArray(value)) {
@@ -66,6 +70,43 @@ function belongsToParticipant(entity, participantId) {
   return rowKey === expected || storedParticipantId === expected;
 }
 
+async function loadVisionMissionResponse(participantId, workshopId) {
+  const tableClient = await getTableClient("VisionMissionResponse");
+  let entity = null;
+
+  if (workshopId) {
+    try {
+      const workshopRow = await tableClient.getEntity(workshopId, participantId);
+      if (belongsToParticipant(workshopRow, participantId)) {
+        entity = workshopRow;
+      }
+    } catch {
+      entity = null;
+    }
+  }
+
+  if (!entity) {
+    try {
+      const legacy = await tableClient.getEntity("Participant", participantId);
+      if (belongsToParticipant(legacy, participantId)) {
+        const legacyWorkshopId = String(legacy.WorkshopId || "").trim();
+
+        if (!workshopId) {
+          entity = legacy;
+        } else if (legacyWorkshopId && legacyWorkshopId === workshopId) {
+          entity = legacy;
+        }
+      }
+    } catch {
+      entity = null;
+    }
+  }
+
+  return entity
+    ? mapEntity(entity, participantId)
+    : emptyResponse(participantId, "", workshopId);
+}
+
 module.exports = async function (context, req) {
   try {
     const participantId = String(req.query.participantId || "").trim();
@@ -82,52 +123,23 @@ module.exports = async function (context, req) {
       return;
     }
 
-    const tableClient = await getTableClient("VisionMissionResponse");
-    let entity = null;
-
-    // Workshop-scoped row only (each participant + workshop is isolated).
-    if (workshopId) {
-      try {
-        const workshopRow = await tableClient.getEntity(
-          workshopId,
-          participantId
-        );
-        if (belongsToParticipant(workshopRow, participantId)) {
-          entity = workshopRow;
-        }
-      } catch {
-        entity = null;
-      }
-    }
-
-    // Legacy Participant row: only when it is for this participant AND this workshop.
-    if (!entity) {
-      try {
-        const legacy = await tableClient.getEntity("Participant", participantId);
-        if (!belongsToParticipant(legacy, participantId)) {
-          // ignore
-        } else {
-          const legacyWorkshopId = String(legacy.WorkshopId || "").trim();
-
-          if (!workshopId) {
-            entity = legacy;
-          } else if (legacyWorkshopId && legacyWorkshopId === workshopId) {
-            entity = legacy;
-          }
-        }
-      } catch {
-        entity = null;
-      }
-    }
+    const cacheKey = visionMissionResponseKey(participantId, workshopId);
+    const { value: data, cacheHit } = await getOrLoad(
+      cacheKey,
+      () => loadVisionMissionResponse(participantId, workshopId),
+      45 * 1000
+    );
 
     context.res = {
       status: 200,
+      headers: {
+        "Cache-Control": "private, max-age=30",
+        "X-List-Cache": cacheHit ? "HIT" : "MISS",
+      },
       body: {
         success: true,
         table: "VisionMissionResponse",
-        data: entity
-          ? mapEntity(entity, participantId)
-          : emptyResponse(participantId, "", workshopId),
+        data,
       },
     };
   } catch (error) {

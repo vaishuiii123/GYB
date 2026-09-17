@@ -1,5 +1,5 @@
 const { getTableClient } = require("../shared/tableHelper");
-
+const { CACHE_KEYS, invalidate } = require("../shared/listCache");
 
 module.exports = async function (context, req) {
   try {
@@ -89,6 +89,8 @@ module.exports = async function (context, req) {
       organizationEntity.partitionKey,
       organizationEntity.rowKey
     );
+
+    invalidate(CACHE_KEYS.organizations);
 
     context.res = {
       status: 200,

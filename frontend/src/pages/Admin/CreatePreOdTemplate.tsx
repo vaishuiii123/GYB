@@ -44,7 +44,7 @@ export default function CreatePreOdTemplate({ user }: PageProps) {
       const bankResponse = await fetch("/api/get-pre-od-questions");
       const bankData = await bankResponse.json();
       if (!bankResponse.ok || !bankData.success) {
-        throw new Error(bankData.message || "Unable to load Pre OD questions.");
+        throw new Error(bankData.message || "Unable to load Pre-Organizational Development questions.");
       }
 
       const bank: BankQuestion[] = bankData.questions || [];
@@ -59,12 +59,12 @@ export default function CreatePreOdTemplate({ user }: PageProps) {
         const detailsData = await detailsResponse.json();
         if (!detailsResponse.ok || !detailsData.success) {
           throw new Error(
-            detailsData.message || "Unable to load source Pre OD template."
+            detailsData.message || "Unable to load source Pre-Organizational Development template."
           );
         }
 
         const source = detailsData.template;
-        setTemplateName(`Copy of ${source.templateName || "Pre OD Template"}`);
+        setTemplateName(`Copy of ${source.templateName || "Pre-Organizational Development Template"}`);
         setSelected(
           new Set(
             (source.questionSrNos || []).map((item: string | number) =>
@@ -83,7 +83,7 @@ export default function CreatePreOdTemplate({ user }: PageProps) {
       }
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "Unable to load Pre OD template form.");
+      setError(err.message || "Unable to load Pre-Organizational Development template form.");
     } finally {
       setLoading(false);
     }
@@ -137,7 +137,7 @@ export default function CreatePreOdTemplate({ user }: PageProps) {
 
     const questionSrNos = Array.from(selected);
     if (questionSrNos.length === 0) {
-      alert("Select at least one Pre OD question.");
+      alert("Select at least one Pre-Organizational Development question.");
       return;
     }
 
@@ -161,16 +161,16 @@ export default function CreatePreOdTemplate({ user }: PageProps) {
       const data = await response.json();
       if (!response.ok || !data.success) {
         throw new Error(
-          data.message || data.error || "Failed to create Pre OD template."
+          data.message || data.error || "Failed to create Pre-Organizational Development template."
         );
       }
 
       clearAdminListCache(ADMIN_CACHE_KEYS.preOdTemplates);
-      alert(`Pre OD template "${name}" created successfully.`);
+      alert(`Pre-Organizational Development template "${name}" created successfully.`);
       navigate("/template");
     } catch (err: any) {
       console.error(err);
-      alert(err.message || "Failed to create Pre OD template.");
+      alert(err.message || "Failed to create Pre-Organizational Development template.");
     } finally {
       setSaving(false);
     }
@@ -189,12 +189,12 @@ export default function CreatePreOdTemplate({ user }: PageProps) {
               Template
             </span>
             {" > "}
-            <span>{fromId ? "Copy Pre OD Template" : "Create Pre OD Template"}</span>
+            <span>{fromId ? "Copy Pre-Organizational Development Template" : "Create Pre-Organizational Development Template"}</span>
           </div>
 
           <div className="template-page-header">
             <h1 className="page-title">
-              {fromId ? "Copy Pre OD Template" : "Create Pre OD Template"}
+              {fromId ? "Copy Pre-Organizational Development Template" : "Create Pre-Organizational Development Template"}
             </h1>
           </div>
 
@@ -219,7 +219,7 @@ export default function CreatePreOdTemplate({ user }: PageProps) {
                   <input
                     value={templateName}
                     onChange={(e) => setTemplateName(e.target.value)}
-                    placeholder="Enter Pre OD template name"
+                    placeholder="Enter Pre-Organizational Development template name"
                   />
                 </div>
                 <div className="form-group">
