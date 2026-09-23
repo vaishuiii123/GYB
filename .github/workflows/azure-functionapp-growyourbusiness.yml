@@ -34,3 +34,5 @@ jobs:
           package: api
           publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE_GYB }}
           respect-funcignore: true
+          # Linux apps: build npm deps on Azure (package has no node_modules).
+          remote-build: true

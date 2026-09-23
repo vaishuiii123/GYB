@@ -86,6 +86,11 @@ export default function AdminLogin({ onLogin }: LoginProps) {
   }
 
   if (!response.ok) {
+    if (response.status >= 500) {
+      throw new Error(
+        `API_SERVER_${response.status}: The login service is temporarily unavailable.`
+      );
+    }
     throw new Error(`HTTP ${response.status}`);
   }
 
@@ -158,6 +163,13 @@ export default function AdminLogin({ onLogin }: LoginProps) {
       if (err?.name === "AbortError") {
         setMessage("Admin verification is taking too long. Please try again.");
       } else if (
+        err instanceof Error &&
+        /API_SERVER_/i.test(err.message)
+      ) {
+        setMessage(
+          "Login service is down (API error). The Function App behind production needs to be fixed or redeployed."
+        );
+      } else if (
         err instanceof TypeError ||
         (err instanceof Error && /failed to fetch|networkerror/i.test(err.message))
       ) {
@@ -185,7 +197,11 @@ export default function AdminLogin({ onLogin }: LoginProps) {
       await verifyAdminEmail(email.trim());
     } catch (err) {
       console.error(err);
-      if (
+      if (err instanceof Error && /API_SERVER_/i.test(err.message)) {
+        setMessage(
+          "Login service is down (API error). The Function App behind production needs to be fixed or redeployed."
+        );
+      } else if (
         err instanceof TypeError ||
         (err instanceof Error && /failed to fetch|networkerror/i.test(err.message))
       ) {
