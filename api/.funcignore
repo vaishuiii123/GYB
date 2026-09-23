@@ -1,0 +1,15 @@
+.git*
+.vscode
+.funcignore
+local.settings.json
+node_modules
+npm-debug.log*
+*.md
+scripts
+coverage
+test
+tests
+.DS_Store
+*.log
+*.xlsx
+*.zip
