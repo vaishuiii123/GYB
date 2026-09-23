@@ -12,6 +12,7 @@ import styles from "../../styles/Workshop.module.css";
 import { appAlert, appConfirm } from "../../utils/appDialog";
 import {
   ADMIN_CACHE_KEYS,
+  clearAdminListCache,
   readAdminListCache,
   writeAdminListCache,
   fetchOnce,
@@ -124,6 +125,8 @@ export default function Workshop({ user }: PageProps) {
     if (cachedPreOd) setPreOdTemplates(cachedPreOd);
     if (cachedOrgs) setOrganizations(cachedOrgs);
 
+    // Always refresh workshops so deleted rows cannot linger in session cache.
+    void loadWorkshops();
     if (!isAdminListCacheFresh(ADMIN_CACHE_KEYS.templates)) {
       loadTemplates();
     }
@@ -132,9 +135,6 @@ export default function Workshop({ user }: PageProps) {
     }
     if (!isAdminListCacheFresh(ADMIN_CACHE_KEYS.organizations)) {
       loadOrganizations();
-    }
-    if (!isAdminListCacheFresh(ADMIN_CACHE_KEYS.workshops)) {
-      loadWorkshops();
     }
   }, [user?.email, user?.role]);
 
@@ -516,34 +516,53 @@ export default function Workshop({ user }: PageProps) {
         await loadWorkshops();
         setShowCreatePopup(false);
       } else {
-        alert(data.message || data.error || "Failed to save workshop");
+        const message = String(data.message || data.error || "");
+        if (/resource not found|does not exist|not found/i.test(message)) {
+          await loadWorkshops();
+          alert(
+            "This workshop no longer exists. The list has been refreshed."
+          );
+        } else {
+          alert(data.message || data.error || "Failed to save workshop");
+        }
       }
     } catch (error) {
       console.error("Error saving workshop:", error);
-      alert(
-        error instanceof Error ? error.message : "Failed to save workshop"
-      );
+      const message =
+        error instanceof Error ? error.message : "Failed to save workshop";
+      if (/resource not found|does not exist|not found/i.test(message)) {
+        await loadWorkshops();
+        alert("This workshop no longer exists. The list has been refreshed.");
+      } else {
+        alert(message);
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const loadWorkshops = async () => {
+  const loadWorkshops = async (forceRefresh = false) => {
     try {
-      const response = await fetchOnce("/api/get-workshops");
+      const url = forceRefresh
+        ? `/api/get-workshops?_=${Date.now()}`
+        : "/api/get-workshops";
+      const response = forceRefresh ? await fetch(url) : await fetchOnce(url);
       const data = await response.json();
 
       if (data.success) {
         const list = data.workshops || [];
         setWorkshops(list);
         writeAdminListCache(ADMIN_CACHE_KEYS.workshops, list);
+        return list;
       } else {
         console.error(data.error || "Failed to load workshops");
         setWorkshops([]);
+        return [];
       }
     } catch (error) {
       console.error("Error loading workshops", error);
       setWorkshops([]);
+      return [];
     }
   };
 
@@ -567,20 +586,38 @@ export default function Workshop({ user }: PageProps) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ workshopId: workshop.id }),
+        body: JSON.stringify({ workshopId: String(workshop.id || "").trim() }),
       });
 
       const data = await response.json();
+      const message = String(data.message || data.error || "");
+      const missing =
+        !data.success &&
+        /resource not found|does not exist|not found/i.test(message);
+      const removed =
+        data.success || missing || /already deleted/i.test(message);
 
-      if (data.success) {
-        alert(data.message || "Workshop deleted successfully");
-        await loadWorkshops();
+      if (removed) {
+        // Drop the row immediately so stale session/API cache cannot bring it back.
+        setWorkshops((prev) => {
+          const updated = prev.filter((item) => item.id !== workshop.id);
+          writeAdminListCache(ADMIN_CACHE_KEYS.workshops, updated);
+          return updated;
+        });
+        clearAdminListCache(ADMIN_CACHE_KEYS.workshops);
+        await loadWorkshops(true);
+        appAlert(
+          data.success && !/already deleted/i.test(message)
+            ? "Workshop deleted successfully."
+            : "Workshop removed from the list.",
+          "success"
+        );
       } else {
-        alert(data.message || data.error || "Failed to delete workshop");
+        appAlert(message || "Failed to delete workshop", "error");
       }
     } catch (error) {
       console.error("Error deleting workshop:", error);
-      alert("Failed to delete workshop");
+      appAlert("Failed to delete workshop", "error");
     } finally {
       setDeletingWorkshopId("");
     }

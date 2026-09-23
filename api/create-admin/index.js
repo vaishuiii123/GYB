@@ -1,4 +1,5 @@
 const { getTableClient } = require("../shared/tableHelper");
+const { CACHE_KEYS, invalidate } = require("../shared/listCache");
 
 const { isValidEmail } = require("../shared/validation");
 
@@ -77,6 +78,7 @@ module.exports = async function (context, req) {
       CreatedBy: createdBy,
       CreatedDate: new Date().toISOString(),
     });
+    invalidate(CACHE_KEYS.admins);
 
     context.res = {
       status: 200,

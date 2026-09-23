@@ -90,6 +90,14 @@ async function getOrLoad(key, loader, ttlMs = DEFAULT_TTL_MS) {
 
 const CACHE_KEYS = {
   organizations: "list:organizations",
+  participants: "list:participants",
+  questions: "list:questions",
+  allCategories: "list:all-categories",
+  templates: "list:templates",
+  preOdTemplates: "list:pre-od-templates",
+  tags: "list:tags",
+  topCategories: "list:top-categories",
+  admins: "list:admins",
   workshops: "list:workshops",
   visionMissionKeywords: "list:vision-mission-keywords",
 };
@@ -100,6 +108,10 @@ function workshopByQueryKey(participantId, organizationId) {
 
 function visionMissionResponseKey(participantId, workshopId) {
   return `list:vm-response:${participantId || ""}:${workshopId || ""}`;
+}
+
+function organizationParticipantsKey(organizationId) {
+  return `list:org-participants:${organizationId || ""}`;
 }
 
 module.exports = {
@@ -113,4 +125,5 @@ module.exports = {
   getOrLoad,
   workshopByQueryKey,
   visionMissionResponseKey,
+  organizationParticipantsKey,
 };

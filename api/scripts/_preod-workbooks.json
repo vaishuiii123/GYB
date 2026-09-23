@@ -1,0 +1,606 @@
+{
+  "Master Pre OD.xlsx": [
+    {
+      "srNo": 1,
+      "question": "What, according to you, should be the vision of <<Company>.?",
+      "category": "General",
+      "participant": ""
+    },
+    {
+      "srNo": 2,
+      "question": "What, according to you, should be the mission of <<Company>.?",
+      "category": "General",
+      "participant": ""
+    },
+    {
+      "srNo": 3,
+      "question": "What, according to you, should be the core values of <<Company>.?",
+      "category": "General",
+      "participant": ""
+    },
+    {
+      "srNo": 4,
+      "question": "Who according to you should be <<Company>.'s Customer/s?",
+      "category": "Markets and customers",
+      "participant": ""
+    },
+    {
+      "srNo": 5,
+      "question": "What would customers of <<Company>. consider as “value”?",
+      "category": "Markets and customers",
+      "participant": ""
+    },
+    {
+      "srNo": 6,
+      "question": "What is the theory of business of <<Company>.?",
+      "category": "Markets and customers",
+      "participant": ""
+    },
+    {
+      "srNo": 7,
+      "question": "What is the overarching theory of business and growth strategy for <<Company>>? Please elaborate on the markets you plan to cater to, the key elements of your competitive differentiation, and what you envision as the firm’s USP.",
+      "category": "Markets and customers",
+      "participant": ""
+    },
+    {
+      "srNo": 8,
+      "question": "List down the various products that are offered by <<Company>.. What customer problem/s does your business solve?",
+      "category": "Markets and customers",
+      "participant": ""
+    },
+    {
+      "srNo": 9,
+      "question": "How would you segment your typical customer across key dimensions such as geography, demographics, price sensitivity, product delivery complexity, and customer type (e.g., end consumers, retailers, etc.)",
+      "category": "Markets and customers",
+      "participant": ""
+    },
+    {
+      "srNo": 10,
+      "question": "Plan to tap the market by creating market awareness of existing offerings",
+      "category": "Markets and customers",
+      "participant": ""
+    },
+    {
+      "srNo": 11,
+      "question": "Plan to tap the market by creating market awareness of new offerings (if any)",
+      "category": "Markets and customers",
+      "participant": ""
+    },
+    {
+      "srNo": 12,
+      "question": "Who are your main competitors?",
+      "category": "Markets and customers",
+      "participant": ""
+    },
+    {
+      "srNo": 13,
+      "question": "What is your portfolio gap for the competitors that can be addressed?",
+      "category": "Markets and customers",
+      "participant": ""
+    },
+    {
+      "srNo": 14,
+      "question": "How will the business strategy be to compete and grow in the market (e.g. faster turnaround time, lower costs, better designs etc.)?",
+      "category": "Markets and customers",
+      "participant": ""
+    },
+    {
+      "srNo": 15,
+      "question": "How large is the addressable market for your core offering, in terms of potential sales?",
+      "category": "Markets and customers",
+      "participant": ""
+    },
+    {
+      "srNo": 16,
+      "question": "What are the challenges faced by the industry? How do you plan to mitigate their impact on the firm?",
+      "category": "Markets and customers",
+      "participant": ""
+    },
+    {
+      "srNo": 17,
+      "question": "What are the market segments that are planned to be catered in the next 2-3 years?",
+      "category": "Markets and customers",
+      "participant": ""
+    },
+    {
+      "srNo": 18,
+      "question": "What is the “Go to Market”/ Customer reach-out strategy? What is the execution plan for the same?",
+      "category": "Markets and customers",
+      "participant": ""
+    },
+    {
+      "srNo": 19,
+      "question": "What is the current and next 1-3 years’ organization chart?",
+      "category": "Business Planning & Decision Making",
+      "participant": ""
+    },
+    {
+      "srNo": 20,
+      "question": "Do you have a current set of Advisors? Have you identified potential external Board Members?",
+      "category": "Business Planning & Decision Making",
+      "participant": ""
+    },
+    {
+      "srNo": 21,
+      "question": "What are the ongoing and anticipated infrastructure requirements for Pan-India and international operations (e.g., premises, outsourced services, etc.)? Please outline the expected investments towards these, including near-term CAPEX (within 1 year) and long-term CAPEX (over the next 2–3 years).",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 22,
+      "question": "Rationale for investment and potential for success (expected ROI)",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 23,
+      "question": "Considering the significance of R&D in this industry, innovation will play a significant role towards core competency building. What are the other ways in which innovation will play a crucial role?",
+      "category": "Business Planning & Decision Making",
+      "participant": ""
+    },
+    {
+      "srNo": 24,
+      "question": "How is innovation encouraged in development of business operations?",
+      "category": "Business Planning & Decision Making",
+      "participant": ""
+    },
+    {
+      "srNo": 25,
+      "question": "How is innovation encouraged in selling?",
+      "category": "Markets and customers",
+      "participant": ""
+    },
+    {
+      "srNo": 26,
+      "question": "How is innovation encouraged in achieving operational excellence & economies of scale?",
+      "category": "Business Planning & Decision Making",
+      "participant": ""
+    },
+    {
+      "srNo": 27,
+      "question": "How do various teams within the organization - such as Sales, Operations/Technical, and Management - contribute to driving innovation in the business?",
+      "category": "Business Planning & Decision Making",
+      "participant": ""
+    },
+    {
+      "srNo": 28,
+      "question": "What is the focus of innovation techniques employed in your organization (towards productivity/process improvement, cost reduction, etc.)?",
+      "category": "Business Planning & Decision Making",
+      "participant": ""
+    },
+    {
+      "srNo": 29,
+      "question": "Create a timeline to achieve innovation milestones and a roadmap document that will assess the steps taken towards the milestones.",
+      "category": "Business Planning & Decision Making",
+      "participant": ""
+    },
+    {
+      "srNo": 30,
+      "question": "Please provide an overview of the business's financial outlook and past investments, covering the following aspects:\"\r\n\r\n1. Expected revenue break-up over the next 3 years\r\n2. Expected cost structure break-up over the next 3 years\r\n3. Estimated working capital requirements over the next 3 years\r\n4. Financial investments made to date in capital expenditure (e.g., platform/product development)\r\n5. Financial investments made to date in building human capital",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 31,
+      "question": "Please highlight the current capitalization table of <<Company>.",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 32,
+      "question": "Please provide a breakdown of planned fund utilization over the next 2–3 years, specifically across the following areas:\"\r\n\r\n1. Hiring and onboarding of new employees\r\n2. New product/platform development\r\n3. Marketing and promotional efforts\r\n4. Working capital requirements",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 33,
+      "question": "Please outline your funding and deployment plans over the next 1–3 years, including the following details:\"\r\n\r\n1. Potential sources of funding (e.g., banks, private equity funds, promoter funds, etc.)\r\n2. Planned fund deployment towards capital expenditure\r\n3. Planned fund deployment towards promotional and marketing expenditure\r\n4. Planned fund deployment towards working capital requirements",
+      "category": "Financials",
+      "participant": ""
+    }
+  ],
+  "Consumer Pre OD.xlsx": [
+    {
+      "srNo": 1,
+      "question": "Are there any product bundles or combos offered to customers?",
+      "category": "Markets and customers",
+      "participant": ""
+    },
+    {
+      "srNo": 2,
+      "question": "How is customer feedback incorporated into product development?",
+      "category": "Markets and customers",
+      "participant": ""
+    },
+    {
+      "srNo": 3,
+      "question": "What is the current inventory turnover ratio?",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 4,
+      "question": "How many distinct brands does the company currently operate, segmented by price point or market positioning (e.g., premium, mid-range, value)?",
+      "category": "Markets and customers",
+      "participant": ""
+    },
+    {
+      "srNo": 5,
+      "question": "What is the price range of the current product offerings?",
+      "category": "Markets and customers",
+      "participant": ""
+    },
+    {
+      "srNo": 6,
+      "question": "What is the average discount provided to customers ?",
+      "category": "Markets and customers",
+      "participant": ""
+    },
+    {
+      "srNo": 7,
+      "question": "How does your pricing differ between your D2C platform and marketplaces (Amazon, Flipkart, Nykaa, etc.)?",
+      "category": "Markets and customers",
+      "participant": ""
+    },
+    {
+      "srNo": 8,
+      "question": "What is the current and projected split across various distribution channels?",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 9,
+      "question": "Current Return on Ads Spend (ROAS)",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 10,
+      "question": "Current Customer retention - MoM & YoY",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 11,
+      "question": "What is the current split between online and offline marketing spends?",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 12,
+      "question": "What is your monthly marketing budget?",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 13,
+      "question": "What % of revenue do you spend on marketing?",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 14,
+      "question": "How actively does the brand do performance marketing?",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 15,
+      "question": "Is community building an integral part of the company's positioning?",
+      "category": "Markets and customers",
+      "participant": ""
+    },
+    {
+      "srNo": 16,
+      "question": "Are free samples included with product deliveries?",
+      "category": "Markets and customers",
+      "participant": ""
+    },
+    {
+      "srNo": 17,
+      "question": "Does the company have any brand ambassador?",
+      "category": "Markets and customers",
+      "participant": ""
+    },
+    {
+      "srNo": 18,
+      "question": "What products have the highest LTV-linked retention rates?",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 19,
+      "question": "What are your top-performing acquisition channels (e.g., Meta, Google, influencers)?",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 20,
+      "question": "Is the company present on any social media platforms ?",
+      "category": "Markets and customers",
+      "participant": ""
+    },
+    {
+      "srNo": 21,
+      "question": "What is your LTV?",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 22,
+      "question": "On average, how long do customers keep items in their cart before completing the purchase?",
+      "category": "Markets and customers",
+      "participant": ""
+    },
+    {
+      "srNo": 23,
+      "question": "What is the average size of the physical stores?",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 24,
+      "question": "What is the average payback period for a store?",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 25,
+      "question": "How many stores does the brand currently operate?",
+      "category": "Markets and customers",
+      "participant": ""
+    },
+    {
+      "srNo": 26,
+      "question": "What types of formats do you operate (e.g., flagship, kiosk, pop-up, outlet)?",
+      "category": "Markets and customers",
+      "participant": ""
+    },
+    {
+      "srNo": 27,
+      "question": "What store formats are in use: EBOs, MBOs, GT, MT?",
+      "category": "Markets and customers",
+      "participant": ""
+    },
+    {
+      "srNo": 28,
+      "question": "If operating EBOs, what is the average capital expenditure per store?",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 29,
+      "question": "What is the average revenue per sqft?",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 30,
+      "question": "What are the margin structures for distributors, stockists and retailers?",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 31,
+      "question": "What is the timeline of planned store openings?",
+      "category": "Markets and customers",
+      "participant": ""
+    },
+    {
+      "srNo": 32,
+      "question": "What is the average investment required per store by a franchise owner?",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 33,
+      "question": "What is the typical payback period for a franchise store?",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 34,
+      "question": "How many stores are currently loss-making, at breakeven or profitable?",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 35,
+      "question": "What is the store churn rate?",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 36,
+      "question": "Are sales staff incentivized to push certain products or upsell?",
+      "category": "Markets and customers",
+      "participant": ""
+    },
+    {
+      "srNo": 37,
+      "question": "What is the average footfall per store per day/week?",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 38,
+      "question": "What is the average monthly sales per store?",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 39,
+      "question": "How many staff members work in each store?",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 40,
+      "question": "What are average monthly cost per store?",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 41,
+      "question": "Is the company involved in manufacturing its products?",
+      "category": "Markets and customers",
+      "participant": ""
+    },
+    {
+      "srNo": 42,
+      "question": "What are your average Customer Acquisition Cost?",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 43,
+      "question": "Where are the manufacturing units or partner facilities located?",
+      "category": "Markets and customers",
+      "participant": ""
+    },
+    {
+      "srNo": 44,
+      "question": "What is your current monthly production capacity (units)?",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 45,
+      "question": "What % of capacity is currently utilized?",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 46,
+      "question": "What is the normal loss percentage?",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 47,
+      "question": "What is wastage percentage?",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 48,
+      "question": "Have you seen any major cost escalations recently in raw materials?",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 49,
+      "question": "Do raw material fluctuations affect Gross Profit margins frequently?",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 50,
+      "question": "Are you managing production in-house or via third-party manufacturers?",
+      "category": "Markets and customers",
+      "participant": ""
+    },
+    {
+      "srNo": 51,
+      "question": "What is the organizational structure for offline operations?",
+      "category": "Markets and customers",
+      "participant": ""
+    },
+    {
+      "srNo": 52,
+      "question": "What does the overall organizational structure look like?",
+      "category": "Business Planning & Decision Making",
+      "participant": ""
+    },
+    {
+      "srNo": 53,
+      "question": "Are the founders involved full-time in the business?",
+      "category": "Business Planning & Decision Making",
+      "participant": ""
+    },
+    {
+      "srNo": 54,
+      "question": "What has been the staff churn rate?",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 55,
+      "question": "Who are the key managerial personnel (KMP) in the organization?",
+      "category": "Business Planning & Decision Making",
+      "participant": ""
+    },
+    {
+      "srNo": 56,
+      "question": "What is the current employee strength?",
+      "category": "Business Planning & Decision Making",
+      "participant": ""
+    },
+    {
+      "srNo": 57,
+      "question": "How do you monitor compliance across geographies?",
+      "category": "Business Planning & Decision Making",
+      "participant": ""
+    },
+    {
+      "srNo": 58,
+      "question": "What are your data privacy and customer protection practices?",
+      "category": "Business Planning & Decision Making",
+      "participant": ""
+    },
+    {
+      "srNo": 59,
+      "question": "For how long does an average customer keep the app installed ?",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 60,
+      "question": "How many active users are present on the app ?",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 61,
+      "question": "How many paid users are there on the app ?",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 62,
+      "question": "What is the monthly burn?",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 63,
+      "question": "What is the expected timeline for achieving contribution margin (CM) positivity across different levels?\"\r\n\r\n1. CM1 positivity\r\n2. CM2 positivity\r\n3. CM3 positivity",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 64,
+      "question": "When is EBITDA positivity on the horizon?",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 65,
+      "question": "What is the average sales return rate?",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 66,
+      "question": "What is the cash runway available?",
+      "category": "Financials",
+      "participant": ""
+    },
+    {
+      "srNo": 67,
+      "question": "Is the company looking to raise debt/ equity in the next round?",
+      "category": "Financials",
+      "participant": ""
+    }
+  ]
+}

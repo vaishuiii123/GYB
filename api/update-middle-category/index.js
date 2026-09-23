@@ -1,4 +1,5 @@
 const { getTableClient } = require("../shared/tableHelper");
+const { invalidateCategoryStructure } = require("../shared/cacheInvalidation");
 
 
 module.exports = async function (context, req) {
@@ -36,6 +37,7 @@ module.exports = async function (context, req) {
             entity,
             "Merge"
         );
+        invalidateCategoryStructure();
         context.res = {
             status: 200,
             body: {

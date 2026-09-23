@@ -1,9 +1,7 @@
 const { getTableClient } = require("../shared/tableHelper");
+const { CACHE_KEYS, getOrLoad } = require("../shared/listCache");
 
-
-module.exports = async function (context, req) {
-
-    try {
+async function loadTopCategories() {
         const tableClient = getTableClient("QuestionnaireTopCategory");
         const entities = [];
 
@@ -35,8 +33,21 @@ module.exports = async function (context, req) {
         entities.sort((a, b) =>
             a.id.localeCompare(b.id)
         );
+        return entities;
+}
+
+module.exports = async function (context, req) {
+
+    try {
+        const { value: entities, cacheHit } = await getOrLoad(
+            CACHE_KEYS.topCategories,
+            loadTopCategories,
+            5 * 60 * 1000
+        );
+
         context.res = {
             status: 200,
+            headers: { "X-List-Cache": cacheHit ? "HIT" : "MISS" },
             body: {
                 success: true,
                 count: entities.length,

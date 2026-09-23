@@ -1,9 +1,7 @@
 const { getTableClient } = require("../shared/tableHelper");
+const { CACHE_KEYS, getOrLoad } = require("../shared/listCache");
 
-
-module.exports = async function (context, req) {
-  try {
-
+async function loadTemplates() {
     const client =
       getTableClient("Template");
 
@@ -77,8 +75,20 @@ module.exports = async function (context, req) {
         });
     }
 
+    return templates;
+}
+
+module.exports = async function (context, req) {
+  try {
+    const { value: templates, cacheHit } = await getOrLoad(
+      CACHE_KEYS.templates,
+      loadTemplates,
+      5 * 60 * 1000
+    );
+
     context.res = {
       status: 200,
+      headers: { "X-List-Cache": cacheHit ? "HIT" : "MISS" },
       body: {
         success: true,
         templates,

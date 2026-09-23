@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import ExcelJS from "exceljs";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -457,6 +456,7 @@ export default function CreateTemplate({ user }: PageProps) {
 
   const downloadSelectionTemplate = async () => {
     try {
+      const { default: ExcelJS } = await import("exceljs");
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet("Template Questions");
       const listsWorksheet = workbook.addWorksheet("Lists");
@@ -648,6 +648,7 @@ export default function CreateTemplate({ user }: PageProps) {
       setUploadRows([]);
 
       const buffer = await file.arrayBuffer();
+      const { default: ExcelJS } = await import("exceljs");
       const workbook = new ExcelJS.Workbook();
       await workbook.xlsx.load(buffer);
 

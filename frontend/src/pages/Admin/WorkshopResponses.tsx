@@ -265,7 +265,7 @@ export default function WorkshopResponses({ user }: PageProps) {
 
     try {
       setExporting(true);
-      exportWorkshopResponsesExcel({
+      await exportWorkshopResponsesExcel({
         workshopName,
         organizationName,
         participants,

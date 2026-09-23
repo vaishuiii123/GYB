@@ -2,6 +2,7 @@ const { getTableClient } = require("../shared/tableHelper");
 const {
   normalizeAttachmentsApplicable,
 } = require("../shared/attachmentHelper");
+const { invalidateQuestionStructure } = require("../shared/cacheInvalidation");
 
 module.exports = async function (context, req) {
   try {
@@ -61,6 +62,7 @@ module.exports = async function (context, req) {
     };
 
     await tableClient.createEntity(entity);
+    invalidateQuestionStructure();
 
     context.res = {
       status: 201,

@@ -1,4 +1,4 @@
-const { getTableClient } = require("../shared/tableHelper");
+const { getTableClient, escapeODataValue } = require("../shared/tableHelper");
 
 
 
@@ -20,12 +20,20 @@ req.query.questionId;
 const options=[];
 
 
+// Filter server side so a single question does not scan the table
+const filter = questionId
+? `PartitionKey eq 'QuestionOption' and QuestionId eq '${escapeODataValue(
+String(questionId)
+)}'`
+: "PartitionKey eq 'QuestionOption'";
+
 
 const entities =
 tableClient.listEntities({
 
 queryOptions:{
-filter:"PartitionKey eq 'QuestionOption'"
+filter,
+select:["RowKey","QuestionId","OptionText"]
 }
 
 });
@@ -33,12 +41,6 @@ filter:"PartitionKey eq 'QuestionOption'"
 
 
 for await(const entity of entities){
-
-
-if(
-!questionId ||
-entity.QuestionId === questionId
-){
 
 
 options.push({
@@ -55,8 +57,7 @@ optionText:entity.OptionText
 }
 
 
-}
-
+options.sort((a,b)=>String(a.id).localeCompare(String(b.id)));
 
 
 context.res={

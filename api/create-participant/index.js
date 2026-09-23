@@ -3,6 +3,7 @@ const { getTableClient } = require("../shared/tableHelper");
 const { isValidEmail, isValidPhone } = require("../shared/validation");
 const { normalizePhone } = require("../shared/smsProvider");
 const { findParticipantWithPhone, findParticipantWithUsername } = require("../shared/participantUniqueness");
+const { invalidateParticipants } = require("../shared/cacheInvalidation");
 
 module.exports = async function (context, req) {
   try {
@@ -131,6 +132,8 @@ module.exports = async function (context, req) {
       Role: "Participant",
       Created_By: createdBy || "",
     });
+
+    invalidateParticipants();
 
     context.res = {
       status: 200,

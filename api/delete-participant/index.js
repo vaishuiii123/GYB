@@ -1,4 +1,5 @@
 const { getTableClient } = require("../shared/tableHelper");
+const { invalidateParticipants } = require("../shared/cacheInvalidation");
 
 
 module.exports = async function (context, req) {
@@ -13,6 +14,27 @@ module.exports = async function (context, req) {
       "Participant",
       id
     );
+
+    // Drop organization mappings so they do not
+    // block the organization from being deleted
+    const mappingClient = getTableClient(
+      "OrganizationParticipants"
+    );
+
+    for await (
+      const mapping of mappingClient.listEntities()
+    ) {
+
+      if (mapping.ParticipantId === id) {
+
+        await mappingClient.deleteEntity(
+          mapping.partitionKey,
+          mapping.rowKey
+        );
+      }
+    }
+
+    invalidateParticipants();
 
     context.res = {
       status: 200,

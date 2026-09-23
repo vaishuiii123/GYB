@@ -1,10 +1,10 @@
 const { getTableClient } = require("../shared/tableHelper");
+const { CACHE_KEYS, getOrLoad } = require("../shared/listCache");
 const {
   normalizeQuestionAttachments,
 } = require("../shared/preOdAttachments");
 
-module.exports = async function (context) {
-  try {
+async function loadTemplates() {
     const client = getTableClient("PreODTemplate");
     const templates = [];
 
@@ -46,8 +46,20 @@ module.exports = async function (context) {
         new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime()
     );
 
+    return templates;
+}
+
+module.exports = async function (context) {
+  try {
+    const { value: templates, cacheHit } = await getOrLoad(
+      CACHE_KEYS.preOdTemplates,
+      loadTemplates,
+      5 * 60 * 1000
+    );
+
     context.res = {
       status: 200,
+      headers: { "X-List-Cache": cacheHit ? "HIT" : "MISS" },
       body: {
         success: true,
         templates,

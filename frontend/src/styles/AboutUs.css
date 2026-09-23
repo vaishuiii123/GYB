@@ -57,31 +57,18 @@
   color: #7b0f2c;
 }
 
-.header-link {
-  background: none;
-  border: none;
-  color: #7b0f2c;
-  font-size: 18px;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 0;
-}
-
-.header-icon {
-  font-size: 22px;
-  line-height: 1;
-}
-
-.header-icon.linkedin {
+.header-icon-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: 2px solid #7b0f2c;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 700;
+  width: 34px;
+  height: 34px;
+  color: #7b0f2c;
+  text-decoration: none;
+}
+
+.header-icon-link:hover {
+  opacity: 0.8;
 }
 
 .about-main {

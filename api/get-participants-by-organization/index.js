@@ -1,4 +1,12 @@
-const { getTableClient } = require("../shared/tableHelper");
+const {
+  getTableClient,
+  getEntitiesByKeys,
+  listPartition,
+} = require("../shared/tableHelper");
+const {
+  getOrLoad,
+  organizationParticipantsKey,
+} = require("../shared/listCache");
 
 
 module.exports = async function (context, req) {
@@ -20,31 +28,32 @@ module.exports = async function (context, req) {
 
     const participantClient = getTableClient("Participants");
 
-    const participantIds = [];
+    const { value: participants } = await getOrLoad(
+      organizationParticipantsKey(organizationId),
+      async () => {
+        const mappings = await listPartition(
+          mappingClient,
+          organizationId,
+          ["ParticipantId"]
+        );
+        const records = await getEntitiesByKeys(
+          participantClient,
+          "Participant",
+          mappings.map((entity) => entity.ParticipantId)
+        );
 
-    for await (const entity of mappingClient.listEntities()) {
-      if (entity.OrganizationId === organizationId) {
-        participantIds.push(entity.ParticipantId);
+        return records.map((participant) => ({
+          id: participant.rowKey,
+          firstName: participant.First_Name || "",
+          middleName: participant.Middle_Name || "",
+          lastName: participant.Last_Name || "",
+          email: participant.Email || "",
+          username: participant.Username || "",
+          phoneNo: participant.Phone_No || "",
+          organization: participant.Organisation || "",
+        }));
       }
-    }
-
-    const participants = [];
-
-    for await (const participant of participantClient.listEntities()) {
-      if (!participantIds.includes(participant.rowKey)) {
-        continue;
-      }
-
-      participants.push({
-        id: participant.rowKey,
-        firstName: participant.First_Name || "",
-        middleName: participant.Middle_Name || "",
-        lastName: participant.Last_Name || "",
-        email: participant.Email || "",
-        phoneNo: participant.Phone_No || "",
-        organization: participant.Organisation || "",
-      });
-    }
+    );
 
     context.res = {
       status: 200,

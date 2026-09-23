@@ -1,5 +1,7 @@
 const { getTableClient } =
   require("../shared/tableHelper");
+const { invalidateTemplateStructure } =
+  require("../shared/cacheInvalidation");
 
 module.exports =
   async function (
@@ -33,6 +35,7 @@ module.exports =
         "Template",
         templateId
       );
+      invalidateTemplateStructure();
 
       context.res = {
         status: 200,

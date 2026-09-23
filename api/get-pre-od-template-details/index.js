@@ -1,27 +1,12 @@
 const { getTableClient } = require("../shared/tableHelper");
+const { getOrLoad } = require("../shared/listCache");
 const { PRE_OD_QUESTIONS } = require("../shared/preOdQuestions");
 const {
   normalizeQuestionAttachments,
   getAttachmentFlag,
 } = require("../shared/preOdAttachments");
 
-module.exports = async function (context, req) {
-  try {
-    const templateId = String(
-      req.query.templateId || req.query.id || ""
-    ).trim();
-
-    if (!templateId) {
-      context.res = {
-        status: 400,
-        body: {
-          success: false,
-          message: "Template ID is required.",
-        },
-      };
-      return;
-    }
-
+async function loadTemplate(templateId) {
     const client = getTableClient("PreODTemplate");
     let entity;
 
@@ -29,14 +14,7 @@ module.exports = async function (context, req) {
       entity = await client.getEntity("PreODTemplate", templateId);
     } catch (error) {
       if (error.statusCode === 404) {
-        context.res = {
-          status: 404,
-          body: {
-            success: false,
-            message: "Pre-Organizational Development template not found.",
-          },
-        };
-        return;
+        return null;
       }
       throw error;
     }
@@ -72,11 +50,7 @@ module.exports = async function (context, req) {
       })
       .filter(Boolean);
 
-    context.res = {
-      status: 200,
-      body: {
-        success: true,
-        template: {
+    return {
           id: entity.rowKey,
           templateName: entity.TemplateName || "",
           templateType: "Pre OD",
@@ -86,9 +60,45 @@ module.exports = async function (context, req) {
           createdBy: entity.CreatedBy || "",
           createdDate: entity.CreatedDate || "",
           questions,
-        },
-      },
     };
+}
+
+module.exports = async function (context, req) {
+  try {
+    const templateId = String(
+      req.query.templateId || req.query.id || ""
+    ).trim();
+
+    if (!templateId) {
+      context.res = {
+        status: 400,
+        body: {
+          success: false,
+          message: "Template ID is required.",
+        },
+      };
+      return;
+    }
+
+    const { value: template, cacheHit } = await getOrLoad(
+      `pre-od-template-details:${templateId}`,
+      () => loadTemplate(templateId),
+      5 * 60 * 1000
+    );
+
+    context.res = template
+      ? {
+          status: 200,
+          headers: { "X-List-Cache": cacheHit ? "HIT" : "MISS" },
+          body: { success: true, template },
+        }
+      : {
+          status: 404,
+          body: {
+            success: false,
+            message: "Pre-Organizational Development template not found.",
+          },
+        };
   } catch (error) {
     context.log(error);
 

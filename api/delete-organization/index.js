@@ -1,5 +1,6 @@
 const { getTableClient } = require("../shared/tableHelper");
 const { CACHE_KEYS, invalidate } = require("../shared/listCache");
+const { invalidateParticipants } = require("../shared/cacheInvalidation");
 
 module.exports = async function (context, req) {
   try {
@@ -25,18 +26,46 @@ module.exports = async function (context, req) {
     const participantClient =
       getTableClient("OrganizationParticipants");
 
+    // Participant records still present in the Participants table
+    const existingParticipantIds = new Set();
+
+    for await (
+      const participant of getTableClient(
+        "Participants"
+      ).listEntities({
+        queryOptions: { select: ["RowKey"] },
+      })
+    ) {
+      existingParticipantIds.add(
+        participant.rowKey
+      );
+    }
+
     // Check if participants exist
     let participantCount = 0;
+
+    // Mappings left behind by deleted participants
+    const orphanedMappings = [];
 
     for await (
       const entity of participantClient.listEntities()
     ) {
 
       if (
-        entity.OrganizationId ===
+        entity.OrganizationId !==
         organizationId
       ) {
+        continue;
+      }
+
+      if (
+        existingParticipantIds.has(
+          entity.ParticipantId
+        )
+      ) {
         participantCount++;
+      } else {
+        orphanedMappings.push(entity);
       }
     }
 
@@ -85,12 +114,20 @@ module.exports = async function (context, req) {
       return;
     }
 
+    for (const mapping of orphanedMappings) {
+      await participantClient.deleteEntity(
+        mapping.partitionKey,
+        mapping.rowKey
+      );
+    }
+
     await organizationClient.deleteEntity(
       organizationEntity.partitionKey,
       organizationEntity.rowKey
     );
 
     invalidate(CACHE_KEYS.organizations);
+    invalidateParticipants(organizationId);
 
     context.res = {
       status: 200,

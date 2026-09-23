@@ -1,4 +1,5 @@
 const { getTableClient } = require("../shared/tableHelper");
+const { invalidateCategoryStructure } = require("../shared/cacheInvalidation");
 
 
 module.exports = async function (context, req) {
@@ -93,6 +94,7 @@ const middleCategoryId =
         };
 
         await tableClient.createEntity(entity);
+        invalidateCategoryStructure();
 
         context.res = {
             status: 201,

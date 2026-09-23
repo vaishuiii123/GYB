@@ -41,7 +41,16 @@ export default function CreatePreOdTemplate({ user }: PageProps) {
       setLoading(true);
       setError("");
 
-      const bankResponse = await fetch("/api/get-pre-od-questions");
+      const bankRequest = fetch("/api/get-pre-od-questions");
+      const detailsRequest = fromId
+        ? fetch(
+            `/api/get-pre-od-template-details?templateId=${encodeURIComponent(
+              fromId
+            )}`
+          )
+        : null;
+
+      const bankResponse = await bankRequest;
       const bankData = await bankResponse.json();
       if (!bankResponse.ok || !bankData.success) {
         throw new Error(bankData.message || "Unable to load Pre-Organizational Development questions.");
@@ -50,12 +59,8 @@ export default function CreatePreOdTemplate({ user }: PageProps) {
       const bank: BankQuestion[] = bankData.questions || [];
       setQuestions(bank);
 
-      if (fromId) {
-        const detailsResponse = await fetch(
-          `/api/get-pre-od-template-details?templateId=${encodeURIComponent(
-            fromId
-          )}`
-        );
+      if (detailsRequest) {
+        const detailsResponse = await detailsRequest;
         const detailsData = await detailsResponse.json();
         if (!detailsResponse.ok || !detailsData.success) {
           throw new Error(

@@ -11,6 +11,8 @@ import { useNavigate } from "react-router-dom";
 import { appConfirm } from "../../utils/appDialog";
 import {
   ADMIN_CACHE_KEYS,
+  fetchOnce,
+  isAdminListCacheFresh,
   readAdminListCache,
   writeAdminListCache,
 } from "../../utils/adminListCache";
@@ -95,7 +97,7 @@ export default function CategoryManagement({ user }: PageProps) {
 
     try {
 
-      const response = await fetch("/api/get-top-categories");
+      const response = await fetchOnce("/api/get-top-categories");
 
       const result = await response.json();
 
@@ -198,6 +200,9 @@ const handleUpdateTopCategory = async () => {
     const cached = readAdminListCache<any[]>(ADMIN_CACHE_KEYS.topCategories);
     if (cached) {
       setTopCategories(cached);
+    }
+    if (isAdminListCacheFresh(ADMIN_CACHE_KEYS.topCategories)) {
+      return;
     }
     fetchTopCategories();
   }, []);

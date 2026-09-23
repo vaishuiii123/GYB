@@ -1,4 +1,11 @@
-const { getTableClient } = require("../shared/tableHelper");
+const {
+    getTableClient,
+    listPartition,
+} = require("../shared/tableHelper");
+const {
+    CACHE_KEYS,
+    getOrLoad,
+} = require("../shared/listCache");
 
 
 function parseQuestionIds(questionIdField) {
@@ -11,6 +18,9 @@ function parseQuestionIds(questionIdField) {
 
 module.exports = async function (context, req) {
     try {
+        const { value: categories, cacheHit } = await getOrLoad(
+          CACHE_KEYS.allCategories,
+          async () => {
         const categoryClient = getTableClient("QuestionnaireCategory");
 
         const parentClient = getTableClient("QuestionnaireParentCategory");
@@ -23,55 +33,44 @@ module.exports = async function (context, req) {
 
         const optionClient = getTableClient("QuestionOptions");
 
-        const tops = [];
-        const middles = [];
-        const parents = [];
+        const [
+            tops,
+            middles,
+            parents,
+            allQuestions,
+            allOptions,
+            categoryEntities,
+        ] = await Promise.all([
+            listPartition(topClient, "TopCategory"),
+            listPartition(middleClient, "MiddleCategory"),
+            listPartition(parentClient, "ParentCategory"),
+            listPartition(questionClient, "Question"),
+            listPartition(optionClient, "QuestionOption"),
+            listPartition(categoryClient, "Category"),
+        ]);
 
-        for await (const item of topClient.listEntities({
-            queryOptions: { filter: "PartitionKey eq 'TopCategory'" }
-        })) {
-            tops.push(item);
+        const topById = new Map(tops.map((item) => [item.rowKey, item]));
+        const middleById = new Map(middles.map((item) => [item.rowKey, item]));
+        const parentById = new Map(parents.map((item) => [item.rowKey, item]));
+        const questionById = new Map(
+            allQuestions.map((item) => [item.rowKey, item])
+        );
+        const optionsByQuestionId = new Map();
+        for (const option of allOptions) {
+            const options = optionsByQuestionId.get(option.QuestionId) || [];
+            options.push(option.OptionText);
+            optionsByQuestionId.set(option.QuestionId, options);
         }
 
-        for await (const item of middleClient.listEntities({
-            queryOptions: { filter: "PartitionKey eq 'MiddleCategory'" }
-        })) {
-            middles.push(item);
-        }
+        const categoryList = [];
 
-        for await (const item of parentClient.listEntities({
-            queryOptions: { filter: "PartitionKey eq 'ParentCategory'" }
-        })) {
-            parents.push(item);
-        }
-
-        const allQuestions = [];
-        for await (const item of questionClient.listEntities({
-            queryOptions: { filter: "PartitionKey eq 'Question'" }
-        })) {
-            allQuestions.push(item);
-        }
-
-        const allOptions = [];
-        for await (const item of optionClient.listEntities({
-            queryOptions: { filter: "PartitionKey eq 'QuestionOption'" }
-        })) {
-            allOptions.push(item);
-        }
-
-        const categories = [];
-
-        for await (const category of categoryClient.listEntities({
-            queryOptions: { filter: "PartitionKey eq 'Category'" }
-        })) {
-            const parent = parents.find(
-                (p) => p.rowKey === category.ParentCategoryId
-            );
+        for (const category of categoryEntities) {
+            const parent = parentById.get(category.ParentCategoryId);
             const middle = parent
-                ? middles.find((m) => m.rowKey === parent.MiddleCategoryId)
+                ? middleById.get(parent.MiddleCategoryId)
                 : null;
             const top = middle
-                ? tops.find((t) => t.rowKey === middle.TopCategoryId)
+                ? topById.get(middle.TopCategoryId)
                 : null;
 
             const topCategoryName = top?.TopCategoryName || "";
@@ -87,16 +86,13 @@ module.exports = async function (context, req) {
 
             const categoryQuestions = questionIds
                 .map((questionId) => {
-                    const question = allQuestions.find(
-                        (q) => q.rowKey === questionId
-                    );
+                    const question = questionById.get(questionId);
 
                     if (!question) return null;
 
-                    const options = allOptions
-                        .filter((opt) => opt.QuestionId === questionId)
-                        .map((opt) => opt.OptionText)
-                        .join(", ");
+                    const options = (
+                        optionsByQuestionId.get(questionId) || []
+                    ).join(", ");
 
                     return {
                         id: question.rowKey,
@@ -109,7 +105,7 @@ module.exports = async function (context, req) {
                 })
                 .filter(Boolean);
 
-            categories.push({
+            categoryList.push({
                 id: category.rowKey,
                 categoryName,
                 parentCategoryId: category.ParentCategoryId || "",
@@ -124,10 +120,17 @@ module.exports = async function (context, req) {
             });
         }
 
-        categories.sort((a, b) => a.fullPath.localeCompare(b.fullPath));
+        categoryList.sort((a, b) => a.fullPath.localeCompare(b.fullPath));
+        return categoryList;
+          },
+          5 * 60 * 1000
+        );
 
         context.res = {
             status: 200,
+            headers: {
+                "X-List-Cache": cacheHit ? "HIT" : "MISS",
+            },
             body: {
                 success: true,
                 categories

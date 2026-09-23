@@ -3,6 +3,7 @@ const { getTableClient } = require("../shared/tableHelper");
 const { isValidEmail, isValidPhone } = require("../shared/validation");
 const { normalizePhone } = require("../shared/smsProvider");
 const { findParticipantWithPhone, findParticipantWithUsername } = require("../shared/participantUniqueness");
+const { invalidateParticipants } = require("../shared/cacheInvalidation");
 
 module.exports = async function (context, req) {
   try {
@@ -41,15 +42,14 @@ module.exports = async function (context, req) {
       !trimmedLast ||
       !trimmedEmail ||
       !trimmedUsername ||
-      !trimmedPhone ||
-      !trimmedPassword
+      !trimmedPhone
     ) {
       context.res = {
         status: 400,
         body: {
           success: false,
           message:
-            "First name, last name, email, username, phone number, and password are required. Middle name is optional.",
+            "First name, last name, email, username, and phone number are required. Middle name is optional.",
         },
       };
       return;
@@ -130,8 +130,7 @@ module.exports = async function (context, req) {
 
     const normalizedPhone = normalizePhone(trimmedPhone);
 
-    await client.updateEntity(
-      {
+    const updates = {
         partitionKey: "Participant",
         rowKey: id,
         First_Name: trimmedFirst,
@@ -140,11 +139,18 @@ module.exports = async function (context, req) {
         Email: trimmedEmail,
         Username: trimmedUsername,
         Phone_No: normalizedPhone || trimmedPhone,
-        Password: trimmedPassword,
         Role: "Participant",
-      },
+      };
+    if (trimmedPassword) {
+      updates.Password = trimmedPassword;
+    }
+
+    await client.updateEntity(
+      updates,
       "Merge"
     );
+
+    invalidateParticipants();
 
     context.res = {
       status: 200,

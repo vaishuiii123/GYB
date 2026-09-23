@@ -1,5 +1,6 @@
 const { getTableClient } = require("../shared/tableHelper");
 const { assertWorkshopEditable } = require("../shared/workshopAccess");
+const { invalidate } = require("../shared/listCache");
 
 module.exports = async function (context, req) {
   try {
@@ -49,6 +50,10 @@ module.exports = async function (context, req) {
     }
 
     await tableClient.deleteEntity(participantId, id);
+    invalidate(
+      `list:actionables:${participantId}:${existing.WorkshopId || ""}`
+    );
+    invalidate(`list:actionables:${participantId}:`);
 
     context.res = {
       status: 200,

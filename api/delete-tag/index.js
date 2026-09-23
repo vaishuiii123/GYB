@@ -1,4 +1,5 @@
 const { getTableClient } = require("../shared/tableHelper");
+const { invalidateQuestionStructure } = require("../shared/cacheInvalidation");
 
 
 
@@ -42,6 +43,8 @@ module.exports = async function (context, req) {
             id
 
         );
+
+        invalidateQuestionStructure();
 
 
 

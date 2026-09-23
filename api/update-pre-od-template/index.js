@@ -1,4 +1,5 @@
 const { getTableClient } = require("../shared/tableHelper");
+const { invalidateTemplateStructure } = require("../shared/cacheInvalidation");
 const { PRE_OD_QUESTIONS } = require("../shared/preOdQuestions");
 const {
   normalizeQuestionAttachments,
@@ -109,6 +110,7 @@ module.exports = async function (context, req) {
       },
       "Replace"
     );
+    invalidateTemplateStructure();
 
     context.res = {
       status: 200,

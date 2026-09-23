@@ -7,6 +7,8 @@ import "../../styles/Organization.css";
 import { appAlert, appConfirm } from "../../utils/appDialog";
 import {
   ADMIN_CACHE_KEYS,
+  fetchOnce,
+  isAdminListCacheFresh,
   readAdminListCache,
   writeAdminListCache,
 } from "../../utils/adminListCache";
@@ -69,7 +71,7 @@ export default function AdminManagement({ user }: PageProps) {
       }
       setFetchError("");
 
-      const response = await fetch("/api/get-admins");
+      const response = await fetchOnce("/api/get-admins");
       const data = await response.json();
 
       if (!data.success) {
@@ -96,6 +98,9 @@ export default function AdminManagement({ user }: PageProps) {
     if (cached) {
       setAdmins(cached);
       setLoading(false);
+      if (isAdminListCacheFresh(ADMIN_CACHE_KEYS.admins)) {
+        return;
+      }
       void fetchAdmins(true);
       return;
     }

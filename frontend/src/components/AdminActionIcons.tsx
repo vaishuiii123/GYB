@@ -2,6 +2,7 @@ import { Copy, Download, Eye, Mail, Pencil, Trash2, Upload } from "lucide-react"
 
 type IconBtnProps = {
   onClick?: () => void;
+  onMouseEnter?: () => void;
   disabled?: boolean;
   title?: string;
   className?: string;
@@ -9,6 +10,7 @@ type IconBtnProps = {
 
 export function ViewIconBtn({
   onClick,
+  onMouseEnter,
   disabled,
   title = "View",
   className = "",
@@ -20,6 +22,7 @@ export function ViewIconBtn({
       title={title}
       aria-label={title}
       onClick={onClick}
+      onMouseEnter={onMouseEnter}
       disabled={disabled}
     >
       <Eye size={16} strokeWidth={2} />

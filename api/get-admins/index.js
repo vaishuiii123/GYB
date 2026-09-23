@@ -1,10 +1,10 @@
 const { getTableClient } = require("../shared/tableHelper");
+const { CACHE_KEYS, getOrLoad } = require("../shared/listCache");
 
 
 const ADMIN_ROLES = new Set(["admin", "organizer"]);
 
-module.exports = async function (context, req) {
-  try {
+async function loadAdmins() {
     const client = getTableClient("User");
 
     const admins = [];
@@ -40,8 +40,20 @@ module.exports = async function (context, req) {
       String(a.name || a.email).localeCompare(String(b.name || b.email))
     );
 
+    return admins;
+}
+
+module.exports = async function (context, req) {
+  try {
+    const { value: admins, cacheHit } = await getOrLoad(
+      CACHE_KEYS.admins,
+      loadAdmins,
+      5 * 60 * 1000
+    );
+
     context.res = {
       status: 200,
+      headers: { "X-List-Cache": cacheHit ? "HIT" : "MISS" },
       body: {
         success: true,
         admins,

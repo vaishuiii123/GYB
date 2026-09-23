@@ -1,4 +1,5 @@
 const { getTableClient, escapeODataValue } = require("../shared/tableHelper");
+const { invalidateQuestionStructure } = require("../shared/cacheInvalidation");
 
 module.exports = async function (context, req) {
   try {
@@ -67,6 +68,8 @@ module.exports = async function (context, req) {
       await tableClient.createEntity(entity);
       createdOptions.push(entity);
     }
+
+    invalidateQuestionStructure();
 
     context.res = {
       status: 201,

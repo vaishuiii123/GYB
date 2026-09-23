@@ -16,6 +16,8 @@ import "../../styles/Organization.css";
 import { appConfirm } from "../../utils/appDialog";
 import {
   ADMIN_CACHE_KEYS,
+  fetchOnce,
+  isAdminListCacheFresh,
   readAdminListCache,
   writeAdminListCache,
 } from "../../utils/adminListCache";
@@ -79,16 +81,18 @@ export default function Participants({ user }: PageProps) {
   const cached = readAdminListCache<any[]>(ADMIN_CACHE_KEYS.participants);
   if (cached) {
     setParticipants(cached);
-    void fetchParticipants(true);
+    if (!isAdminListCacheFresh(ADMIN_CACHE_KEYS.participants)) {
+      void fetchParticipants();
+    }
     return;
   }
 
-  fetchParticipants(false);
+  void fetchParticipants();
 }, []);
 
-  const fetchParticipants = async (backgroundRefresh = false) => {
+  const fetchParticipants = async () => {
     try {
-      const response = await fetch("/api/get-participants");
+      const response = await fetchOnce("/api/get-participants");
       const data = await response.json();
 
       if (data.success) {
@@ -107,13 +111,13 @@ export default function Participants({ user }: PageProps) {
     email?: string;
     phoneNo?: string;
     password?: string;
-  }) =>
+  }, requirePassword = true) =>
     Boolean(
       String(form.firstName || "").trim() &&
         String(form.lastName || "").trim() &&
         isValidEmail(String(form.email || "")) &&
         isValidPhone(String(form.phoneNo || "")) &&
-        String(form.password || "").trim()
+        (!requirePassword || String(form.password || "").trim())
     );
 
   const validateParticipantFields = (form: {
@@ -122,7 +126,7 @@ export default function Participants({ user }: PageProps) {
     email?: string;
     phoneNo?: string;
     password?: string;
-  }) => {
+  }, requirePassword = true) => {
     if (!String(form.firstName || "").trim() || !String(form.lastName || "").trim()) {
       return "First name and last name are required. Middle name is optional.";
     }
@@ -137,7 +141,7 @@ export default function Participants({ user }: PageProps) {
       return phoneError;
     }
 
-    if (!String(form.password || "").trim()) {
+    if (requirePassword && !String(form.password || "").trim()) {
       return "Password is required.";
     }
 
@@ -253,7 +257,7 @@ export default function Participants({ user }: PageProps) {
     setEditParticipant({
       ...participant,
       username: String(participant.username || participant.email || "").trim(),
-      password: String(participant.password || ""),
+      password: "",
     });
     setFormError("");
     setShowEditPassword(false);
@@ -276,7 +280,7 @@ export default function Participants({ user }: PageProps) {
       password: String(editParticipant.password || ""),
     };
 
-    const error = validateParticipantFields(payload);
+    const error = validateParticipantFields(payload, false);
     if (error) {
       setFormError(error);
       return;
@@ -353,9 +357,11 @@ export default function Participants({ user }: PageProps) {
 
     // Remove the participant immediately from the UI.
     // No need to call get-participants again.
-    setParticipants((prev) =>
-      prev.filter((participant) => participant.id !== p.id)
-    );
+    setParticipants((prev) => {
+      const updated = prev.filter((participant) => participant.id !== p.id);
+      writeAdminListCache(ADMIN_CACHE_KEYS.participants, updated);
+      return updated;
+    });
   } catch (error) {
     console.error("Delete participant error:", error);
 
@@ -373,6 +379,16 @@ export default function Participants({ user }: PageProps) {
       .join(" ")
       .trim() || "-";
 
+  const formatParticipantOrganizations = (p: any) => {
+    const names = Array.isArray(p.organizations)
+      ? p.organizations
+      : String(p.organization || "")
+          .split(",")
+          .map((name) => name.trim());
+
+    return names.filter(Boolean).join(", ") || "-";
+  };
+
   const filteredParticipants = useMemo(() => {
     const query = tableSearch.trim().toLowerCase();
     if (!query) {
@@ -381,11 +397,13 @@ export default function Participants({ user }: PageProps) {
 
     return participants.filter((p) => {
       const name = formatParticipantName(p).toLowerCase();
+      const organizations = formatParticipantOrganizations(p).toLowerCase();
       const email = String(p.email || "").toLowerCase();
       const username = String(p.username || "").toLowerCase();
       const phone = String(p.phoneNo || "").toLowerCase();
       return (
         name.includes(query) ||
+        organizations.includes(query) ||
         email.includes(query) ||
         username.includes(query) ||
         phone.includes(query)
@@ -419,7 +437,7 @@ export default function Participants({ user }: PageProps) {
             <div className="org-card">
               <input
                 type="text"
-                placeholder="Search participants by name, email, or phone..."
+                placeholder="Search participants by name, organization, email, or phone..."
                 value={tableSearch}
                 onChange={(e) => setTableSearch(e.target.value)}
                 className="org-input org-search-input"
@@ -429,6 +447,7 @@ export default function Participants({ user }: PageProps) {
                 <thead>
                   <tr>
                     <th>Name</th>
+                    <th>Organization</th>
                     <th>Email</th>
                     <th>Phone No</th>
                     <th>Actions</th>
@@ -440,6 +459,7 @@ export default function Participants({ user }: PageProps) {
                     filteredParticipants.map((p) => (
                       <tr key={p.id}>
                         <td>{formatParticipantName(p)}</td>
+                        <td>{formatParticipantOrganizations(p)}</td>
                         <td>{p.email}</td>
                         <td>{p.phoneNo || "-"}</td>
                         <td>
@@ -456,7 +476,7 @@ export default function Participants({ user }: PageProps) {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={4} className="org-empty-cell">
+                      <td colSpan={5} className="org-empty-cell">
                         No participants found
                       </td>
                     </tr>
@@ -733,7 +753,9 @@ export default function Participants({ user }: PageProps) {
               <button
                 className="org-btn org-btn-primary"
                 onClick={handleUpdateParticipant}
-                disabled={saving || !isParticipantFormValid(editParticipant)}
+                disabled={
+                  saving || !isParticipantFormValid(editParticipant, false)
+                }
               >
                 {saving ? "Saving..." : "Save"}
               </button>

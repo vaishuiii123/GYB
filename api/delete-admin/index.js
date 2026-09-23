@@ -1,4 +1,5 @@
 const { getTableClient } = require("../shared/tableHelper");
+const { CACHE_KEYS, invalidate } = require("../shared/listCache");
 
 
 module.exports = async function (context, req) {
@@ -52,6 +53,7 @@ module.exports = async function (context, req) {
     }
 
     await client.deleteEntity(partitionKey, id);
+    invalidate(CACHE_KEYS.admins);
 
     context.res = {
       status: 200,

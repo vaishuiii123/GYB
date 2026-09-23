@@ -1,6 +1,7 @@
 const { getTableClient } = require("../shared/tableHelper");
 const { isValidEmail } = require("../shared/validation");
 const { CACHE_KEYS, invalidate } = require("../shared/listCache");
+const { invalidateParticipants } = require("../shared/cacheInvalidation");
 
 module.exports = async function (context, req) {
   try {
@@ -52,6 +53,7 @@ module.exports = async function (context, req) {
     );
 
     invalidate(CACHE_KEYS.organizations);
+    invalidateParticipants();
 
     context.res = {
       status: 200,

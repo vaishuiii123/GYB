@@ -1,4 +1,4 @@
-import * as XLSX from "xlsx";
+import type * as XLSX from "xlsx";
 
 type PreOdQuestion = {
   srNo: number;
@@ -86,14 +86,15 @@ function safeSheetName(name: string) {
 }
 
 function addSheet(
+  xlsx: typeof XLSX,
   workbook: XLSX.WorkBook,
   sheetName: string,
   rows: Record<string, string | number>[]
 ) {
   const worksheet =
     rows.length > 0
-      ? XLSX.utils.json_to_sheet(rows)
-      : XLSX.utils.aoa_to_sheet([["No responses available"]]);
+      ? xlsx.utils.json_to_sheet(rows)
+      : xlsx.utils.aoa_to_sheet([["No responses available"]]);
 
   if (rows.length > 0) {
     const headers = Object.keys(rows[0]);
@@ -108,7 +109,7 @@ function addSheet(
     }));
   }
 
-  XLSX.utils.book_append_sheet(
+  xlsx.utils.book_append_sheet(
     workbook,
     worksheet,
     safeSheetName(sheetName)
@@ -295,16 +296,17 @@ function fileSafeName(value: string) {
     .slice(0, 80);
 }
 
-export function exportWorkshopResponsesExcel(input: WorkshopExportInput) {
-  const workbook = XLSX.utils.book_new();
+export async function exportWorkshopResponsesExcel(input: WorkshopExportInput) {
+  const xlsx = await import("xlsx");
+  const workbook = xlsx.utils.book_new();
 
-  addSheet(workbook, "Pre-Organizational Development", buildPreOdRows(input));
-  addSheet(workbook, "OD Chart", buildOdChartRows(input));
-  addSheet(workbook, "Vision and Mission", buildVisionMissionRows(input));
-  addSheet(workbook, "Actions", buildActionablesRows(input));
-  addSheet(workbook, "Feedback", buildFeedbackRows(input));
+  addSheet(xlsx, workbook, "Pre-Organizational Development", buildPreOdRows(input));
+  addSheet(xlsx, workbook, "OD Chart", buildOdChartRows(input));
+  addSheet(xlsx, workbook, "Vision and Mission", buildVisionMissionRows(input));
+  addSheet(xlsx, workbook, "Actions", buildActionablesRows(input));
+  addSheet(xlsx, workbook, "Feedback", buildFeedbackRows(input));
 
   const stamp = new Date().toISOString().slice(0, 10);
   const filename = `${fileSafeName(input.workshopName)}_responses_${stamp}.xlsx`;
-  XLSX.writeFile(workbook, filename);
+  xlsx.writeFile(workbook, filename);
 }

@@ -3,6 +3,12 @@ import { useParams, useNavigate } from "react-router-dom";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import "../../styles/Template.css";
+import {
+  fetchOnce,
+  isAdminListCacheFresh,
+  readAdminListCache,
+  writeAdminListCache,
+} from "../../utils/adminListCache";
 
 type PageProps = {
   user?: any;
@@ -15,32 +21,55 @@ export default function PreODTemplateDetails({ user }: PageProps) {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    loadTemplate();
-  }, [id]);
-
-  const loadTemplate = async () => {
-    try {
-      setError("");
-      const response = await fetch(
-        `/api/get-pre-od-template-details?templateId=${encodeURIComponent(
-          String(id || "")
-        )}`
-      );
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        setError(data.message || "Unable to load Pre-Organizational Development template.");
-        setTemplate(null);
-        return;
-      }
-
-      setTemplate(data.template);
-    } catch (err) {
-      console.error(err);
-      setError("Unable to load Pre-Organizational Development template.");
-      setTemplate(null);
+    if (!id) {
+      setError("Template ID is missing.");
+      return;
     }
-  };
+
+    let active = true;
+    const cacheKey = `pre_od_template_details_${id}`;
+    const cached = readAdminListCache<any>(cacheKey);
+
+    if (cached) {
+      setTemplate(cached);
+    }
+    setError("");
+
+    if (!isAdminListCacheFresh(cacheKey)) {
+      void (async () => {
+        try {
+          const response = await fetchOnce(
+            `/api/get-pre-od-template-details?templateId=${encodeURIComponent(id)}`
+          );
+          const data = await response.json();
+
+          if (!response.ok || !data.success) {
+            throw new Error(
+              data.message ||
+                "Unable to load Pre-Organizational Development template."
+            );
+          }
+
+          writeAdminListCache(cacheKey, data.template);
+          if (active) setTemplate(data.template);
+        } catch (err) {
+          console.error(err);
+          if (active && !cached) {
+            setError(
+              err instanceof Error
+                ? err.message
+                : "Unable to load Pre-Organizational Development template."
+            );
+            setTemplate(null);
+          }
+        }
+      })();
+    }
+
+    return () => {
+      active = false;
+    };
+  }, [id]);
 
   const groupedQuestions = useMemo(() => {
     if (!template?.questions) return {};

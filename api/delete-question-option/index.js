@@ -1,4 +1,5 @@
 const { getTableClient } = require("../shared/tableHelper");
+const { invalidateQuestionStructure } = require("../shared/cacheInvalidation");
 
 
 module.exports = async function (context, req) {
@@ -19,6 +20,7 @@ module.exports = async function (context, req) {
         const optionTable = getTableClient("QuestionOptions");
 
         await optionTable.deleteEntity("QuestionOption", optionId);
+        invalidateQuestionStructure();
 
         context.res = {
             status: 200,

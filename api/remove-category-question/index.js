@@ -1,4 +1,5 @@
 const { getTableClient } = require("../shared/tableHelper");
+const { invalidateCategoryStructure } = require("../shared/cacheInvalidation");
 
 
 function parseQuestionIds(questionIdField) {
@@ -36,6 +37,7 @@ module.exports = async function (context, req) {
         category.ModifiedDate = new Date().toISOString();
 
         await tableClient.updateEntity(category, "Merge");
+        invalidateCategoryStructure();
 
         context.res = {
             status: 200,

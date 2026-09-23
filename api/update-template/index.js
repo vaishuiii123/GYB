@@ -1,4 +1,5 @@
 const { getTableClient } = require("../shared/tableHelper");
+const { invalidateTemplateStructure } = require("../shared/cacheInvalidation");
 
 module.exports = async function (context, req) {
   try {
@@ -81,6 +82,7 @@ module.exports = async function (context, req) {
       },
       "Replace"
     );
+    invalidateTemplateStructure();
 
     context.res = {
       status: 200,

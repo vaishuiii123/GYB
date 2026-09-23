@@ -1,4 +1,5 @@
-const { getTableClient } = require("../shared/tableHelper");
+const { getTableClient, listPartition } = require("../shared/tableHelper");
+const { invalidateParticipants } = require("../shared/cacheInvalidation");
 
 
 module.exports = async function (context, req) {
@@ -32,10 +33,13 @@ module.exports = async function (context, req) {
 
     const existingIds = new Set();
 
-    for await (const entity of client.listEntities()) {
-      if (entity.OrganizationId === organizationId) {
-        existingIds.add(entity.ParticipantId);
-      }
+    const existingMappings = await listPartition(
+      client,
+      organizationId,
+      ["ParticipantId"]
+    );
+    for (const entity of existingMappings) {
+      existingIds.add(entity.ParticipantId);
     }
 
     let addedCount = 0;
@@ -57,6 +61,8 @@ module.exports = async function (context, req) {
       existingIds.add(participantId);
       addedCount++;
     }
+
+    invalidateParticipants(organizationId);
 
     context.res = {
       status: 200,

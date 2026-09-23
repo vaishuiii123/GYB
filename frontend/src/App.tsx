@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import {
   BrowserRouter,
   Routes,
@@ -7,38 +7,40 @@ import {
 } from "react-router-dom";
 
 import AppDialogHost from "./components/AppDialogHost";
-import Dashboard from "./pages/Admin/Dashboard";
-import AdminLogin from "./pages/auth/AdminLogin";
-import Organization from "./pages/Admin/Organization";
-import Participants from "./pages/Admin/Participants";
-import Template from "./pages/Admin/Template";
-import CreateTemplate from "./pages/Admin/CreateTemplate";
-import CreatePreOdTemplate from "./pages/Admin/CreatePreOdTemplate";
-import TemplateDetails from "./pages/Admin/TemplateDetails";
-import PreODTemplateDetails from "./pages/Admin/PreODTemplateDetails";
-import Workshop from "./pages/Admin/Workshop";
-import UserLogin from "./pages/User/UserLogin";
-import UserDashboard from "./pages/User/UserDashboard";
-import WorkshopSelection from "./pages/User/WorkshopSelection";
-import AboutUs from "./pages/User/AboutUs";
-import VisionMission from "./pages/User/VisionMission";
-import ODChart from "./pages/User/ODChart";
-import ODChartQuestions from "./pages/User/ODChartQuestions";
-import ActionableForm from "./pages/User/ActionableForm";
-import CategoryManagement from "./pages/Admin/CategoryManagement";
-import MiddleCategory from "./pages/Admin/MiddleCategory";
-import ParentCategory from "./pages/Admin/ParentCategory";
-import Category from "./pages/Admin/Category";
-import CategoryQuestions from "./pages/Admin/CategoryQuestions";
-import TagManagement from "./pages/Admin/TagManagement";
-import QuestionManagement from "./pages/Admin/QuestionManagement";
-import WorkshopResponses from "./pages/Admin/WorkshopResponses";
-import AdminManagement from "./pages/Admin/AdminManagement";
-import PreODForm from "./pages/User/PreODForm";
-import WorkshopFeedback from "./pages/User/WorkshopFeedback";
-import Reports from "./pages/User/Reports";
-import Export from "./pages/Admin/Export";
 import { UnsavedChangesProvider } from "./utils/unsavedChanges";
+
+const Dashboard = lazy(() => import("./pages/Admin/Dashboard"));
+const AdminLogin = lazy(() => import("./pages/auth/AdminLogin"));
+const Organization = lazy(() => import("./pages/Admin/Organization"));
+const Participants = lazy(() => import("./pages/Admin/Participants"));
+const Template = lazy(() => import("./pages/Admin/Template"));
+const CreateTemplate = lazy(() => import("./pages/Admin/CreateTemplate"));
+const CreatePreOdTemplate = lazy(() => import("./pages/Admin/CreatePreOdTemplate"));
+const TemplateDetails = lazy(() => import("./pages/Admin/TemplateDetails"));
+const PreODTemplateDetails = lazy(() => import("./pages/Admin/PreODTemplateDetails"));
+const Workshop = lazy(() => import("./pages/Admin/Workshop"));
+const CategoryManagement = lazy(() => import("./pages/Admin/CategoryManagement"));
+const MiddleCategory = lazy(() => import("./pages/Admin/MiddleCategory"));
+const ParentCategory = lazy(() => import("./pages/Admin/ParentCategory"));
+const Category = lazy(() => import("./pages/Admin/Category"));
+const CategoryQuestions = lazy(() => import("./pages/Admin/CategoryQuestions"));
+const TagManagement = lazy(() => import("./pages/Admin/TagManagement"));
+const QuestionManagement = lazy(() => import("./pages/Admin/QuestionManagement"));
+const WorkshopResponses = lazy(() => import("./pages/Admin/WorkshopResponses"));
+const AdminManagement = lazy(() => import("./pages/Admin/AdminManagement"));
+const Export = lazy(() => import("./pages/Admin/Export"));
+
+const UserLogin = lazy(() => import("./pages/User/UserLogin"));
+const UserDashboard = lazy(() => import("./pages/User/UserDashboard"));
+const WorkshopSelection = lazy(() => import("./pages/User/WorkshopSelection"));
+const AboutUs = lazy(() => import("./pages/User/AboutUs"));
+const VisionMission = lazy(() => import("./pages/User/VisionMission"));
+const ODChart = lazy(() => import("./pages/User/ODChart"));
+const ODChartQuestions = lazy(() => import("./pages/User/ODChartQuestions"));
+const ActionableForm = lazy(() => import("./pages/User/ActionableForm"));
+const PreODForm = lazy(() => import("./pages/User/PreODForm"));
+const WorkshopFeedback = lazy(() => import("./pages/User/WorkshopFeedback"));
+const Reports = lazy(() => import("./pages/User/Reports"));
 
 function App() {
 
@@ -58,6 +60,7 @@ function App() {
     <BrowserRouter>
       <AppDialogHost />
       <UnsavedChangesProvider>
+     <Suspense fallback={<div className="route-loading">Loading...</div>}>
      <Routes>
         <Route
           path="/"
@@ -220,6 +223,7 @@ function App() {
         />
        
       </Routes>
+      </Suspense>
       </UnsavedChangesProvider>
     </BrowserRouter>
   );

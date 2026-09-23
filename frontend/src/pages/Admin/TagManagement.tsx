@@ -1,7 +1,7 @@
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import "../../styles/TagManagement.css";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   DeleteIconBtn,
   EditIconBtn,
@@ -9,6 +9,8 @@ import {
 import { appConfirm } from "../../utils/appDialog";
 import {
   ADMIN_CACHE_KEYS,
+  fetchOnce,
+  isAdminListCacheFresh,
   readAdminListCache,
   writeAdminListCache,
 } from "../../utils/adminListCache";
@@ -17,6 +19,25 @@ import {
 type PageProps = {
     user?: any;
 };
+
+/** Named CSS colours so the stored value still renders as a colour. */
+const TAG_COLORS = [
+    "Blue",
+    "Navy",
+    "Teal",
+    "Green",
+    "Olive",
+    "DarkGoldenrod",
+    "Goldenrod",
+    "Orange",
+    "Red",
+    "Maroon",
+    "Pink",
+    "Purple",
+    "Brown",
+    "Gray",
+    "Black",
+];
 
 
 export default function TagManagement({ user }: PageProps) {
@@ -29,13 +50,32 @@ export default function TagManagement({ user }: PageProps) {
     const [editMode, setEditMode] = useState(false);
     const [selectedTagId, setSelectedTagId] = useState("");
 
+    // Keep a tag's existing colour selectable even if it predates this list
+    const colorOptions = useMemo(()=>{
+
+        const current = tagColor.trim();
+
+        if(
+            !current ||
+            TAG_COLORS.some(
+                (color)=>
+                    color.toLowerCase() === current.toLowerCase()
+            )
+        ){
+            return TAG_COLORS;
+        }
+
+        return [...TAG_COLORS, current];
+
+    },[tagColor]);
+
 
 
     const fetchTags = async()=>{
 
         try{
 
-            const response = await fetch("/api/get-tags");
+            const response = await fetchOnce("/api/get-tags");
 
             const result = await response.json();
 
@@ -66,6 +106,9 @@ export default function TagManagement({ user }: PageProps) {
         const cached = readAdminListCache<any[]>(ADMIN_CACHE_KEYS.tags);
         if (cached) {
             setTags(cached);
+        }
+        if (isAdminListCacheFresh(ADMIN_CACHE_KEYS.tags)) {
+            return;
         }
         fetchTags();
 
@@ -173,6 +216,15 @@ export default function TagManagement({ user }: PageProps) {
 
 
     const handleUpdateTag = async()=>{
+
+
+        if(!tagName.trim() || !tagColor.trim()){
+
+            alert("Please enter name and color");
+
+            return;
+
+        }
 
 
         try{
@@ -462,15 +514,46 @@ export default function TagManagement({ user }: PageProps) {
                                 <label>Color</label>
 
 
-                                <input
+                                <div className="color-select-row">
 
-                                    value={tagColor}
+                                    <span
+                                        className="color-select-preview"
+                                        style={{
+                                            backgroundColor:
+                                                tagColor || "transparent"
+                                        }}
+                                    ></span>
 
-                                    onChange={(e)=>
-                                        setTagColor(e.target.value)
-                                    }
+                                    <select
 
-                                />
+                                        className="color-select"
+
+                                        value={tagColor}
+
+                                        onChange={(e)=>
+                                            setTagColor(e.target.value)
+                                        }
+
+                                    >
+
+                                        <option value="">
+                                            Select a color
+                                        </option>
+
+                                        {colorOptions.map((color)=>(
+
+                                            <option
+                                                key={color}
+                                                value={color}
+                                            >
+                                                {color}
+                                            </option>
+
+                                        ))}
+
+                                    </select>
+
+                                </div>
 
 
                             </div>

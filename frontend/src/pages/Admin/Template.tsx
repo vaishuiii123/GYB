@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import ExcelJS from "exceljs";
+import type ExcelJS from "exceljs";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import { useNavigate } from "react-router-dom";
@@ -16,6 +16,8 @@ import { appConfirm } from "../../utils/appDialog";
 import {
   ADMIN_CACHE_KEYS,
   clearAdminListCache,
+  fetchOnce,
+  isAdminListCacheFresh,
   readAdminListCache,
   writeAdminListCache,
 } from "../../utils/adminListCache";
@@ -68,6 +70,31 @@ const normalizeTemplateType = (value: unknown): "OD" | "Pre OD" => {
     return "Pre OD";
   }
   return "OD";
+};
+
+const prefetchTemplateDetails = async (
+  templateId: string,
+  templateType: "OD" | "Pre OD"
+) => {
+  const cacheKey =
+    templateType === "Pre OD"
+      ? `pre_od_template_details_${templateId}`
+      : `template_details_${templateId}`;
+
+  if (readAdminListCache(cacheKey)) return;
+
+  const endpoint =
+    templateType === "Pre OD"
+      ? "/api/get-pre-od-template-details"
+      : "/api/get-template-details";
+  const response = await fetchOnce(
+    `${endpoint}?templateId=${encodeURIComponent(templateId)}`
+  );
+  const data = await response.json();
+
+  if (response.ok && data.success && data.template) {
+    writeAdminListCache(cacheKey, data.template);
+  }
 };
 
 const cssColorToArgb = (value: unknown): string | null => {
@@ -183,14 +210,20 @@ export default function Template({ user }: PageProps) {
         mergeTemplateLists(cachedOd || [], cachedPreOd || [])
       );
     }
+    if (
+      isAdminListCacheFresh(ADMIN_CACHE_KEYS.templates) &&
+      isAdminListCacheFresh(ADMIN_CACHE_KEYS.preOdTemplates)
+    ) {
+      return;
+    }
     loadTemplates();
   }, []);
 
   const loadTemplates = async () => {
     try {
       const [odResponse, preOdResponse] = await Promise.all([
-        fetch("/api/get-templates"),
-        fetch("/api/get-pre-od-templates"),
+        fetchOnce("/api/get-templates"),
+        fetchOnce("/api/get-pre-od-templates"),
       ]);
       const odData = await odResponse.json();
       const preOdData = await preOdResponse.json();
@@ -472,6 +505,7 @@ export default function Template({ user }: PageProps) {
         };
       });
 
+      const { default: ExcelJS } = await import("exceljs");
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet("Template Questions");
       const listsWorksheet = workbook.addWorksheet("Lists");
@@ -993,6 +1027,7 @@ export default function Template({ user }: PageProps) {
       "Rating",
     ];
 
+    const { default: ExcelJS } = await import("exceljs");
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Pre-Organizational Development Questions");
     const listsWorksheet = workbook.addWorksheet("Lists");
@@ -1272,6 +1307,7 @@ export default function Template({ user }: PageProps) {
       );
 
       const buffer = await file.arrayBuffer();
+      const { default: ExcelJS } = await import("exceljs");
       const workbook = new ExcelJS.Workbook();
       await workbook.xlsx.load(buffer);
       const worksheet =
@@ -1574,6 +1610,7 @@ export default function Template({ user }: PageProps) {
       );
 
       const buffer = await file.arrayBuffer();
+      const { default: ExcelJS } = await import("exceljs");
       const workbook = new ExcelJS.Workbook();
       await workbook.xlsx.load(buffer);
 
@@ -1976,6 +2013,11 @@ export default function Template({ user }: PageProps) {
 
         clearAdminListCache(ADMIN_CACHE_KEYS.preOdTemplates);
         clearAdminListCache(ADMIN_CACHE_KEYS.templates);
+        if (isReplace && replaceUploadTarget) {
+          clearAdminListCache(
+            `pre_od_template_details_${replaceUploadTarget.id}`
+          );
+        }
         setTypeFilter("Pre OD");
         alert(
           isReplace
@@ -2181,6 +2223,9 @@ export default function Template({ user }: PageProps) {
       clearAdminListCache(ADMIN_CACHE_KEYS.questions);
       clearAdminListCache(ADMIN_CACHE_KEYS.templates);
       clearAdminListCache(ADMIN_CACHE_KEYS.preOdTemplates);
+      if (isReplace && replaceUploadTarget) {
+        clearAdminListCache(`template_details_${replaceUploadTarget.id}`);
+      }
       setTypeFilter("OD");
 
       alert(
@@ -2381,6 +2426,12 @@ export default function Template({ user }: PageProps) {
                           {template.templateType !== "Pre OD" ? (
                             <>
                               <ViewIconBtn
+                                onMouseEnter={() => {
+                                  void prefetchTemplateDetails(
+                                    template.id,
+                                    "OD"
+                                  ).catch(() => undefined);
+                                }}
                                 onClick={() =>
                                   navigate(`/template-details/${template.id}`)
                                 }
@@ -2408,6 +2459,12 @@ export default function Template({ user }: PageProps) {
                           ) : (
                             <>
                               <ViewIconBtn
+                                onMouseEnter={() => {
+                                  void prefetchTemplateDetails(
+                                    template.id,
+                                    "Pre OD"
+                                  ).catch(() => undefined);
+                                }}
                                 onClick={() =>
                                   navigate(
                                     `/pre-od-template-details/${template.id}`

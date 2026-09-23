@@ -203,8 +203,7 @@ export default function UserDashboard() {
       try {
         const data = await fetchParticipantWorkshops(
           String(participant.id),
-          participant.organizationId || "",
-          { forceRefresh: true }
+          participant.organizationId || ""
         );
 
         if (cancelled) {

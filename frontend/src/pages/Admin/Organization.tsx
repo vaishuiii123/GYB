@@ -11,6 +11,7 @@ import "../../styles/Organization.css";
 import { appAlert, appConfirm } from "../../utils/appDialog";
 import {
   ADMIN_CACHE_KEYS,
+  clearAdminListCache,
   fetchOnce,
   isAdminListCacheFresh,
   readAdminListCache,
@@ -473,8 +474,10 @@ const handleCreateOrganization = async () => {
     setShowAddParticipants(false);
     setSelectedParticipantIds([]);
     setSearchText("");
-    await loadParticipants();
-    await loadAssignedParticipants(org.id);
+    await Promise.all([
+      loadParticipants(),
+      loadAssignedParticipants(org.id),
+    ]);
     setShowViewModal(true);
     setNewParticipant(emptyNewParticipant);
 setNewParticipantError("");
@@ -482,7 +485,7 @@ setNewParticipantError("");
 
   const loadParticipants = async () => {
     try {
-      const response = await fetch("/api/get-participants");
+      const response = await fetchOnce("/api/get-participants");
       const data = await response.json();
       if (data.success) setAllParticipants(data.participants);
     } catch (error) {
@@ -519,6 +522,7 @@ setNewParticipantError("");
       const data = await response.json();
 
       if (data.success) {
+        clearAdminListCache(ADMIN_CACHE_KEYS.participants);
         const addedCount = data.addedCount ?? selectedParticipantIds.length;
         showToast(
           addedCount > 0
@@ -585,6 +589,7 @@ setNewParticipantError("");
   
       await loadAssignedParticipants(selectedOrganization.id);
       await loadParticipants();
+      clearAdminListCache(ADMIN_CACHE_KEYS.participants);
       setNewParticipant(emptyNewParticipant);
       showToast("Participant created and assigned");
     } catch (error) {
@@ -615,6 +620,7 @@ setNewParticipantError("");
       const data = await response.json();
 
       if (data.success) {
+        clearAdminListCache(ADMIN_CACHE_KEYS.participants);
         await loadAssignedParticipants(selectedOrganization.id);
         showToast("Participant removed successfully");
       }
@@ -860,7 +866,7 @@ setNewParticipantError("");
             </div>
 
             <div className="org-section-header">
-              <h3>Participant Assignment ({assignedParticipants.length})</h3>
+              <h3>Participant Assign ({assignedParticipants.length})</h3>
               <button
                 className="org-btn org-btn-add-participant"
                 onClick={() => setShowAddParticipants((prev) => !prev)}
@@ -914,9 +920,81 @@ setNewParticipantError("");
 
             {showAddParticipants && (
               <div className="org-add-panel">
-                <h4 className="org-add-title">Add Participants</h4>
+                <h4 className="org-add-title">Select Participants</h4>
                 <p className="org-add-subtitle">
-                  Select one or more participants to assign to this organization.
+                  Select one or more existing participants to assign to this organization.
+                </p>
+
+                <input
+                  type="text"
+                  placeholder="Search participants by name or email..."
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  className="org-input"
+                />
+
+                <div className="org-table-wrap">
+                  <table className="org-table">
+                    <thead>
+                      <tr>
+                        <th></th>
+                        <th>Participant Name</th>
+                        <th>Email</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {availableParticipants.length > 0 ? (
+                        availableParticipants.map((participant) => {
+                          const isSelected = selectedParticipantIds.includes(
+                            participant.id
+                          );
+
+                          return (
+                            <tr
+                              key={participant.id}
+                              className={isSelected ? "org-row-selected" : ""}
+                              onClick={() => toggleParticipant(participant.id)}
+                            >
+                              <td>
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => toggleParticipant(participant.id)}
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              </td>
+                              <td>
+                                {participant.firstName} {participant.lastName}
+                              </td>
+                              <td>{participant.email}</td>
+                            </tr>
+                          );
+                        })
+                      ) : (
+                        <tr>
+                          <td colSpan={3} className="org-empty-cell">
+                            No participants found
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="org-add-footer">
+                  <span>{selectedParticipantIds.length} selected</span>
+                  <button
+                    className="org-btn org-btn-primary"
+                    onClick={saveParticipants}
+                    disabled={selectedParticipantIds.length === 0}
+                  >
+                    Add Selected
+                  </button>
+                </div>
+
+                <h4 className="org-add-title">Create Participant</h4>
+                <p className="org-add-subtitle">
+                  Create a new participant and assign them to this organization.
                 </p>
                 <label className="org-field-label">
                   First Name <span className="org-required">*</span>
@@ -1012,75 +1090,6 @@ setNewParticipantError("");
                 >
                   {savingNewParticipant ? "Saving..." : "Create and add to organization"}
                 </button>
-
-<br></br>
-<br></br>
-                <input
-                  type="text"
-                  placeholder="Search participants by name or email..."
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                  className="org-input"
-                />
-
-                <div className="org-table-wrap">
-                  <table className="org-table">
-                    <thead>
-                      <tr>
-                        <th></th>
-                        <th>Participant Name</th>
-                        <th>Email</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {availableParticipants.length > 0 ? (
-                        availableParticipants.map((participant) => {
-                          const isSelected = selectedParticipantIds.includes(
-                            participant.id
-                          );
-
-                          return (
-                            <tr
-                              key={participant.id}
-                              className={isSelected ? "org-row-selected" : ""}
-                              onClick={() => toggleParticipant(participant.id)}
-                            >
-                              <td>
-                                <input
-                                  type="checkbox"
-                                  checked={isSelected}
-                                  onChange={() => toggleParticipant(participant.id)}
-                                  onClick={(e) => e.stopPropagation()}
-                                />
-                              </td>
-                              <td>
-                                {participant.firstName} {participant.lastName}
-                              </td>
-                              <td>{participant.email}</td>
-                            </tr>
-                          );
-                        })
-                      ) : (
-                        <tr>
-                          <td colSpan={3} className="org-empty-cell">
-                            No participants found
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                <div className="org-add-footer">
-                  <span>{selectedParticipantIds.length} selected</span>
-                  <button
-                    className="org-btn org-btn-primary"
-                    onClick={saveParticipants}
-                    disabled={selectedParticipantIds.length === 0}
-                  >
-                    Add Selected
-                  </button>
-                </div>
               </div>
             )}
 

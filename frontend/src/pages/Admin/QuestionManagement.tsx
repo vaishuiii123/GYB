@@ -2,7 +2,6 @@ import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import "../../styles/QuestionManagement.css";
 import { useEffect, useState } from "react";
-import ExcelJS from "exceljs";
 import {
   DeleteIconBtn,
   EditIconBtn,
@@ -10,6 +9,8 @@ import {
 import { appConfirm } from "../../utils/appDialog";
 import {
   ADMIN_CACHE_KEYS,
+  fetchOnce,
+  isAdminListCacheFresh,
   readAdminListCache,
   writeAdminListCache,
 } from "../../utils/adminListCache";
@@ -37,7 +38,7 @@ export default function QuestionManagement({ user }: PageProps) {
 
     const fetchTags = async () => {
         try {
-            const response = await fetch("/api/get-tags");
+            const response = await fetchOnce("/api/get-tags");
             const result = await response.json();
             if (result.success) {
                 const list = result.data || [];
@@ -66,15 +67,14 @@ export default function QuestionManagement({ user }: PageProps) {
 
     const fetchQuestions = async () => {
         try {
-            const response = await fetch("/api/get-questions");
+            const response = await fetchOnce("/api/get-questions");
             const result = await response.json();
             if (result.success) {
-                const questionsWithOptions = await Promise.all(
-                    result.data.map(async (question: any) => {
-                        const questionOptions = await fetchQuestionOptions(
-                            question.id
-                        );
-                        return { ...question, options: questionOptions };
+                // get-questions already returns each question's options
+                const questionsWithOptions = (result.data || []).map(
+                    (question: any) => ({
+                        ...question,
+                        options: question.options || [],
                     })
                 );
                 setQuestions(questionsWithOptions);
@@ -119,6 +119,7 @@ export default function QuestionManagement({ user }: PageProps) {
         ];
 
         // Create workbook
+        const { default: ExcelJS } = await import("exceljs");
         const workbook = new ExcelJS.Workbook();
 
         // Main Questions sheet
@@ -321,6 +322,7 @@ export default function QuestionManagement({ user }: PageProps) {
         // Read Excel file
         const buffer = await file.arrayBuffer();
 
+        const { default: ExcelJS } = await import("exceljs");
         const workbook = new ExcelJS.Workbook();
 
         await workbook.xlsx.load(buffer);
@@ -744,8 +746,15 @@ const handleImportQuestions = async () => {
         if (cachedQuestions) {
             setQuestions(cachedQuestions);
         }
-        fetchTags();
-        fetchQuestions();
+        if (!cachedTags || !isAdminListCacheFresh(ADMIN_CACHE_KEYS.tags)) {
+            void fetchTags();
+        }
+        if (
+          !cachedQuestions ||
+          !isAdminListCacheFresh(ADMIN_CACHE_KEYS.questions)
+        ) {
+            void fetchQuestions();
+        }
     }, []);
 
     const getTagName = (tagId: string) => {
@@ -830,9 +839,23 @@ const handleImportQuestions = async () => {
         }
     };
 
-    const saveOptions = async (questionId: string) => {
+    const saveOptions = async (questionId: string, replaceExisting = false) => {
         const filteredOptions = options.filter((o) => o.trim() !== "");
-        if (filteredOptions.length === 0) return;
+
+        if (filteredOptions.length === 0) {
+            if (!replaceExisting) return;
+
+            // Nothing left to save, so clear the stored options
+            const existingOptions = await fetchQuestionOptions(questionId);
+            await Promise.all(
+                existingOptions.map((opt: any) =>
+                    fetch(`/api/delete-question-option?id=${opt.id}`, {
+                        method: "DELETE",
+                    })
+                )
+            );
+            return;
+        }
 
         await fetch("/api/create-question-options", {
             method: "POST",
@@ -841,6 +864,7 @@ const handleImportQuestions = async () => {
                 questionId,
                 options: filteredOptions,
                 createdBy: user?.name || "Admin",
+                replaceExisting,
             }),
         });
     };
@@ -868,16 +892,7 @@ const handleImportQuestions = async () => {
                 const result = await response.json();
 
                 if (result.success) {
-                    const existingOptions = await fetchQuestionOptions(
-                        selectedQuestionId
-                    );
-                    for (const opt of existingOptions) {
-                        await fetch(
-                            `/api/delete-question-option?id=${opt.id}`,
-                            { method: "DELETE" }
-                        );
-                    }
-                    await saveOptions(selectedQuestionId);
+                    await saveOptions(selectedQuestionId, true);
                     alert("Question updated successfully");
                     fetchQuestions();
                     setShowModal(false);

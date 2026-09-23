@@ -31,32 +31,15 @@ export default function CategoryQuestions({ user }: PageProps) {
     const [showModal, setShowModal] = useState(false);
     const [selectedQuestionId, setSelectedQuestionId] = useState("");
 
-    const fetchQuestionOptions = async (questionId: string) => {
-        try {
-            const response = await fetch(
-                `/api/get-question-options?questionId=${questionId}`
-            );
-            const result = await response.json();
-            if (result.success) {
-                return result.data;
-            }
-        } catch (error) {
-            console.error("Error fetching options:", error);
-        }
-        return [];
-    };
-
     const fetchAllQuestions = async () => {
         try {
             const response = await fetch("/api/get-questions");
             const result = await response.json();
             if (result.success) {
-                const questionsWithOptions = await Promise.all(
-                    result.data.map(async (question: any) => {
-                        const options = await fetchQuestionOptions(
-                            question.id
-                        );
-                        return { ...question, options };
+                const questionsWithOptions = (result.data || []).map(
+                    (question: any) => ({
+                        ...question,
+                        options: question.options || [],
                     })
                 );
                 setAllQuestions(questionsWithOptions);

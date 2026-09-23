@@ -30,8 +30,7 @@ export default function WorkshopSelection() {
       try {
         const data = await fetchParticipantWorkshops(
           String(participant.id),
-          participant.organizationId || "",
-          { forceRefresh: true }
+          participant.organizationId || ""
         );
 
         if (cancelled) {

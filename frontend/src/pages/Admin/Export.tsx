@@ -5,8 +5,6 @@ import SearchableSelect from "../../components/SearchableSelect";
 import AddActionableModal, {
   type AddActionablePreset,
 } from "../../components/AddActionableModal";
-import * as XLSX from "xlsx";
-import JSZip from "jszip";
 import {
   Building2,
   CalendarDays,
@@ -645,6 +643,26 @@ export default function Export({ user }: PageProps) {
   selectedOrganization,
 ]);
 
+  const questionMetaById = useMemo(() => {
+    const map = new Map<
+      string,
+      { id: string; name: string; path: string; answerType: string }
+    >();
+
+    for (const category of categories) {
+      for (const question of category.questions || []) {
+        map.set(String(question.id), {
+          id: String(category.id || ""),
+          name: String(category.categoryName || ""),
+          path: category.fullPath || category.categoryName || "Category",
+          answerType: String(question.answerType || ""),
+        });
+      }
+    }
+
+    return map;
+  }, [categories]);
+
   /*
    * --------------------------------------------------
    * Load responses for selected workshop
@@ -658,6 +676,12 @@ export default function Export({ user }: PageProps) {
       setActionableRows([]);
       setSelectedCategory("");
       setSelectedQuestion("");
+      return;
+    }
+
+    // Category metadata is required to build response rows. Waiting here
+    // avoids loading the same workshop once before and once after it arrives.
+    if (categories.length === 0) {
       return;
     }
 
@@ -705,7 +729,7 @@ export default function Export({ user }: PageProps) {
               data.workshop?.workshopName || "";
             const organizationId =
               data.workshop?.organizationId ||
-              organizationWorkshops.find(
+              workshops.find(
                 (item) => item.id === selectedWorkshop
               )?.organizationId ||
               "";
@@ -957,7 +981,7 @@ export default function Export({ user }: PageProps) {
     };
 
     loadResponses();
-  }, [selectedWorkshop, categories, organizationWorkshops]);
+  }, [selectedWorkshop, categories, workshops]);
 
   /*
    * --------------------------------------------------
@@ -967,60 +991,23 @@ export default function Export({ user }: PageProps) {
 
   const getCategoryForQuestion = (
     questionId: string
-  ) => {
-    for (const category of categories) {
-      if (
-        category.questions?.some(
-          (question) =>
-            String(question.id) ===
-            String(questionId)
-        )
-      ) {
-        return (
-          category.fullPath ||
-          category.categoryName ||
-          "Category"
-        );
-      }
-    }
-
-    return "OD Chart";
-  };
+  ) => questionMetaById.get(String(questionId))?.path || "OD Chart";
 
   const getCategoryMetaForQuestion = (questionId: string) => {
-    for (const category of categories) {
-      if (
-        category.questions?.some(
-          (question) => String(question.id) === String(questionId)
-        )
-      ) {
-        return {
-          id: String(category.id || ""),
-          name: String(category.categoryName || ""),
-          path:
-            category.fullPath ||
-            category.categoryName ||
-            "Category",
-        };
-      }
+    const meta = questionMetaById.get(String(questionId));
+    if (meta) {
+      return {
+        id: meta.id,
+        name: meta.name,
+        path: meta.path,
+      };
     }
     return { id: "", name: "", path: "OD Chart" };
   };
 
   const getQuestionTypeForQuestion = (
     questionId: string
-  ) => {
-    for (const category of categories) {
-      const match = category.questions?.find(
-        (question) =>
-          String(question.id) === String(questionId)
-      );
-      if (match?.answerType) {
-        return String(match.answerType);
-      }
-    }
-    return "";
-  };
+  ) => questionMetaById.get(String(questionId))?.answerType || "";
 
   /*
    * --------------------------------------------------
@@ -1458,6 +1445,10 @@ const availableQuestions = useMemo(() => {
 
     try {
       setExportingZip(true);
+      const [{ default: JSZip }, XLSX] = await Promise.all([
+        import("jszip"),
+        import("xlsx"),
+      ]);
 
       const workshopName =
         organizationWorkshops.find((item) => item.id === selectedWorkshop)

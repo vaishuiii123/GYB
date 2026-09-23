@@ -1,15 +1,58 @@
 const { getTableClient } = require("../shared/tableHelper");
+const {
+    CACHE_KEYS,
+    getOrLoad,
+} = require("../shared/listCache");
 
 
+/**
+ * All question options in one scan, grouped by question id.
+ * Avoids a per-question round trip when listing questions.
+ */
+async function loadOptionsByQuestion() {
 
-module.exports = async function (context, req) {
+    const optionsByQuestion = new Map();
 
-    try {
+    const entities = getTableClient("QuestionOptions").listEntities({
+
+        queryOptions: {
+            filter: "PartitionKey eq 'QuestionOption'",
+            select: ["RowKey", "QuestionId", "OptionText"],
+        }
+
+    });
+
+    for await (const entity of entities) {
+
+        const questionId = entity.QuestionId;
+
+        if (!questionId) {
+            continue;
+        }
+
+        const options = optionsByQuestion.get(questionId) || [];
+
+        options.push({
+            id: entity.rowKey,
+            questionId,
+            optionText: entity.OptionText,
+        });
+
+        optionsByQuestion.set(questionId, options);
+
+    }
+
+    // Option ids are sequential (OPT001...), so this keeps entry order
+    for (const options of optionsByQuestion.values()) {
+        options.sort((a, b) => String(a.id).localeCompare(String(b.id)));
+    }
+
+    return optionsByQuestion;
+
+}
 
 
-
-
-
+async function loadQuestions() {
         const tableClient =
             getTableClient("Questions");
 
@@ -40,6 +83,8 @@ module.exports = async function (context, req) {
             });
 
 
+        const optionsByQuestion = await loadOptionsByQuestion();
+
 
         for await (const entity of entities) {
 
@@ -47,6 +92,8 @@ module.exports = async function (context, req) {
             questions.push({
 
                 id: entity.rowKey,
+
+                options: optionsByQuestion.get(entity.rowKey) || [],
 
                 questionText: entity.QuestionText,
 
@@ -76,44 +123,40 @@ module.exports = async function (context, req) {
 
 
 
+        questions.sort((a, b) =>
+            String(a.questionText || "").localeCompare(
+                String(b.questionText || "")
+            )
+        );
+
+        return questions;
+}
+
+module.exports = async function (context, req) {
+    try {
+        const { value: questions, cacheHit } = await getOrLoad(
+            CACHE_KEYS.questions,
+            loadQuestions
+        );
+
         context.res = {
-
-            status:200,
-
-            body:{
-
-                success:true,
-
-                data:questions
-
-            }
-
+            status: 200,
+            headers: {
+                "X-List-Cache": cacheHit ? "HIT" : "MISS",
+            },
+            body: {
+                success: true,
+                data: questions,
+            },
         };
-
-
-    }
-
-    catch(error){
-
-
+    } catch (error) {
         context.log(error);
-
-
-        context.res={
-
-            status:500,
-
-            body:{
-
-                success:false,
-
-                message:error.message
-
-            }
-
+        context.res = {
+            status: 500,
+            body: {
+                success: false,
+                message: error.message,
+            },
         };
-
-
     }
-
 };

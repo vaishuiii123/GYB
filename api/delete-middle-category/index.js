@@ -1,4 +1,5 @@
 const { getTableClient } = require("../shared/tableHelper");
+const { invalidateCategoryStructure } = require("../shared/cacheInvalidation");
 
 
 
@@ -129,6 +130,8 @@ module.exports = async function (context, req) {
             id
 
         );
+
+        invalidateCategoryStructure();
 
 
 

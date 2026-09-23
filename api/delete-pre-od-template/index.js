@@ -1,4 +1,5 @@
 const { getTableClient } = require("../shared/tableHelper");
+const { invalidateTemplateStructure } = require("../shared/cacheInvalidation");
 
 module.exports = async function (context, req) {
   try {
@@ -17,6 +18,7 @@ module.exports = async function (context, req) {
 
     const client = getTableClient("PreODTemplate");
     await client.deleteEntity("PreODTemplate", String(templateId));
+    invalidateTemplateStructure();
 
     context.res = {
       status: 200,

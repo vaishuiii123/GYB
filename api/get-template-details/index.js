@@ -1,4 +1,8 @@
-const { getTableClient } = require("../shared/tableHelper");
+const {
+    getTableClient,
+    listPartition
+} = require("../shared/tableHelper");
+const { getOrLoad } = require("../shared/listCache");
 
 
 function parseQuestionIds(questionIdField) {
@@ -9,233 +13,188 @@ function parseQuestionIds(questionIdField) {
         .filter(Boolean);
 }
 
-module.exports = async function (context, req) {
+async function loadTemplateDetails(templateId) {
+    const templateClient = getTableClient("Template");
+    const categoryClient = getTableClient("QuestionnaireCategory");
+    const parentClient = getTableClient("QuestionnaireParentCategory");
+    const middleClient = getTableClient("QuestionnaireMiddleCategory");
+    const topClient = getTableClient("QuestionnaireTopCategory");
+    const questionClient = getTableClient("Questions");
+    const optionClient = getTableClient("QuestionOptions");
+    const tagClient = getTableClient("Tags");
+
+    let template;
     try {
-        const templateId = req.query.templateId;
+        template = await templateClient.getEntity("Template", templateId);
+    } catch (error) {
+        if (error.statusCode === 404) return null;
+        throw error;
+    }
 
-        if (!templateId) {
-            context.res = {
-                status: 400,
-                body: {
-                    success: false,
-                    message: "templateId required"
-                }
-            };
-            return;
+    const questionIds = parseQuestionIds(template.QuestionIds);
+
+    // These reads are independent. Running them together removes the long
+    // Azure Table waterfall that previously blocked this page.
+    const [
+        tops,
+        middles,
+        parents,
+        categoryEntities,
+        allOptions,
+        tags,
+        questionEntities
+    ] = await Promise.all([
+        listPartition(topClient, "TopCategory"),
+        listPartition(middleClient, "MiddleCategory"),
+        listPartition(parentClient, "ParentCategory"),
+        listPartition(categoryClient, "Category"),
+        listPartition(optionClient, "QuestionOption"),
+        listPartition(tagClient, "Tag").catch(() => []),
+        listPartition(questionClient, "Question")
+    ]);
+
+    const topById = new Map(tops.map((item) => [item.rowKey, item]));
+    const middleById = new Map(middles.map((item) => [item.rowKey, item]));
+    const parentById = new Map(parents.map((item) => [item.rowKey, item]));
+    const wantedQuestionIds = new Set(questionIds);
+    const questionById = new Map(
+        questionEntities
+            .filter((item) => wantedQuestionIds.has(item.rowKey))
+            .map((item) => [item.rowKey, item])
+    );
+    const tagById = new Map(tags.map((item) => [item.rowKey, item]));
+    const optionsByQuestion = new Map();
+
+    for (const option of allOptions) {
+        if (!optionsByQuestion.has(option.QuestionId)) {
+            optionsByQuestion.set(option.QuestionId, []);
+        }
+        optionsByQuestion.get(option.QuestionId).push(option.OptionText);
+    }
+
+    // A question can belong to several template categories, so it is listed
+    // once per category rather than collapsed to a single row.
+    const templateCategoryIds = new Set(parseQuestionIds(template.CategoryId));
+    const questionToCategories = new Map();
+    for (const category of categoryEntities) {
+        if (
+            templateCategoryIds.size > 0 &&
+            !templateCategoryIds.has(category.rowKey)
+        ) {
+            continue;
         }
 
-        const templateClient = getTableClient("Template");
-
-        const categoryClient = getTableClient("QuestionnaireCategory");
-
-        const parentClient = getTableClient("QuestionnaireParentCategory");
-
-        const middleClient = getTableClient("QuestionnaireMiddleCategory");
-
-        const topClient = getTableClient("QuestionnaireTopCategory");
-
-        const questionClient = getTableClient("Questions");
-
-        const optionClient = getTableClient("QuestionOptions");
-
-        const tagClient = getTableClient("Tags");
-
-        let template = null;
-
-        for await (const entity of templateClient.listEntities()) {
-            if (entity.rowKey === templateId) {
-                template = entity;
-                break;
-            }
-        }
-
-        if (!template) {
-            context.res = {
-                status: 404,
-                body: {
-                    success: false,
-                    message: "Template not found"
-                }
-            };
-            return;
-        }
-
-        const tops = [];
-        const middles = [];
-        const parents = [];
-        const categories = [];
-
-        for await (const item of topClient.listEntities({
-            queryOptions: { filter: "PartitionKey eq 'TopCategory'" }
-        })) {
-            tops.push(item);
-        }
-
-        for await (const item of middleClient.listEntities({
-            queryOptions: { filter: "PartitionKey eq 'MiddleCategory'" }
-        })) {
-            middles.push(item);
-        }
-
-        for await (const item of parentClient.listEntities({
-            queryOptions: { filter: "PartitionKey eq 'ParentCategory'" }
-        })) {
-            parents.push(item);
-        }
-
-        for await (const category of categoryClient.listEntities({
-            queryOptions: { filter: "PartitionKey eq 'Category'" }
-        })) {
-            const parent = parents.find(
-                (p) => p.rowKey === category.ParentCategoryId
-            );
-            const middle = parent
-                ? middles.find((m) => m.rowKey === parent.MiddleCategoryId)
-                : null;
-            const top = middle
-                ? tops.find((t) => t.rowKey === middle.TopCategoryId)
-                : null;
-
-            const topCategoryName = top?.TopCategoryName || "";
-            const middleCategoryName = middle?.MiddleCategoryName || "";
-            const parentCategoryName = parent?.ParentCategoryName || "";
-            const categoryName = category.CategoryName || "";
-
-            const fullPath = [
-                topCategoryName,
-                middleCategoryName,
-                parentCategoryName,
-                categoryName
-            ]
-                .filter(Boolean)
-                .join(" > ");
-
-            categories.push({
-                id: category.rowKey,
-                categoryName,
-                topCategoryName,
-                middleCategoryName,
-                parentCategoryName,
-                tagId: category.TagId || "",
-                fullPath,
-                questionIds: parseQuestionIds(category.QuestionId)
-            });
-        }
-
-        const questionToCategory = {};
-        categories.forEach((category) => {
-            category.questionIds.forEach((questionId) => {
-                questionToCategory[questionId] = category;
-            });
-        });
-
-        const savedPaths = template.CategoryPath
-            ? template.CategoryPath.split("|").filter(Boolean)
-            : [];
-
-        const questionIds = parseQuestionIds(template.QuestionIds);
-        const categoryIds = parseQuestionIds(template.CategoryId);
-
-        const allOptions = [];
-        for await (const opt of optionClient.listEntities({
-            queryOptions: { filter: "PartitionKey eq 'QuestionOption'" }
-        })) {
-            allOptions.push(opt);
-        }
-
-        const tagNameById = new Map();
-        const tagColorById = new Map();
-        try {
-            for await (const tag of tagClient.listEntities({
-                queryOptions: { filter: "PartitionKey eq 'Tag'" }
-            })) {
-                tagNameById.set(tag.rowKey, tag.TagName || "");
-                tagColorById.set(tag.rowKey, tag.TagColor || "");
-            }
-        } catch {
-            // Tags table may be empty
-        }
-
-        const questions = [];
-
-        for (const questionId of questionIds) {
-            try {
-                const question = await questionClient.getEntity(
-                    "Question",
-                    questionId
-                );
-
-                const categoryInfo = questionToCategory[questionId];
-
-                const options = allOptions
-                    .filter((opt) => opt.QuestionId === questionId)
-                    .map((opt) => opt.OptionText)
-                    .join(", ");
-
-                const questionTagId =
-                    question.TagId ||
-                    question.tagId ||
-                    categoryInfo?.tagId ||
-                    "";
-
-                questions.push({
-                    id: question.rowKey,
-                    question: question.QuestionText,
-                    answerType: question.QuestionType,
-                    tagId: questionTagId,
-                    tagName: questionTagId
-                        ? tagNameById.get(questionTagId) || ""
-                        : "",
-                    tagColor: questionTagId
-                        ? tagColorById.get(questionTagId) || ""
-                        : "",
-                    attachmentsApplicable:
-                        String(question.AttachmentsApplicable || "N").toUpperCase() ===
-                        "Y"
-                            ? "Y"
-                            : "N",
-                    required: false,
-                    options,
-                    categoryId: categoryInfo?.id || "",
-                    categoryName: categoryInfo?.categoryName || "",
-                    topCategoryName: categoryInfo?.topCategoryName || "",
-                    middleCategoryName: categoryInfo?.middleCategoryName || "",
-                    parentCategoryName: categoryInfo?.parentCategoryName || "",
-                    categoryPath: categoryInfo?.fullPath || ""
-                });
-            } catch {
-                // question deleted, skip
-            }
-        }
-
-        context.res = {
-            status: 200,
-            body: {
-                success: true,
-                template: {
-                    id: template.rowKey,
-                    templateName: template.TemplateName,
-                    categoryId: template.CategoryId || "",
-                    categoryIds,
-                    categoryName: template.CategoryName,
-                    categoryNames: template.CategoryName
-                        ? template.CategoryName.split(",")
-                              .map((name) => name.trim())
-                              .filter(Boolean)
-                        : [],
-                    categoryPaths: savedPaths,
-                    questionIds,
-                    questions
-                }
-            }
+        const parent = parentById.get(category.ParentCategoryId);
+        const middle = parent
+            ? middleById.get(parent.MiddleCategoryId)
+            : null;
+        const top = middle ? topById.get(middle.TopCategoryId) : null;
+        const info = {
+            id: category.rowKey,
+            categoryName: category.CategoryName || "",
+            topCategoryName: top?.TopCategoryName || "",
+            middleCategoryName: middle?.MiddleCategoryName || "",
+            parentCategoryName: parent?.ParentCategoryName || "",
+            tagId: category.TagId || ""
         };
+        info.fullPath = [
+            info.topCategoryName,
+            info.middleCategoryName,
+            info.parentCategoryName,
+            info.categoryName
+        ].filter(Boolean).join(" > ");
+
+        for (const questionId of parseQuestionIds(category.QuestionId)) {
+            if (!questionToCategories.has(questionId)) {
+                questionToCategories.set(questionId, []);
+            }
+            questionToCategories.get(questionId).push(info);
+        }
+    }
+
+    const questions = questionIds.flatMap((questionId) => {
+        const question = questionById.get(questionId);
+        if (!question) return [];
+
+        const categoryMatches = questionToCategories.get(questionId) || [null];
+
+        return categoryMatches.map((categoryInfo) => {
+            const questionTagId =
+                question.TagId || question.tagId || categoryInfo?.tagId || "";
+            const tag = tagById.get(questionTagId);
+
+            return {
+                id: question.rowKey,
+                question: question.QuestionText,
+                answerType: question.QuestionType,
+                tagId: questionTagId,
+                tagName: tag?.TagName || "",
+                tagColor: tag?.TagColor || "",
+                attachmentsApplicable:
+                    String(question.AttachmentsApplicable || "N").toUpperCase() === "Y"
+                        ? "Y"
+                        : "N",
+                required: false,
+                options: (optionsByQuestion.get(questionId) || []).join(", "),
+                categoryId: categoryInfo?.id || "",
+                categoryName: categoryInfo?.categoryName || "",
+                topCategoryName: categoryInfo?.topCategoryName || "",
+                middleCategoryName: categoryInfo?.middleCategoryName || "",
+                parentCategoryName: categoryInfo?.parentCategoryName || "",
+                categoryPath: categoryInfo?.fullPath || ""
+            };
+        });
+    });
+
+    return {
+        id: template.rowKey,
+        templateName: template.TemplateName,
+        categoryId: template.CategoryId || "",
+        categoryIds: parseQuestionIds(template.CategoryId),
+        categoryName: template.CategoryName,
+        categoryNames: template.CategoryName
+            ? template.CategoryName.split(",").map((name) => name.trim()).filter(Boolean)
+            : [],
+        categoryPaths: template.CategoryPath
+            ? template.CategoryPath.split("|").filter(Boolean)
+            : [],
+        questionIds,
+        questions
+    };
+}
+
+module.exports = async function (context, req) {
+    const templateId = String(req.query.templateId || "").trim();
+
+    if (!templateId) {
+        context.res = {
+            status: 400,
+            body: { success: false, message: "templateId required" }
+        };
+        return;
+    }
+
+    try {
+        const { value: template, cacheHit } = await getOrLoad(
+            `template-details:${templateId}`,
+            () => loadTemplateDetails(templateId),
+            5 * 60 * 1000
+        );
+
+        context.res = template
+            ? {
+                status: 200,
+                headers: { "X-List-Cache": cacheHit ? "HIT" : "MISS" },
+                body: { success: true, template }
+            }
+            : {
+                status: 404,
+                body: { success: false, message: "Template not found" }
+            };
     } catch (error) {
         context.res = {
             status: 500,
-            body: {
-                success: false,
-                error: error.message
-            }
+            body: { success: false, error: error.message }
         };
     }
 };

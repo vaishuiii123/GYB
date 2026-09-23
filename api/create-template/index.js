@@ -1,5 +1,6 @@
 const { getTableClient } = require("../shared/tableHelper");
 const { TableServiceClient } = require("@azure/data-tables");
+const { invalidateTemplateStructure } = require("../shared/cacheInvalidation");
 
 module.exports = async function (context, req) {
   try {
@@ -71,6 +72,7 @@ module.exports = async function (context, req) {
     };
 
     await client.createEntity(entity);
+    invalidateTemplateStructure();
 
     context.res = {
       status: 200,

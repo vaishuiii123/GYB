@@ -2,6 +2,7 @@ const { getTableClient } = require("../shared/tableHelper");
 const {
   normalizeAttachmentsApplicable,
 } = require("../shared/attachmentHelper");
+const { invalidateQuestionStructure } = require("../shared/cacheInvalidation");
 
 
 
@@ -57,6 +58,8 @@ await tableClient.updateEntity(
 entity,
 "Merge"
 );
+
+invalidateQuestionStructure();
 
 
 

@@ -1,4 +1,5 @@
 const { getTableClient } = require("../shared/tableHelper");
+const { invalidateParticipants } = require("../shared/cacheInvalidation");
 
 
 module.exports = async function (context, req) {
@@ -33,26 +34,21 @@ module.exports = async function (context, req) {
 
     let deletedCount = 0;
 
-    for await (
-      const entity of client.listEntities()
-    ) {
-
-      if (
-        entity.OrganizationId ===
-          organizationId &&
-        participantIds.includes(
-          entity.ParticipantId
-        )
-      ) {
-
+    for (const participantId of participantIds) {
+      try {
         await client.deleteEntity(
-          entity.partitionKey,
-          entity.rowKey
+          organizationId,
+          participantId
         );
-
         deletedCount++;
+      } catch (error) {
+        if (error.statusCode !== 404) {
+          throw error;
+        }
       }
     }
+
+    invalidateParticipants(organizationId);
 
     context.res = {
       status: 200,
