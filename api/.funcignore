@@ -1,8 +1,6 @@
 .git*
 .vscode
-.funcignore
 local.settings.json
-node_modules
 npm-debug.log*
 *.md
 scripts
