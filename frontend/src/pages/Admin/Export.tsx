@@ -151,12 +151,24 @@ function shadeOfBase(index: number, total: number) {
   return `hsl(210, 78%, ${lightness}%)`;
 }
 
-/** Yes → chart green, No → chart red (reference pie palette); other answers = blue shades. */
+/** Traffic-light / Yes-No colors; everything else uses blue shades. */
 function colorForPieSlice(label: string, index: number, total: number) {
   const lower = String(label || "")
     .trim()
     .toLowerCase();
 
+  // Yellow / Green / Red option labels → those colors on the pie
+  if (lower === "yellow" || lower === "ye" || lower === "gold") {
+    return "#F7C948";
+  }
+  if (lower === "green" || lower === "g") {
+    return "#00A651";
+  }
+  if (lower === "red" || lower === "r") {
+    return "#ED1C24";
+  }
+
+  // Yes → green, No → red
   if (
     lower === "yes" ||
     lower === "y" ||
@@ -194,6 +206,7 @@ const KNOWN_CHOICE_ANSWERS = new Set([
   "red",
   "yellow",
   "green",
+  "gold",
   "r",
   "ye",
   "g",
@@ -217,7 +230,7 @@ function normalizeAnswerToken(value: string) {
   if (lower === "true") return "True";
   if (lower === "false") return "False";
   if (lower === "red" || lower === "r") return "Red";
-  if (lower === "yellow") return "Yellow";
+  if (lower === "yellow" || lower === "ye" || lower === "gold") return "Yellow";
   if (lower === "green" || lower === "g") return "Green";
   if (lower === "agree") return "Agree";
   if (lower === "disagree") return "Disagree";
