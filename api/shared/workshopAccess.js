@@ -333,45 +333,9 @@ async function listWorkshopsForParticipant(
 
   let workshops = await listWorkshopsByOrganizationIds(organizationIds);
 
-  // Fallback: match by participant organisation name when org-id links miss.
-  if (workshops.length === 0) {
-    const participantClient = getTableClient("Participants");
-    let participant = null;
-
-    try {
-      participant = await participantClient.getEntity(
-        "Participant",
-        participantId
-      );
-    } catch {
-      participant = null;
-    }
-
-    const organisationName =
-      participant?.Organisation || participant?.Organization || "";
-
-    if (organisationName) {
-      workshops = await listWorkshopsForOrganizationName(organisationName);
-
-      for (const workshop of workshops) {
-        if (workshop.organizationId) {
-          organizationIds.push(workshop.organizationId);
-        }
-      }
-    }
-  }
-
-  // Last resort: if a preferred org id was supplied, still try that org's
-  // workshops (covers stale client org id after a new assignment).
-  if (workshops.length === 0 && normalizedPreferredOrgId) {
-    workshops = await listWorkshopsByOrganizationIds([
-      normalizedPreferredOrgId,
-    ]);
-    if (workshops.length > 0) {
-      organizationIds = [normalizedPreferredOrgId, ...organizationIds];
-    }
-  }
-
+  // Do not fall back to Participants.Organisation text or a client-supplied
+  // preferred org id. Those paths leaked workshops for orgs the participant
+  // is no longer assigned to.
   return {
     organizationIds: [
       ...new Set(organizationIds.map(normalizeId).filter(Boolean)),

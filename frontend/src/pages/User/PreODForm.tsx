@@ -47,6 +47,14 @@ type PreOdFormData = {
 const ATTACHMENT_ACCEPT =
   ".xlsx,.xls,.doc,.docx,.ppt,.pptx,.pdf,.txt,.png,.jpg,.jpeg,.gif,.webp";
 
+function isAttachmentApplicable(value: unknown) {
+  return ["y", "yes", "true", "1"].includes(
+    String(value || "")
+      .trim()
+      .toLowerCase()
+  );
+}
+
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -475,9 +483,9 @@ export default function PreODForm() {
                   const pending = pendingFiles[key];
                   const saved = savedAttachments[key];
                   const displayName = pending?.fileName || saved?.fileName || "";
-                  const showAttachment =
-                    String(item.attachmentsApplicable || "N").toUpperCase() ===
-                    "Y";
+                  const showAttachment = isAttachmentApplicable(
+                    item.attachmentsApplicable
+                  );
 
                   return (
                     <div key={item.srNo} className="pre-od-question-card">

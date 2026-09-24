@@ -20,17 +20,11 @@ async function loadWorkshopByOrganization(organizationId, participantId) {
     );
     workshops = participantWorkshops.workshops;
     organizationIds = participantWorkshops.organizationIds;
-  }
-
-  // Fallback when participant links are missing but client still has an org id.
-  if (workshops.length === 0 && organizationId) {
-    const orgWorkshops = await listWorkshopsForOrganization(organizationId);
-    if (orgWorkshops.length > 0) {
-      workshops = orgWorkshops;
-      organizationIds = [
-        ...new Set([organizationId, ...(organizationIds || [])].filter(Boolean)),
-      ];
-    }
+  } else if (organizationId) {
+    // Without a participant id, only return workshops for the requested org
+    // (admin/debug callers). Participant login always sends participantId.
+    workshops = await listWorkshopsForOrganization(organizationId);
+    organizationIds = organizationId ? [organizationId] : [];
   }
 
   const activeWorkshop = pickWorkshopForOrganization(workshops);

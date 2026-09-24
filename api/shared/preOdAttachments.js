@@ -57,6 +57,23 @@ function hasAnyYes(map) {
   );
 }
 
+function mergeAttachmentMaps(primary, secondary, srNos) {
+  const result = {};
+
+  for (const srNo of srNos || []) {
+    const key = String(srNo);
+    const primaryFlag = normalizeAttachmentsApplicable(primary?.[key] || "N");
+    const secondaryFlag = normalizeAttachmentsApplicable(
+      secondary?.[key] || "N"
+    );
+    // Y wins from either source so stale workshop snapshots cannot hide
+    // attachments that the linked template already enables.
+    result[key] = primaryFlag === "Y" || secondaryFlag === "Y" ? "Y" : "N";
+  }
+
+  return result;
+}
+
 async function loadTemplateAttachments(templateId, srNos) {
   if (!templateId) {
     return null;
@@ -73,28 +90,69 @@ async function loadTemplateAttachments(templateId, srNos) {
   }
 }
 
+async function findPreOdTemplateIdByName(templateName) {
+  const normalized = String(templateName || "")
+    .trim()
+    .toLowerCase();
+
+  if (!normalized) {
+    return "";
+  }
+
+  try {
+    const client = getTableClient("PreODTemplate");
+
+    for await (const entity of client.listEntities({
+      queryOptions: {
+        filter: "PartitionKey eq 'PreODTemplate'",
+        select: ["RowKey", "TemplateName"],
+      },
+    })) {
+      if (
+        String(entity.TemplateName || "")
+          .trim()
+          .toLowerCase() === normalized
+      ) {
+        return String(entity.rowKey || "");
+      }
+    }
+  } catch {
+    return "";
+  }
+
+  return "";
+}
+
 /**
  * Resolve Attachment Y/N for a workshop's Pre OD questions.
- * Prefers workshop.PreOdQuestionAttachments; falls back to linked Pre OD template.
+ * Linked Pre OD template flags are merged in so admin "Attachment Applicable =
+ * Yes" always surfaces on the participant form, even when the workshop was
+ * saved earlier with all-N snapshots or a missing template id.
  */
 async function resolveWorkshopPreOdAttachments(workshop, srNos) {
   const assignedSrNos = (srNos || []).map((item) => String(item));
-  let map = normalizeQuestionAttachments(
+  const fromWorkshop = normalizeQuestionAttachments(
     workshop?.preOdQuestionAttachments,
     assignedSrNos
   );
 
-  if (!hasAnyYes(map) && workshop?.preOdTemplateId) {
-    const fromTemplate = await loadTemplateAttachments(
-      workshop.preOdTemplateId,
-      assignedSrNos
-    );
-    if (fromTemplate && hasAnyYes(fromTemplate)) {
-      map = fromTemplate;
-    }
+  let templateId = String(workshop?.preOdTemplateId || "").trim();
+
+  if (!templateId && workshop?.preOdTemplateName) {
+    templateId = await findPreOdTemplateIdByName(workshop.preOdTemplateName);
   }
 
-  return map;
+  if (!templateId) {
+    return fromWorkshop;
+  }
+
+  const fromTemplate = await loadTemplateAttachments(templateId, assignedSrNos);
+
+  if (!fromTemplate) {
+    return fromWorkshop;
+  }
+
+  return mergeAttachmentMaps(fromTemplate, fromWorkshop, assignedSrNos);
 }
 
 module.exports = {
