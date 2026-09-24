@@ -9,10 +9,7 @@ const {
   getPreOdResponse,
   savePreOdResponse,
 } = require("../shared/preOdResponseStore");
-const {
-  getAttachmentFlag,
-  resolveWorkshopPreOdAttachments,
-} = require("../shared/preOdAttachments");
+const { parseCustomQuestions } = require("../shared/preOdCustomQuestions");
 
 function parseSrNos(value) {
   if (!value) {
@@ -39,17 +36,13 @@ function cleanAnswers(rawAnswers, assignedSrNos) {
   return answers;
 }
 
-function cleanAttachments(rawAttachments, assignedSrNos, attachmentsMap) {
+function cleanAttachments(rawAttachments, assignedSrNos) {
   const attachments = {};
   const source =
     rawAttachments && typeof rawAttachments === "object" ? rawAttachments : {};
 
   for (const srNo of assignedSrNos) {
     const key = String(srNo);
-    if (getAttachmentFlag(attachmentsMap, key) !== "Y") {
-      continue;
-    }
-
     const item = source[key] || source[srNo];
     if (!item || typeof item !== "object") {
       continue;
@@ -131,12 +124,12 @@ module.exports = async function (context, req) {
     const assignedSrNos = parseSrNos(workshop.preOdQuestionSrNos);
     const validSrNos = new Set(PRE_OD_QUESTIONS.map((item) => item.srNo));
     const filteredSrNos = assignedSrNos.filter((srNo) => validSrNos.has(srNo));
-    const attachmentsMap = await resolveWorkshopPreOdAttachments(
-      workshop,
-      filteredSrNos
+    const customSrNos = parseCustomQuestions(workshop.preOdCustomQuestions).map(
+      (item) => item.srNo
     );
+    const allSrNos = [...filteredSrNos, ...customSrNos];
 
-    if (filteredSrNos.length === 0) {
+    if (allSrNos.length === 0) {
       context.res = {
         status: 404,
         body: {
@@ -148,14 +141,13 @@ module.exports = async function (context, req) {
     }
 
     const existing = await getPreOdResponse(workshop.id, participantId);
-    const cleanedAnswers = cleanAnswers(answers, filteredSrNos);
+    const cleanedAnswers = cleanAnswers(answers, allSrNos);
     const cleanedAttachments = cleanAttachments(
       {
         ...(existing?.attachments || {}),
         ...(attachments && typeof attachments === "object" ? attachments : {}),
       },
-      filteredSrNos,
-      attachmentsMap
+      allSrNos
     );
     const participantName = await loadParticipantName(participantId);
     const saved = await savePreOdResponse({

@@ -2,7 +2,7 @@ const { getTableClient } = require("../shared/tableHelper");
 const { invalidateTemplateStructure } = require("../shared/cacheInvalidation");
 const { PRE_OD_QUESTIONS } = require("../shared/preOdQuestions");
 const {
-  normalizeQuestionAttachments,
+  forceAllYesAttachments,
   serializeQuestionAttachments,
 } = require("../shared/preOdAttachments");
 
@@ -75,10 +75,7 @@ module.exports = async function (context, req) {
       return;
     }
 
-    const attachmentsMap = normalizeQuestionAttachments(
-      questionAttachments,
-      filteredSrNos
-    );
+    const attachmentsMap = forceAllYesAttachments(filteredSrNos);
 
     const client = getTableClient("PreODTemplate");
 

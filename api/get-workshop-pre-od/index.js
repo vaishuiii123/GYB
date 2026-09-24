@@ -1,4 +1,7 @@
-const { PRE_OD_QUESTIONS } = require("../shared/preOdQuestions");
+const {
+  PRE_OD_QUESTIONS,
+  personalizePreOdQuestion,
+} = require("../shared/preOdQuestions");
 const {
   getWorkshopById,
   getWorkshopForOrganization,
@@ -6,10 +9,6 @@ const {
 const { getPreOdFillStatus } = require("../shared/preOdAccess");
 const { getPreOdResponse } = require("../shared/preOdResponseStore");
 const { parseCustomQuestions } = require("../shared/preOdCustomQuestions");
-const {
-  getAttachmentFlag,
-  resolveWorkshopPreOdAttachments,
-} = require("../shared/preOdAttachments");
 
 function parseSrNos(value) {
   if (!value) {
@@ -20,13 +19,6 @@ function parseSrNos(value) {
     .split(",")
     .map((item) => Number(item.trim()))
     .filter((item) => !Number.isNaN(item));
-}
-
-function personalizeQuestion(text, organizationName) {
-  const company = organizationName || "your company";
-  return String(text || "")
-    .replace(/<<Company's>>/g, `${company}'s`)
-    .replace(/KNAV/g, company);
 }
 
 module.exports = async function (context, req) {
@@ -58,10 +50,7 @@ module.exports = async function (context, req) {
 
     const fillStatus = getPreOdFillStatus(workshop);
     const assignedSrNos = parseSrNos(workshop.preOdQuestionSrNos);
-    const questionAttachments = await resolveWorkshopPreOdAttachments(
-      workshop,
-      assignedSrNos
-    );
+    const orgName = workshop.organizationName || "";
 
     const questionMap = new Map(
       PRE_OD_QUESTIONS.map((item) => [item.srNo, item])
@@ -73,15 +62,9 @@ module.exports = async function (context, req) {
       .map((item) => ({
         srNo: item.srNo,
         category: item.category,
-        question: personalizeQuestion(
-          item.question,
-          workshop.organizationName
-        ),
+        question: personalizePreOdQuestion(item.question, orgName),
         section: item.srNo <= 33 ? "A" : "B",
-        attachmentsApplicable: getAttachmentFlag(
-          questionAttachments,
-          item.srNo
-        ),
+        attachmentsApplicable: "Y",
       }));
 
     const customQuestions = parseCustomQuestions(
@@ -89,9 +72,9 @@ module.exports = async function (context, req) {
     ).map((item) => ({
       srNo: item.srNo,
       category: item.category,
-      question: personalizeQuestion(item.question, workshop.organizationName),
+      question: personalizePreOdQuestion(item.question, orgName),
       section: "B",
-      attachmentsApplicable: "N",
+      attachmentsApplicable: "Y",
     }));
 
     const questions = [...bankQuestions, ...customQuestions];

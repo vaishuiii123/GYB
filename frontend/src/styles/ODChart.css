@@ -2199,6 +2199,18 @@ a.od-notes-file-name:hover {
   font-size: 14px;
 }
 
+.od-chart-success-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.od-chart-success-row .user-btn-secondary {
+  color: #9b304a;
+  border-color: #9b304a;
+}
+
 .od-no-questions,
 .od-chart-status {
   color: #6b7280;

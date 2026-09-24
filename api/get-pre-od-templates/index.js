@@ -1,7 +1,7 @@
 const { getTableClient } = require("../shared/tableHelper");
 const { CACHE_KEYS, getOrLoad } = require("../shared/listCache");
 const {
-  normalizeQuestionAttachments,
+  forceAllYesAttachments,
 } = require("../shared/preOdAttachments");
 
 async function loadTemplates() {
@@ -31,10 +31,7 @@ async function loadTemplates() {
         templateName: entity.TemplateName || "",
         templateType: "Pre OD",
         questionSrNos,
-        questionAttachments: normalizeQuestionAttachments(
-          entity.QuestionAttachments,
-          questionSrNos
-        ),
+        questionAttachments: forceAllYesAttachments(questionSrNos),
         questionCount: questionSrNos.length,
         createdBy: entity.CreatedBy || "",
         createdDate: entity.CreatedDate || "",

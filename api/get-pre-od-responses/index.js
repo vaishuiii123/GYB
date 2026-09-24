@@ -1,4 +1,7 @@
-const { PRE_OD_QUESTIONS } = require("../shared/preOdQuestions");
+const {
+  PRE_OD_QUESTIONS,
+  personalizePreOdQuestion,
+} = require("../shared/preOdQuestions");
 const { getTableClient } = require("../shared/tableHelper");
 const { getWorkshopById } = require("../shared/workshopAccess");
 const {
@@ -16,13 +19,6 @@ function parseSrNos(value) {
     .split(",")
     .map((item) => Number(item.trim()))
     .filter((item) => !Number.isNaN(item));
-}
-
-function personalizeQuestion(text, organizationName) {
-  const company = organizationName || "the company";
-  return String(text || "")
-    .replace(/<<Company's>>/g, `${company}'s`)
-    .replace(/KNAV/g, company);
 }
 
 async function loadParticipantNames(participantIds) {
@@ -91,7 +87,7 @@ module.exports = async function (context, req) {
       .map((item) => ({
         srNo: item.srNo,
         category: item.category,
-        question: personalizeQuestion(
+        question: personalizePreOdQuestion(
           item.question,
           workshop.organizationName
         ),
@@ -102,7 +98,7 @@ module.exports = async function (context, req) {
     ).map((item) => ({
       srNo: item.srNo,
       category: item.category,
-      question: personalizeQuestion(item.question, workshop.organizationName),
+      question: personalizePreOdQuestion(item.question, workshop.organizationName),
     }));
 
     const questions = [...bankQuestions, ...customQuestions];

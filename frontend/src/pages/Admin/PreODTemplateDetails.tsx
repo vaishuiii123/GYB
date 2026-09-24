@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, Fragment } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { Search } from "lucide-react";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import "../../styles/Template.css";
@@ -19,6 +20,7 @@ export default function PreODTemplateDetails({ user }: PageProps) {
   const navigate = useNavigate();
   const [template, setTemplate] = useState<any>(null);
   const [error, setError] = useState("");
+  const [searchText, setSearchText] = useState("");
 
   useEffect(() => {
     if (!id) {
@@ -74,7 +76,22 @@ export default function PreODTemplateDetails({ user }: PageProps) {
   const groupedQuestions = useMemo(() => {
     if (!template?.questions) return {};
 
-    return template.questions.reduce(
+    const query = searchText.trim().toLowerCase();
+    const questions = query
+      ? template.questions.filter((question: any) =>
+          [
+            question.question,
+            question.category,
+            question.answerType,
+            String(question.attachmentsApplicable || ""),
+          ]
+            .join(" ")
+            .toLowerCase()
+            .includes(query)
+        )
+      : template.questions;
+
+    return questions.reduce(
       (groups: Record<string, any[]>, question: any) => {
         const key = question.category || "General";
         if (!groups[key]) groups[key] = [];
@@ -83,7 +100,9 @@ export default function PreODTemplateDetails({ user }: PageProps) {
       },
       {}
     );
-  }, [template]);
+  }, [template, searchText]);
+
+  const hasFilteredQuestions = Object.keys(groupedQuestions).length > 0;
 
   if (error) {
     return (
@@ -136,7 +155,9 @@ export default function PreODTemplateDetails({ user }: PageProps) {
             <span>Pre-Organizational Development Template Details</span>
           </div>
 
-          <h1 className="page-title">Pre-Organizational Development Template Details</h1>
+          <h1 className="page-title">
+            Pre-Organizational Development Template Details
+          </h1>
 
           <div className="template-card">
             <div className="form-row">
@@ -144,10 +165,24 @@ export default function PreODTemplateDetails({ user }: PageProps) {
                 <label>Template Name</label>
                 <input value={template.templateName} disabled />
               </div>
-              <div className="form-group">
-                <label>Type</label>
-                <input value="Pre-Organizational Development" disabled />
-              </div>
+            </div>
+
+            <p className="template-org-hint">
+              Questions use{" "}
+              <strong>&lt;&lt;Organization&gt;&gt;</strong> as a placeholder.
+              When this template is assigned to a workshop, that
+              organization&apos;s name replaces it (e.g. DT_Test, KNAV BAS).
+            </p>
+
+            <div className="filter-box template-details-search">
+              <Search size={18} className="filter-icon" aria-hidden />
+              <input
+                type="search"
+                value={searchText}
+                onChange={(event) => setSearchText(event.target.value)}
+                placeholder="Search questions by text, category, or answer type..."
+                aria-label="Search Pre-Organizational Development template questions"
+              />
             </div>
 
             <table className="template-table">
@@ -161,30 +196,35 @@ export default function PreODTemplateDetails({ user }: PageProps) {
                 </tr>
               </thead>
               <tbody>
-                {Object.entries(groupedQuestions).map(
-                  ([categoryName, questions]) => (
-                    <Fragment key={categoryName}>
-                      <tr className="category-header-row">
-                        <td colSpan={5}>{categoryName}</td>
-                      </tr>
-                      {(questions as any[]).map((q) => {
-                        rowIndex += 1;
-                        return (
-                          <tr key={`${q.srNo}-${rowIndex}`}>
-                            <td>{q.srNo ?? rowIndex}</td>
-                            <td>{q.question}</td>
-                            <td>{categoryName}</td>
-                            <td>{q.answerType || "Text"}</td>
-                            <td>
-                              {String(q.attachmentsApplicable || "N").toUpperCase() ===
-                              "Y"
-                                ? "Yes"
-                                : "No"}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </Fragment>
+                {!hasFilteredQuestions ? (
+                  <tr>
+                    <td colSpan={5} className="template-empty-search">
+                      {searchText.trim()
+                        ? "No questions match your search."
+                        : "No questions found in this template."}
+                    </td>
+                  </tr>
+                ) : (
+                  Object.entries(groupedQuestions).map(
+                    ([categoryName, questions]) => (
+                      <Fragment key={categoryName}>
+                        <tr className="category-header-row">
+                          <td colSpan={5}>{categoryName}</td>
+                        </tr>
+                        {(questions as any[]).map((q) => {
+                          rowIndex += 1;
+                          return (
+                            <tr key={`${q.srNo}-${rowIndex}`}>
+                              <td>{q.srNo ?? rowIndex}</td>
+                              <td>{q.question}</td>
+                              <td>{categoryName}</td>
+                              <td>{q.answerType || "Text"}</td>
+                              <td>Yes</td>
+                            </tr>
+                          );
+                        })}
+                      </Fragment>
+                    )
                   )
                 )}
               </tbody>
@@ -194,9 +234,7 @@ export default function PreODTemplateDetails({ user }: PageProps) {
               <button
                 type="button"
                 className="save-btn"
-                onClick={() =>
-                  navigate(`/create-pre-od-template?from=${id}`)
-                }
+                onClick={() => navigate(`/create-pre-od-template?from=${id}`)}
               >
                 Use as New Template
               </button>

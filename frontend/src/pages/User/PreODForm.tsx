@@ -47,14 +47,6 @@ type PreOdFormData = {
 const ATTACHMENT_ACCEPT =
   ".xlsx,.xls,.doc,.docx,.ppt,.pptx,.pdf,.txt,.png,.jpg,.jpeg,.gif,.webp";
 
-function isAttachmentApplicable(value: unknown) {
-  return ["y", "yes", "true", "1"].includes(
-    String(value || "")
-      .trim()
-      .toLowerCase()
-  );
-}
-
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -483,9 +475,6 @@ export default function PreODForm() {
                   const pending = pendingFiles[key];
                   const saved = savedAttachments[key];
                   const displayName = pending?.fileName || saved?.fileName || "";
-                  const showAttachment = isAttachmentApplicable(
-                    item.attachmentsApplicable
-                  );
 
                   return (
                     <div key={item.srNo} className="pre-od-question-card">
@@ -506,44 +495,42 @@ export default function PreODForm() {
                         disabled={!canFill || saving}
                         placeholder="Enter your response"
                       />
-                      {showAttachment ? (
-                        <div className="pre-od-attachment">
-                          <label className="pre-od-attachment-label">
-                            Attachment
-                          </label>
-                          <input
-                            type="file"
-                            accept={ATTACHMENT_ACCEPT}
-                            disabled={!canFill || saving}
-                            onChange={(event) =>
-                              handleAttachmentChange(item.srNo, event)
-                            }
-                          />
-                          <p className="pre-od-attachment-hint">
-                            Excel, Word, PowerPoint, PDF, text, or images (max
-                            10 MB)
-                          </p>
-                          {displayName ? (
-                            <div className="pre-od-attachment-file">
-                              <span>{displayName}</span>
-                              {saved?.blobPath && !pending ? (
-                                <a
-                                  className="pre-od-attachment-link"
-                                  href={`/api/get-pre-od-attachment?participantId=${encodeURIComponent(
-                                    participantId
-                                  )}&workshopId=${encodeURIComponent(
-                                    formData.workshop.id
-                                  )}&questionSrNo=${encodeURIComponent(key)}`}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                >
-                                  Download
-                                </a>
-                              ) : null}
-                            </div>
-                          ) : null}
-                        </div>
-                      ) : null}
+                      <div className="pre-od-attachment">
+                        <label className="pre-od-attachment-label">
+                          Attachment
+                        </label>
+                        <input
+                          type="file"
+                          accept={ATTACHMENT_ACCEPT}
+                          disabled={!canFill || saving}
+                          onChange={(event) =>
+                            handleAttachmentChange(item.srNo, event)
+                          }
+                        />
+                        <p className="pre-od-attachment-hint">
+                          Excel, Word, PowerPoint, PDF, text, or images (max
+                          10 MB)
+                        </p>
+                        {displayName ? (
+                          <div className="pre-od-attachment-file">
+                            <span>{displayName}</span>
+                            {saved?.blobPath && !pending ? (
+                              <a
+                                className="pre-od-attachment-link"
+                                href={`/api/get-pre-od-attachment?participantId=${encodeURIComponent(
+                                  participantId
+                                )}&workshopId=${encodeURIComponent(
+                                  formData.workshop.id
+                                )}&questionSrNo=${encodeURIComponent(key)}`}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                Download
+                              </a>
+                            ) : null}
+                          </div>
+                        ) : null}
+                      </div>
                     </div>
                   );
                 })}

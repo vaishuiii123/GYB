@@ -5,15 +5,11 @@ const {
 const { assertPreOdFillable } = require("../shared/preOdAccess");
 const { uploadAttachmentBlob } = require("../shared/blobHelper");
 const {
-  isAttachmentsApplicable,
   isAllowedAttachmentFile,
   MAX_ATTACHMENT_BYTES,
   sanitizeFileName,
 } = require("../shared/attachmentHelper");
-const {
-  getAttachmentFlag,
-  resolveWorkshopPreOdAttachments,
-} = require("../shared/preOdAttachments");
+const { parseCustomQuestions } = require("../shared/preOdCustomQuestions");
 
 function parseSrNos(value) {
   if (!value) {
@@ -76,7 +72,13 @@ module.exports = async function (context, req) {
     }
 
     const workshop = access.workshop;
-    const assignedSrNos = parseSrNos(workshop.preOdQuestionSrNos);
+    const bankSrNos = parseSrNos(workshop.preOdQuestionSrNos);
+    const customSrNos = parseCustomQuestions(workshop.preOdCustomQuestions).map(
+      (item) => String(item.srNo)
+    );
+    const assignedSrNos = [
+      ...new Set([...bankSrNos.map(String), ...customSrNos]),
+    ];
     const srNo = String(questionSrNo).trim();
 
     if (!assignedSrNos.includes(srNo)) {
@@ -85,22 +87,6 @@ module.exports = async function (context, req) {
         body: {
           success: false,
           message: `Question ${srNo} is not assigned to this workshop.`,
-        },
-      };
-      return;
-    }
-
-    const attachmentsMap = await resolveWorkshopPreOdAttachments(
-      workshop,
-      assignedSrNos
-    );
-
-    if (!isAttachmentsApplicable(getAttachmentFlag(attachmentsMap, srNo))) {
-      context.res = {
-        status: 400,
-        body: {
-          success: false,
-          message: "Attachments are not applicable for this question.",
         },
       };
       return;

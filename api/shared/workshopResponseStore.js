@@ -5,7 +5,7 @@ const {
 } = require("./tableHelper");
 const { parseWorkshopEndMs } = require("./workshopAccess");
 const { listPreOdResponsesForWorkshop } = require("./preOdResponseStore");
-const { PRE_OD_QUESTIONS } = require("./preOdQuestions");
+const { PRE_OD_QUESTIONS, personalizePreOdQuestion } = require("./preOdQuestions");
 const { parseCustomQuestions } = require("./preOdCustomQuestions");
 const {
   loadParticipantRecordsByIds,
@@ -379,10 +379,7 @@ async function buildWorkshopResponsePayload(workshop) {
     PRE_OD_QUESTIONS.map((item) => [item.srNo, item])
   );
   const company = workshop.organizationName || "the company";
-  const personalize = (text) =>
-    String(text || "")
-      .replace(/<<Company's>>/g, `${company}'s`)
-      .replace(/KNAV/g, company);
+  const personalize = (text) => personalizePreOdQuestion(text, company);
 
   const bankQuestions = assignedSrNos
     .map((srNo) => questionMap.get(srNo))

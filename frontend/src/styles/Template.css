@@ -86,6 +86,22 @@
     max-width: 480px;
 }
 
+.template-org-hint {
+    margin: 0 0 14px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #475569;
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.template-org-hint strong {
+    color: #9b304a;
+    font-weight: 600;
+}
+
 .template-details-search input {
     border-radius: 10px;
 }

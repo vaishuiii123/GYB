@@ -115,8 +115,40 @@ function getPreOdQuestions() {
   }));
 }
 
+/**
+ * Replace KNAV / company placeholders with the workshop organization name.
+ * Used when participants (or exports) see Pre-OD questions for a workshop.
+ */
+function personalizePreOdQuestion(text, organizationName) {
+  const company = String(organizationName || "").trim() || "your company";
+  return String(text || "")
+    .replace(/<<Company's>>/gi, `${company}'s`)
+    .replace(/<<Compamy's>>/gi, `${company}'s`)
+    .replace(/<<Company>>/gi, company)
+    .replace(/<<Compamy>>/gi, company)
+    .replace(/<<Organization's>>/gi, `${company}'s`)
+    .replace(/<<Organization>>/gi, company)
+    .replace(/KNAV's/gi, `${company}'s`)
+    .replace(/KNAV/gi, company);
+}
+
+/**
+ * Admin template preview: show a clear org placeholder instead of hard-coded KNAV.
+ */
+function toOrganizationPlaceholder(text) {
+  return String(text || "")
+    .replace(/<<Company's>>/gi, "<<Organization>>'s")
+    .replace(/<<Compamy's>>/gi, "<<Organization>>'s")
+    .replace(/<<Company>>/gi, "<<Organization>>")
+    .replace(/<<Compamy>>/gi, "<<Organization>>")
+    .replace(/KNAV's/gi, "<<Organization>>'s")
+    .replace(/KNAV/gi, "<<Organization>>");
+}
+
 module.exports = {
   PRE_OD_CATEGORIES,
   PRE_OD_QUESTIONS,
   getPreOdQuestions,
+  personalizePreOdQuestion,
+  toOrganizationPlaceholder,
 };

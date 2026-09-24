@@ -74,6 +74,14 @@ function mergeAttachmentMaps(primary, secondary, srNos) {
   return result;
 }
 
+function forceAllYesAttachments(srNos) {
+  const result = {};
+  for (const srNo of srNos || []) {
+    result[String(srNo)] = "Y";
+  }
+  return result;
+}
+
 async function loadTemplateAttachments(templateId, srNos) {
   if (!templateId) {
     return null;
@@ -161,6 +169,7 @@ module.exports = {
   serializeQuestionAttachments,
   getAttachmentFlag,
   hasAnyYes,
+  forceAllYesAttachments,
   loadTemplateAttachments,
   resolveWorkshopPreOdAttachments,
 };

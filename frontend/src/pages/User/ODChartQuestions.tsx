@@ -125,6 +125,7 @@ export default function ODChartQuestions() {
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [showViewResponse, setShowViewResponse] = useState(false);
   const [canEdit, setCanEdit] = useState(true);
   const [editMessage, setEditMessage] = useState("");
   const [isDirty, setIsDirty] = useState(false);
@@ -525,6 +526,7 @@ export default function ODChartQuestions() {
       setSaving(true);
       setErrorMessage("");
       setSuccessMessage("");
+      setShowViewResponse(false);
 
       const uploadedAttachments: Record<string, AttachmentMeta> = {
         ...savedAttachments,
@@ -618,6 +620,7 @@ export default function ODChartQuestions() {
       }
 
       setSuccessMessage("Responses saved successfully.");
+      setShowViewResponse(true);
       return true;
     } catch (error) {
       console.error(error);
@@ -885,6 +888,18 @@ export default function ODChartQuestions() {
             >
               Back to Chart
             </button>
+            {showViewResponse ? (
+              <button
+                type="button"
+                className="user-btn-secondary"
+                onClick={() => {
+                  void tryNavigate("/reports");
+                }}
+                disabled={saving}
+              >
+                View Response
+              </button>
+            ) : null}
             <button
               type="button"
               className="user-btn-primary"
@@ -999,7 +1014,20 @@ export default function ODChartQuestions() {
         {errorMessage && <div className="od-chart-error">{errorMessage}</div>}
 
         {successMessage && (
-          <div className="od-chart-success">{successMessage}</div>
+          <div className="od-chart-success od-chart-success-row">
+            <span>{successMessage}</span>
+            {showViewResponse ? (
+              <button
+                type="button"
+                className="user-btn-secondary"
+                onClick={() => {
+                  void tryNavigate("/reports");
+                }}
+              >
+                View Response
+              </button>
+            ) : null}
+          </div>
         )}
       </div>
 

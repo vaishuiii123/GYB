@@ -218,7 +218,7 @@ export default function Template({ user }: PageProps) {
   const replacePreOdUploadInputRef = useRef<HTMLInputElement>(null);
   const [templates, setTemplates] = useState<any[]>([]);
   const [filter, setFilter] = useState("");
-  const [typeFilter, setTypeFilter] = useState<"All" | "OD" | "Pre OD">("OD");
+  const [typeFilter, setTypeFilter] = useState<"All" | "OD" | "Pre OD">("All");
   const [pageSize] = useState(10);
   const [page, setPage] = useState(1);
   const [downloadingId, setDownloadingId] = useState("");
