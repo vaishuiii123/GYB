@@ -1,11 +1,17 @@
 const { getTableClient } = require("../shared/tableHelper");
 const { downloadAttachmentBlob } = require("../shared/blobHelper");
+const { buildContentDisposition } = require("../shared/attachmentHelper");
 
 module.exports = async function (context, req) {
   try {
     const participantId = String(req.query.participantId || "").trim();
     const workshopId = String(req.query.workshopId || "").trim();
     const questionId = String(req.query.questionId || "").trim();
+    const inline =
+      String(req.query.inline || "").trim() === "1" ||
+      String(req.query.inline || "")
+        .trim()
+        .toLowerCase() === "true";
 
     if (!participantId || !workshopId || !questionId) {
       context.res = {
@@ -61,7 +67,7 @@ module.exports = async function (context, req) {
           entity.AttachmentContentType ||
           downloaded.contentType ||
           "application/octet-stream",
-        "Content-Disposition": `attachment; filename="${fileName}"`,
+        "Content-Disposition": buildContentDisposition(fileName, inline),
         "Cache-Control": "no-store",
       },
       body: downloaded.buffer,

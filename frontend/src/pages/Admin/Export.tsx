@@ -2,6 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import SearchableSelect from "../../components/SearchableSelect";
+import AttachmentPreviewModal, {
+  type AttachmentPreviewTarget,
+} from "../../components/AttachmentPreviewModal";
 import {
   Building2,
   CalendarDays,
@@ -564,6 +567,9 @@ export default function Export({ user }: PageProps) {
 
   const [loading, setLoading] =
     useState(false);
+
+  const [attachmentPreview, setAttachmentPreview] =
+    useState<AttachmentPreviewTarget | null>(null);
 
   const [loadingInitial, setLoadingInitial] =
     useState(true);
@@ -2462,29 +2468,48 @@ const availableQuestions = useMemo(() => {
 
                           {item.attachment &&
                           item.attachment !== "-" ? (
-
-                            <button
-                              type="button"
-                              className="export-attachment-button"
-                              title="Download attachment"
-                              onClick={() => {
-                                if (
-                                  item.attachment &&
-                                  item.attachment !== "-"
-                                ) {
-                                  window.open(item.attachment, "_blank");
+                            <div className="export-attachment-actions">
+                              <button
+                                type="button"
+                                className="export-attachment-button"
+                                title="Preview attachment"
+                                onClick={() =>
+                                  setAttachmentPreview({
+                                    url: item.attachment,
+                                    fileName:
+                                      item.attachmentFileName || "attachment",
+                                  })
                                 }
-                              }}
-                            >
-                              ↓
-                            </button>
-
+                              >
+                                Preview
+                              </button>
+                              <button
+                                type="button"
+                                className="export-attachment-button is-download"
+                                title="Download attachment"
+                                onClick={() => {
+                                  if (
+                                    item.attachment &&
+                                    item.attachment !== "-"
+                                  ) {
+                                    window.open(
+                                      `${item.attachment}${
+                                        item.attachment.includes("?")
+                                          ? "&"
+                                          : "?"
+                                      }inline=0`,
+                                      "_blank"
+                                    );
+                                  }
+                                }}
+                              >
+                                ↓
+                              </button>
+                            </div>
                           ) : (
-
                             <span className="export-no-attachment">
                               -
                             </span>
-
                           )}
 
                         </td>
@@ -2507,6 +2532,11 @@ const availableQuestions = useMemo(() => {
       )}
 
     </main>
+
+      <AttachmentPreviewModal
+        target={attachmentPreview}
+        onClose={() => setAttachmentPreview(null)}
+      />
 
   </div>
 );

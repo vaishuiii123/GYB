@@ -13,6 +13,9 @@ import {
   getActiveWorkshopContext,
   getWorkshopModuleAccessStatus,
 } from "../../utils/workshopCache";
+import AttachmentPreviewModal, {
+  type AttachmentPreviewTarget,
+} from "../../components/AttachmentPreviewModal";
 import UserLayout from "./UserLayout";
 import "../../styles/Export.css";
 import "../../styles/UserReports.css";
@@ -27,6 +30,7 @@ type ReportRow = {
   response: string;
   note?: string;
   attachment: string;
+  attachmentFileName?: string;
 };
 
 type VisionMissionRow = {
@@ -329,6 +333,8 @@ export default function Reports() {
 
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [attachmentPreview, setAttachmentPreview] =
+    useState<AttachmentPreviewTarget | null>(null);
   const [workshopName, setWorkshopName] = useState(
     selectedWorkshop?.workshopName || ""
   );
@@ -476,6 +482,9 @@ export default function Reports() {
                       selectedWorkshop.id
                     )}&questionId=${encodeURIComponent(questionId)}`
                   : "-",
+                attachmentFileName: hasAttachment
+                  ? String(attachmentMeta?.fileName || "attachment")
+                  : undefined,
               });
             });
           }
@@ -921,16 +930,37 @@ export default function Reports() {
                         </td>
                         <td>
                           {item.attachment && item.attachment !== "-" ? (
-                            <button
-                              type="button"
-                              className="export-attachment-button"
-                              title="Download attachment"
-                              onClick={() => {
-                                window.open(item.attachment, "_blank");
-                              }}
-                            >
-                              ↓
-                            </button>
+                            <div className="export-attachment-actions">
+                              <button
+                                type="button"
+                                className="export-attachment-button"
+                                title="Preview attachment"
+                                onClick={() =>
+                                  setAttachmentPreview({
+                                    url: item.attachment,
+                                    fileName:
+                                      item.attachmentFileName || "attachment",
+                                  })
+                                }
+                              >
+                                Preview
+                              </button>
+                              <button
+                                type="button"
+                                className="export-attachment-button is-download"
+                                title="Download attachment"
+                                onClick={() => {
+                                  window.open(
+                                    `${item.attachment}${
+                                      item.attachment.includes("?") ? "&" : "?"
+                                    }inline=0`,
+                                    "_blank"
+                                  );
+                                }}
+                              >
+                                ↓
+                              </button>
+                            </div>
                           ) : (
                             <span className="export-no-attachment">-</span>
                           )}
@@ -944,6 +974,10 @@ export default function Reports() {
           </section>
         )}
       </div>
+      <AttachmentPreviewModal
+        target={attachmentPreview}
+        onClose={() => setAttachmentPreview(null)}
+      />
     </UserLayout>
   );
 }

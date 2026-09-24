@@ -1,3 +1,7 @@
+:root {
+  --user-header-height: 56px;
+}
+
 .user-header {
   position: sticky;
   top: 0;
@@ -10,7 +14,7 @@
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  min-height: 44px;
+  min-height: var(--user-header-height);
 }
 
 .user-header-top {

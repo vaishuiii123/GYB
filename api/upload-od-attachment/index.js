@@ -83,7 +83,7 @@ module.exports = async function (context, req) {
         body: {
           success: false,
           message:
-            "Unsupported file type. Allowed: Excel, Word, PowerPoint, PDF, text, and images.",
+            "Unsupported file type. Allowed: images, Word, Excel, and PDF.",
         },
       };
       return;

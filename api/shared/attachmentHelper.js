@@ -17,19 +17,14 @@ function isAttachmentsApplicable(value) {
 const ALLOWED_ATTACHMENT_EXTENSIONS = new Set([
   ".xlsx",
   ".xls",
-  ".csv",
   ".doc",
   ".docx",
   ".pdf",
-  ".ppt",
-  ".pptx",
-  ".txt",
   ".png",
   ".jpg",
   ".jpeg",
   ".gif",
   ".webp",
-  ".bmp",
 ]);
 
 const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024; // 10 MB
@@ -61,10 +56,6 @@ function isAllowedAttachmentFile(fileName, contentType) {
     type.includes("excel") ||
     type.includes("msword") ||
     type.includes("wordprocessingml") ||
-    type.includes("presentation") ||
-    type.includes("powerpoint") ||
-    type.includes("csv") ||
-    type.includes("text/plain") ||
     type === "application/octet-stream"
   );
 }
@@ -78,6 +69,14 @@ function sanitizeFileName(fileName) {
   return base.slice(0, 180) || "attachment";
 }
 
+function buildContentDisposition(fileName, inline = false) {
+  const safe =
+    String(fileName || "attachment").replace(/[<>:"/\\|?*\x00-\x1f]+/g, "_") ||
+    "attachment";
+  const mode = inline ? "inline" : "attachment";
+  return `${mode}; filename="${safe}"`;
+}
+
 module.exports = {
   normalizeAttachmentsApplicable,
   isAttachmentsApplicable,
@@ -86,4 +85,5 @@ module.exports = {
   getFileExtension,
   isAllowedAttachmentFile,
   sanitizeFileName,
+  buildContentDisposition,
 };

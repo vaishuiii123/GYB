@@ -2,6 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import UserLayout from "./UserLayout";
 import WorkshopEditBanner from "../../components/WorkshopEditBanner";
+import AttachmentPreviewModal, {
+  type AttachmentPreviewTarget,
+} from "../../components/AttachmentPreviewModal";
 import {
   getParticipantFromStorage,
   getSelectedWorkshop,
@@ -12,6 +15,11 @@ import {
   getPreOdAccessStatus,
   setCachedPageData,
 } from "../../utils/workshopCache";
+import {
+  ATTACHMENT_ACCEPT,
+  ATTACHMENT_HINT,
+  isAllowedAttachmentFile,
+} from "../../utils/attachmentTypes";
 import "../../styles/PreODForm.css";
 
 type AttachmentMeta = {
@@ -44,9 +52,6 @@ type PreOdFormData = {
   submittedDate?: string;
 };
 
-const ATTACHMENT_ACCEPT =
-  ".xlsx,.xls,.doc,.docx,.ppt,.pptx,.pdf,.txt,.png,.jpg,.jpeg,.gif,.webp";
-
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -78,6 +83,8 @@ export default function PreODForm() {
   const [pendingFiles, setPendingFiles] = useState<
     Record<string, { file: File; fileName: string; contentType: string }>
   >({});
+  const [attachmentPreview, setAttachmentPreview] =
+    useState<AttachmentPreviewTarget | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const requestIdRef = useRef(0);
@@ -232,6 +239,20 @@ export default function PreODForm() {
         delete next[key];
         return next;
       });
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setErrorMessage("Attachment exceeds the 10 MB size limit.");
+      event.target.value = "";
+      return;
+    }
+
+    if (!isAllowedAttachmentFile(file.name, file.type)) {
+      setErrorMessage(
+        "Unsupported file type. Allowed: images, Word, Excel, and PDF."
+      );
+      event.target.value = "";
       return;
     }
 
@@ -508,26 +529,55 @@ export default function PreODForm() {
                           }
                         />
                         <p className="pre-od-attachment-hint">
-                          Excel, Word, PowerPoint, PDF, text, or images (max
-                          10 MB)
+                          {ATTACHMENT_HINT}
                         </p>
                         {displayName ? (
                           <div className="pre-od-attachment-file">
                             <span>{displayName}</span>
-                            {saved?.blobPath && !pending ? (
-                              <a
+                            <div className="pre-od-attachment-actions">
+                              <button
+                                type="button"
                                 className="pre-od-attachment-link"
-                                href={`/api/get-pre-od-attachment?participantId=${encodeURIComponent(
-                                  participantId
-                                )}&workshopId=${encodeURIComponent(
-                                  formData.workshop.id
-                                )}&questionSrNo=${encodeURIComponent(key)}`}
-                                target="_blank"
-                                rel="noreferrer"
+                                onClick={() =>
+                                  setAttachmentPreview({
+                                    url:
+                                      saved?.blobPath && !pending
+                                        ? `/api/get-pre-od-attachment?participantId=${encodeURIComponent(
+                                            participantId
+                                          )}&workshopId=${encodeURIComponent(
+                                            formData.workshop.id
+                                          )}&questionSrNo=${encodeURIComponent(
+                                            key
+                                          )}`
+                                        : undefined,
+                                    file: pending?.file,
+                                    fileName: displayName,
+                                    contentType:
+                                      pending?.contentType ||
+                                      saved?.contentType ||
+                                      "",
+                                  })
+                                }
                               >
-                                Download
-                              </a>
-                            ) : null}
+                                Preview
+                              </button>
+                              {saved?.blobPath && !pending ? (
+                                <a
+                                  className="pre-od-attachment-link"
+                                  href={`/api/get-pre-od-attachment?participantId=${encodeURIComponent(
+                                    participantId
+                                  )}&workshopId=${encodeURIComponent(
+                                    formData.workshop.id
+                                  )}&questionSrNo=${encodeURIComponent(
+                                    key
+                                  )}&inline=0`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  Download
+                                </a>
+                              ) : null}
+                            </div>
                           </div>
                         ) : null}
                       </div>
@@ -539,6 +589,10 @@ export default function PreODForm() {
           </>
         )}
       </div>
+      <AttachmentPreviewModal
+        target={attachmentPreview}
+        onClose={() => setAttachmentPreview(null)}
+      />
     </UserLayout>
   );
 }

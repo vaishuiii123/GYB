@@ -22,7 +22,6 @@ import "../../styles/ODChart.css";
 import { OD_CHART_NAV_KEY } from "./ODChart";
 import type { ODQuestionsNavState, Question } from "./ODChart";
 import {
-  Check,
   ClipboardPlus,
   FileText,
   Paperclip,
@@ -31,6 +30,14 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import AttachmentPreviewModal, {
+  type AttachmentPreviewTarget,
+} from "../../components/AttachmentPreviewModal";
+import {
+  ATTACHMENT_ACCEPT,
+  ATTACHMENT_HINT,
+  isAllowedAttachmentFile,
+} from "../../utils/attachmentTypes";
 const STATUS_OPTIONS = [
   { value: "Red", label: "Red", className: "status-red" },
   { value: "Yellow", label: "Yellow", className: "status-yellow" },
@@ -63,9 +70,6 @@ function statusPresetFor(value: string) {
     null
   );
 }
-const ATTACHMENT_ACCEPT =
-  ".xlsx,.xls,.csv,.doc,.docx,.pdf,.ppt,.pptx,.txt,.png,.jpg,.jpeg,.gif,.webp,.bmp";
-
 type AttachmentMeta = {
   fileName: string;
   blobPath?: string;
@@ -125,7 +129,6 @@ export default function ODChartQuestions() {
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
-  const [showViewResponse, setShowViewResponse] = useState(false);
   const [canEdit, setCanEdit] = useState(true);
   const [editMessage, setEditMessage] = useState("");
   const [isDirty, setIsDirty] = useState(false);
@@ -136,6 +139,8 @@ export default function ODChartQuestions() {
     null
   );
   const [notesEditing, setNotesEditing] = useState(false);
+  const [attachmentPreview, setAttachmentPreview] =
+    useState<AttachmentPreviewTarget | null>(null);
   const [noteUpdatedAt, setNoteUpdatedAt] = useState<Record<string, string>>(
     {}
   );
@@ -495,6 +500,14 @@ export default function ODChartQuestions() {
       return;
     }
 
+    if (!isAllowedAttachmentFile(file.name, file.type)) {
+      setErrorMessage(
+        "Unsupported file type. Allowed: images, Word, Excel, and PDF."
+      );
+      event.target.value = "";
+      return;
+    }
+
     answersDirtyRef.current = true;
     setIsDirty(true);
     setPendingFiles((prev) => ({
@@ -526,7 +539,6 @@ export default function ODChartQuestions() {
       setSaving(true);
       setErrorMessage("");
       setSuccessMessage("");
-      setShowViewResponse(false);
 
       const uploadedAttachments: Record<string, AttachmentMeta> = {
         ...savedAttachments,
@@ -620,7 +632,6 @@ export default function ODChartQuestions() {
       }
 
       setSuccessMessage("Responses saved successfully.");
-      setShowViewResponse(true);
       return true;
     } catch (error) {
       console.error(error);
@@ -792,6 +803,14 @@ export default function ODChartQuestions() {
     const saved = savedAttachments[question.id];
     const displayName = pending?.fileName || saved?.fileName || "";
     const sizeLabel = formatFileSize(pending?.file.size || saved?.size);
+    const savedUrl =
+      saved?.blobPath && !pending && navState && participant.id
+        ? `/api/get-od-attachment?participantId=${encodeURIComponent(
+            String(participant.id)
+          )}&workshopId=${encodeURIComponent(
+            navState.workshop.id
+          )}&questionId=${encodeURIComponent(question.id)}`
+        : "";
 
     return (
       <div className="od-notes-attachments">
@@ -803,25 +822,37 @@ export default function ODChartQuestions() {
                 <FileText size={18} strokeWidth={2} />
               </span>
               <div>
-                {saved?.blobPath && !pending && navState && participant.id ? (
-                  <a
-                    className="od-notes-file-name"
-                    href={`/api/get-od-attachment?participantId=${encodeURIComponent(
-                      participant.id
-                    )}&workshopId=${encodeURIComponent(
-                      navState.workshop.id
-                    )}&questionId=${encodeURIComponent(question.id)}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {displayName}
-                  </a>
-                ) : (
-                  <span className="od-notes-file-name">{displayName}</span>
-                )}
+                <span className="od-notes-file-name">{displayName}</span>
                 {sizeLabel ? (
                   <span className="od-notes-file-size">{sizeLabel}</span>
                 ) : null}
+                <div className="od-notes-file-actions">
+                  <button
+                    type="button"
+                    className="od-notes-file-action"
+                    onClick={() =>
+                      setAttachmentPreview({
+                        url: savedUrl || undefined,
+                        file: pending?.file,
+                        fileName: displayName,
+                        contentType:
+                          pending?.contentType || saved?.contentType || "",
+                      })
+                    }
+                  >
+                    Preview
+                  </button>
+                  {savedUrl ? (
+                    <a
+                      className="od-notes-file-action"
+                      href={`${savedUrl}&inline=0`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Download
+                    </a>
+                  ) : null}
+                </div>
               </div>
             </div>
             {canEdit ? (
@@ -848,7 +879,7 @@ export default function ODChartQuestions() {
               onChange={(event) => handleAttachmentChange(question.id, event)}
             />
             <span>Choose File</span>
-            <small>Excel, Word, PowerPoint, PDF, text, or images (max 10 MB)</small>
+            <small>{ATTACHMENT_HINT}</small>
           </label>
         ) : null}
       </div>
@@ -888,18 +919,6 @@ export default function ODChartQuestions() {
             >
               Back to Chart
             </button>
-            {showViewResponse ? (
-              <button
-                type="button"
-                className="user-btn-secondary"
-                onClick={() => {
-                  void tryNavigate("/reports");
-                }}
-                disabled={saving}
-              >
-                View Response
-              </button>
-            ) : null}
             <button
               type="button"
               className="user-btn-primary"
@@ -909,6 +928,16 @@ export default function ODChartQuestions() {
               disabled={saving || loading || !canEdit}
             >
               {saving ? "Saving..." : "Save Responses"}
+            </button>
+            <button
+              type="button"
+              className="user-btn-primary"
+              onClick={() => {
+                void tryNavigate("/reports");
+              }}
+              disabled={saving}
+            >
+              View Response
             </button>
           </div>
         </div>
@@ -966,16 +995,6 @@ export default function ODChartQuestions() {
                         ? `${attachmentCount} Attachment`
                         : "No attachments"}
                     </span>
-                    <span
-                      className={`question-meta-item ${
-                        hasNote ? "is-note-added" : ""
-                      }`}
-                    >
-                      {hasNote ? (
-                        <Check size={14} strokeWidth={2.4} aria-hidden />
-                      ) : null}
-                      {hasNote ? "1 Note Added" : "0 Notes"}
-                    </span>
                   </div>
 
                   <div className="question-card-actions">
@@ -1014,20 +1033,7 @@ export default function ODChartQuestions() {
         {errorMessage && <div className="od-chart-error">{errorMessage}</div>}
 
         {successMessage && (
-          <div className="od-chart-success od-chart-success-row">
-            <span>{successMessage}</span>
-            {showViewResponse ? (
-              <button
-                type="button"
-                className="user-btn-secondary"
-                onClick={() => {
-                  void tryNavigate("/reports");
-                }}
-              >
-                View Response
-              </button>
-            ) : null}
-          </div>
+          <div className="od-chart-success">{successMessage}</div>
         )}
       </div>
 
@@ -1044,22 +1050,20 @@ export default function ODChartQuestions() {
             aria-label="Notes for this question"
           >
             <div className="od-notes-drawer-header">
-              <h2>Notes for this question</h2>
+              <div className="od-notes-ref">
+                <span className="question-number">
+                  Q{notesPanelIndex >= 0 ? notesPanelIndex + 1 : ""}
+                </span>
+                <p>{notesPanelQuestion.question}</p>
+              </div>
               <button
                 type="button"
                 className="od-notes-close"
                 onClick={closeNotesPanel}
-                aria-label="Close"
+                aria-label="Close notes"
               >
-                <X size={18} strokeWidth={2.2} />
+                <X size={18} strokeWidth={2.4} />
               </button>
-            </div>
-
-            <div className="od-notes-ref">
-              <span className="question-number">
-                Q{notesPanelIndex >= 0 ? notesPanelIndex + 1 : ""}
-              </span>
-              <p>{notesPanelQuestion.question}</p>
             </div>
 
             <div className="od-notes-body">
@@ -1137,6 +1141,10 @@ export default function ODChartQuestions() {
           setActionableOpen(false);
           setActionablePreset(null);
         }}
+      />
+      <AttachmentPreviewModal
+        target={attachmentPreview}
+        onClose={() => setAttachmentPreview(null)}
       />
     </ODChartShell>
   );

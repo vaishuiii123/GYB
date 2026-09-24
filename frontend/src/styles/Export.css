@@ -427,30 +427,44 @@
    ATTACHMENT BUTTON
 ========================================= */
 
+.export-attachment-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .export-attachment-button {
-  width: 40px;
-  height: 40px;
+  min-height: 36px;
+  min-width: 40px;
+  padding: 0 10px;
 
   display: flex;
   align-items: center;
   justify-content: center;
 
-  border: 1px solid #25a875;
+  border: 1px solid #9b304a;
   border-radius: 8px;
 
   background: #ffffff;
 
-  color: #179463;
+  color: #9b304a;
 
-  font-size: 18px;
+  font-size: 12px;
+  font-weight: 600;
 
   cursor: pointer;
 
   transition: all 0.2s ease;
 }
 
+.export-attachment-button.is-download {
+  min-width: 36px;
+  padding: 0;
+  font-size: 16px;
+}
+
 .export-attachment-button:hover {
-  background: #effaf5;
+  background: #fdf2f4;
 }
 
 /* =========================================
