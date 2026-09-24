@@ -21,7 +21,7 @@
 }
 
 .user-layout-back-btn {
-  min-width: auto;
+  min-width: var(--user-btn-min-width, 148px) !important;
 }
 
 .user-layout-main-vision {

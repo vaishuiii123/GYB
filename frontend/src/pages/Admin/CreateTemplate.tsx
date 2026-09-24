@@ -300,43 +300,6 @@ export default function CreateTemplate({ user }: PageProps) {
     );
   }, [categories, selectedQuestions]);
 
-  const selectedQuestionsList = useMemo(() => {
-    const byId = new Map<
-      string,
-      { id: string; question: string; categoryName: string }
-    >();
-
-    categories.forEach((category) => {
-      category.questions.forEach((q) => {
-        if (selectedQuestions.includes(q.id)) {
-          byId.set(q.id, {
-            id: q.id,
-            question: q.question,
-            categoryName: category.categoryName,
-          });
-        }
-      });
-    });
-
-    sourceQuestions.forEach((question) => {
-      if (selectedQuestions.includes(question.id) && !byId.has(question.id)) {
-        byId.set(question.id, {
-          id: question.id,
-          question: question.question || question.id,
-          categoryName: question.categoryName || "General",
-        });
-      }
-    });
-
-    return selectedQuestions
-      .map((id) => byId.get(id))
-      .filter(Boolean) as {
-      id: string;
-      question: string;
-      categoryName: string;
-    }[];
-  }, [categories, selectedQuestions, sourceQuestions]);
-
   const browsableCategories = useMemo(
     () =>
       categories
@@ -437,10 +400,6 @@ export default function CreateTemplate({ user }: PageProps) {
         ? prev.filter((id) => id !== questionId)
         : [...prev, questionId]
     );
-  };
-
-  const removeSelectedQuestion = (questionId: string) => {
-    setSelectedQuestions((prev) => prev.filter((id) => id !== questionId));
   };
 
   const resetUploadState = () => {
@@ -949,31 +908,6 @@ export default function CreateTemplate({ user }: PageProps) {
                 onChange={handleTemplateExcelUpload}
               />
             </div>
-
-            {selectedQuestionsList.length > 0 && (
-              <div className="selected-summary">
-                <div className="selected-summary-title">
-                  Selected for template ({selectedQuestionsList.length}
-                  {selectedCategoryData.length > 0
-                    ? ` from ${selectedCategoryData.length} categories`
-                    : ""}
-                  )
-                </div>
-                <div className="selected-summary-list">
-                  {selectedQuestionsList.map((item) => (
-                    <span key={item.id} className="selected-chip">
-                      {item.categoryName}: {item.question}
-                      <button
-                        type="button"
-                        onClick={() => removeSelectedQuestion(item.id)}
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
 
             <table className="template-table">
               <thead>

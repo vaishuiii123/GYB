@@ -21,7 +21,16 @@ import {
 import "../../styles/ODChart.css";
 import { OD_CHART_NAV_KEY } from "./ODChart";
 import type { ODQuestionsNavState, Question } from "./ODChart";
-import { ClipboardPlus } from "lucide-react";
+import {
+  Check,
+  ClipboardPlus,
+  FileText,
+  Paperclip,
+  Pencil,
+  StickyNote,
+  Trash2,
+  X,
+} from "lucide-react";
 const STATUS_OPTIONS = [
   { value: "Red", label: "Red", className: "status-red" },
   { value: "Yellow", label: "Yellow", className: "status-yellow" },
@@ -105,6 +114,7 @@ export default function ODChartQuestions() {
   const [navState, setNavState] = useState<ODQuestionsNavState | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [notes, setNotes] = useState<Record<string, string>>({});
   const [savedAttachments, setSavedAttachments] = useState<
     Record<string, AttachmentMeta>
   >({});
@@ -119,6 +129,15 @@ export default function ODChartQuestions() {
   const [editMessage, setEditMessage] = useState("");
   const [isDirty, setIsDirty] = useState(false);
   const [actionableOpen, setActionableOpen] = useState(false);
+  const [actionablePreset, setActionablePreset] =
+    useState<AddActionablePreset | null>(null);
+  const [notesPanelQuestionId, setNotesPanelQuestionId] = useState<string | null>(
+    null
+  );
+  const [notesEditing, setNotesEditing] = useState(false);
+  const [noteUpdatedAt, setNoteUpdatedAt] = useState<Record<string, string>>(
+    {}
+  );
   const answersDirtyRef = useRef(false);
   const loadRequestIdRef = useRef(0);
   const loadedLeafIdRef = useRef<string>("");
@@ -158,6 +177,10 @@ export default function ODChartQuestions() {
       setIsDirty(false);
       loadedLeafIdRef.current = state.leaf.id;
       setAnswers({});
+      setNotes({});
+      setNotesPanelQuestionId(null);
+      setNotesEditing(false);
+      setNoteUpdatedAt({});
       setPendingFiles({});
       setSavedAttachments({});
       setLoading(true);
@@ -178,6 +201,7 @@ export default function ODChartQuestions() {
         options: { optionText: string }[] | string[];
       }>;
       answers?: Record<string, string>;
+      notes?: Record<string, string>;
       attachments?: Record<string, AttachmentMeta>;
     }) => {
       setQuestions(
@@ -201,6 +225,14 @@ export default function ODChartQuestions() {
       // Never wipe in-progress edits if a late/duplicate fetch finishes.
       if (!answersDirtyRef.current) {
         setAnswers(data.answers || {});
+        setNotes(data.notes || {});
+        const initialUpdated: Record<string, string> = {};
+        Object.entries(data.notes || {}).forEach(([questionId, text]) => {
+          if (String(text || "").trim()) {
+            initialUpdated[questionId] = new Date().toISOString();
+          }
+        });
+        setNoteUpdatedAt(initialUpdated);
         setSavedAttachments(data.attachments || {});
         setPendingFiles({});
       }
@@ -345,6 +377,104 @@ export default function ODChartQuestions() {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
   };
 
+  const setNote = (questionId: string, value: string) => {
+    if (!canEdit) {
+      return;
+    }
+
+    answersDirtyRef.current = true;
+    setIsDirty(true);
+    setNotes((prev) => ({ ...prev, [questionId]: value }));
+    setNoteUpdatedAt((prev) => ({
+      ...prev,
+      [questionId]: new Date().toISOString(),
+    }));
+  };
+
+  const openNotesPanel = (questionId: string, startEditing = false) => {
+    const hasNote = Boolean(String(notes[questionId] || "").trim());
+    setNotesPanelQuestionId(questionId);
+    setNotesEditing(startEditing || !hasNote);
+    if (startEditing || !hasNote) {
+      window.setTimeout(() => {
+        const el = document.getElementById(
+          `od-note-panel-${questionId}`
+        ) as HTMLTextAreaElement | null;
+        el?.focus();
+      }, 0);
+    }
+  };
+
+  const closeNotesPanel = () => {
+    setNotesPanelQuestionId(null);
+    setNotesEditing(false);
+  };
+
+  const deleteNoteForQuestion = (questionId: string) => {
+    if (!canEdit) {
+      return;
+    }
+    answersDirtyRef.current = true;
+    setIsDirty(true);
+    setNotes((prev) => ({ ...prev, [questionId]: "" }));
+    setNoteUpdatedAt((prev) => {
+      const next = { ...prev };
+      delete next[questionId];
+      return next;
+    });
+    setNotesEditing(true);
+  };
+
+  const clearAttachmentForQuestion = (questionId: string) => {
+    if (!canEdit) {
+      return;
+    }
+    answersDirtyRef.current = true;
+    setIsDirty(true);
+    setPendingFiles((prev) => {
+      const next = { ...prev };
+      delete next[questionId];
+      return next;
+    });
+    setSavedAttachments((prev) => {
+      const next = { ...prev };
+      delete next[questionId];
+      return next;
+    });
+  };
+
+  const formatNoteTimestamp = (value?: string) => {
+    if (!value) {
+      return "";
+    }
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return "";
+    }
+    return date.toLocaleString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
+
+  const formatFileSize = (size?: number) => {
+    const bytes = Number(size) || 0;
+    if (bytes <= 0) {
+      return "";
+    }
+    if (bytes < 1024) {
+      return `${bytes} B`;
+    }
+    if (bytes < 1024 * 1024) {
+      return `${Math.round(bytes / 1024)} KB`;
+    }
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
   const handleAttachmentChange = (
     questionId: string,
     event: React.ChangeEvent<HTMLInputElement>
@@ -449,6 +579,7 @@ export default function ODChartQuestions() {
             .filter(Boolean)
             .join(" "),
           answers,
+          notes,
           attachments: uploadedAttachments,
         }),
       });
@@ -471,12 +602,14 @@ export default function ODChartQuestions() {
           success?: boolean;
           data?: unknown;
           answers?: Record<string, string>;
+          notes?: Record<string, string>;
           attachments?: Record<string, AttachmentMeta>;
         }>(cacheKey);
         if (existing?.success) {
           setCachedPageData(cacheKey, {
             ...existing,
             answers,
+            notes,
             attachments: uploadedAttachments,
           });
         } else {
@@ -501,17 +634,22 @@ export default function ODChartQuestions() {
     void tryNavigate("/od-chart");
   };
 
-  const actionablePreset: AddActionablePreset | null =
-    navState && participant?.id
-      ? {
-          participantId: String(participant.id),
-          workshopId: navState.workshop.id,
-          organizationId: String(participant.organizationId || ""),
-          categoryId: navState.leaf.id,
-          categoryName: navState.leaf.name,
-          categoryPath: navState.leaf.fullPath || navState.leaf.name,
-        }
-      : null;
+  const openActionableForQuestion = (question: Question) => {
+    if (!navState || !participant?.id) {
+      return;
+    }
+    const noteText = String(notes[question.id] || "").trim();
+    setActionablePreset({
+      participantId: String(participant.id),
+      workshopId: navState.workshop.id,
+      organizationId: String(participant.organizationId || ""),
+      categoryId: navState.leaf.id,
+      categoryName: navState.leaf.name,
+      categoryPath: navState.leaf.fullPath || navState.leaf.name,
+      initialDescription: noteText || question.question,
+    });
+    setActionableOpen(true);
+  };
 
   const renderQuestionInput = (question: Question) => {
     const currentValue = answers[question.id] || "";
@@ -536,15 +674,22 @@ export default function ODChartQuestions() {
       (!isMultiple && !isSingle && !isRating && options.length === 0);
 
     if (isRating) {
-      const ratingOptions =
-        options.length > 0
-          ? options.map((option) => normalizeStatusValue(option))
+      // Rating is always Red / Yellow / Green. Ignore leftover custom options
+      // (e.g. A/B/C/D) that are not traffic-light values.
+      const ratingOptions = looksLikeTrafficLight
+        ? Array.from(
+            new Set(options.map((option) => normalizeStatusValue(option)))
+          ).filter((option) => statusPresetFor(option))
+        : STATUS_OPTIONS.map((option) => option.value);
+      const swatches =
+        ratingOptions.length > 0
+          ? ratingOptions
           : STATUS_OPTIONS.map((option) => option.value);
       const selectedValue = normalizeStatusValue(currentValue);
 
       return (
         <div className="status-buttons" role="radiogroup" aria-label="Rating">
-          {ratingOptions.map((option) => {
+          {swatches.map((option) => {
             const preset = statusPresetFor(option);
             const value = preset?.value || option;
             const selected = selectedValue === value;
@@ -643,37 +788,65 @@ export default function ODChartQuestions() {
     const pending = pendingFiles[question.id];
     const saved = savedAttachments[question.id];
     const displayName = pending?.fileName || saved?.fileName || "";
+    const sizeLabel = formatFileSize(pending?.file.size || saved?.size);
 
     return (
-      <div className="question-attachment">
-        <label className="question-attachment-label">Attachment</label>
-        <input
-          type="file"
-          accept={ATTACHMENT_ACCEPT}
-          disabled={!canEdit || saving}
-          onChange={(event) => handleAttachmentChange(question.id, event)}
-        />
-        <p className="question-attachment-hint">
-          Excel, Word, PowerPoint, PDF, text, or images (max 10 MB)
-        </p>
+      <div className="od-notes-attachments">
+        <div className="od-notes-section-title">Attachments</div>
         {displayName ? (
-          <div className="question-attachment-file">
-            <span>{displayName}</span>
-            {saved?.blobPath && !pending && navState && participant.id ? (
-              <a
-                className="question-attachment-link"
-                href={`/api/get-od-attachment?participantId=${encodeURIComponent(
-                  participant.id
-                )}&workshopId=${encodeURIComponent(
-                  navState.workshop.id
-                )}&questionId=${encodeURIComponent(question.id)}`}
-                target="_blank"
-                rel="noreferrer"
+          <div className="od-notes-file-row">
+            <div className="od-notes-file-main">
+              <span className="od-notes-file-icon" aria-hidden>
+                <FileText size={18} strokeWidth={2} />
+              </span>
+              <div>
+                {saved?.blobPath && !pending && navState && participant.id ? (
+                  <a
+                    className="od-notes-file-name"
+                    href={`/api/get-od-attachment?participantId=${encodeURIComponent(
+                      participant.id
+                    )}&workshopId=${encodeURIComponent(
+                      navState.workshop.id
+                    )}&questionId=${encodeURIComponent(question.id)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {displayName}
+                  </a>
+                ) : (
+                  <span className="od-notes-file-name">{displayName}</span>
+                )}
+                {sizeLabel ? (
+                  <span className="od-notes-file-size">{sizeLabel}</span>
+                ) : null}
+              </div>
+            </div>
+            {canEdit ? (
+              <button
+                type="button"
+                className="od-notes-file-remove"
+                onClick={() => clearAttachmentForQuestion(question.id)}
+                disabled={saving}
+                aria-label="Remove attachment"
               >
-                Download
-              </a>
+                <Trash2 size={16} strokeWidth={2} />
+              </button>
             ) : null}
           </div>
+        ) : (
+          <p className="od-notes-empty-attach">No attachments yet.</p>
+        )}
+        {canEdit ? (
+          <label className="od-notes-upload">
+            <input
+              type="file"
+              accept={ATTACHMENT_ACCEPT}
+              disabled={saving}
+              onChange={(event) => handleAttachmentChange(question.id, event)}
+            />
+            <span>Choose File</span>
+            <small>Excel, Word, PowerPoint, PDF, text, or images (max 10 MB)</small>
+          </label>
         ) : null}
       </div>
     );
@@ -683,10 +856,47 @@ export default function ODChartQuestions() {
     return null;
   }
 
+  const notesPanelQuestion = notesPanelQuestionId
+    ? questions.find((item) => item.id === notesPanelQuestionId) || null
+    : null;
+  const notesPanelIndex = notesPanelQuestion
+    ? questions.findIndex((item) => item.id === notesPanelQuestion.id)
+    : -1;
+  const notesPanelText = notesPanelQuestion
+    ? String(notes[notesPanelQuestion.id] || "")
+    : "";
+  const notesPanelHasText = Boolean(notesPanelText.trim());
+
   return (
     <ODChartShell>
-      <div className="od-questions-panel">
-        <h1 className="od-questions-title">{navState.leaf.name}</h1>
+      <div
+        className={`od-questions-panel ${
+          notesPanelQuestion ? "has-notes-drawer" : ""
+        }`}
+      >
+        <div className="od-questions-top is-sticky">
+          <h1 className="od-questions-title">{navState.leaf.name}</h1>
+          <div className="od-chart-actions od-chart-actions-top">
+            <button
+              type="button"
+              className="user-btn-secondary"
+              onClick={requestBackToChart}
+              disabled={saving}
+            >
+              Back to Chart
+            </button>
+            <button
+              type="button"
+              className="user-btn-primary"
+              onClick={() => {
+                void handleSave();
+              }}
+              disabled={saving || loading || !canEdit}
+            >
+              {saving ? "Saving..." : "Save Responses"}
+            </button>
+          </div>
+        </div>
 
         {!canEdit && <WorkshopEditBanner message={editMessage} />}
 
@@ -698,26 +908,97 @@ export default function ODChartQuestions() {
             template.
           </p>
         ) : (
-          questions.map((question) => (
-            <div
-              key={question.id}
-              className="question-block"
-              style={
-                question.tagColor
-                  ? { borderLeft: `4px solid ${question.tagColor}` }
-                  : undefined
-              }
-            >
-              <div className="question-text">{question.question}</div>
-              <div className="question-meta">
-                {question.tagName ? (
-                  <span className="question-tag">{question.tagName}</span>
-                ) : null}
+          questions.map((question, index) => {
+            const noteText = String(notes[question.id] || "").trim();
+            const hasNote = Boolean(noteText);
+            const pending = pendingFiles[question.id];
+            const saved = savedAttachments[question.id];
+            const hasAttachment = Boolean(
+              pending?.fileName || saved?.fileName || saved?.blobPath
+            );
+            const attachmentCount = hasAttachment ? 1 : 0;
+            const isNotesOpen = notesPanelQuestionId === question.id;
+
+            return (
+              <div
+                key={question.id}
+                className={`question-block ${isNotesOpen ? "is-notes-open" : ""}`}
+                style={
+                  question.tagColor
+                    ? { borderLeft: `4px solid ${question.tagColor}` }
+                    : undefined
+                }
+              >
+                <div className="question-block-header">
+                  <span className="question-number">Q{index + 1}</span>
+                  <div className="question-block-heading">
+                    <div className="question-text">{question.question}</div>
+                    <div className="question-meta">
+                      {question.tagName ? (
+                        <span className="question-tag">{question.tagName}</span>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+
+                {renderQuestionInput(question)}
+
+                <div className="question-card-footer">
+                  <div className="question-card-meta">
+                    <span className="question-meta-item">
+                      <Paperclip size={14} strokeWidth={2.2} aria-hidden />
+                      {attachmentCount > 0
+                        ? `${attachmentCount} Attachment`
+                        : "No attachments"}
+                    </span>
+                    {hasNote ? (
+                      <span className="question-meta-item is-note-added">
+                        <Check size={14} strokeWidth={2.4} aria-hidden />
+                        1 Note Added
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="question-meta-link"
+                        onClick={() => openNotesPanel(question.id, true)}
+                        disabled={saving || loading}
+                      >
+                        Add Note
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="question-card-actions">
+                    <button
+                      type="button"
+                      className={`user-btn-secondary ${
+                        isNotesOpen || hasNote ? "is-active" : ""
+                      }`}
+                      onClick={() =>
+                        isNotesOpen
+                          ? closeNotesPanel()
+                          : openNotesPanel(question.id)
+                      }
+                      disabled={saving || loading}
+                      aria-expanded={isNotesOpen}
+                    >
+                      <StickyNote size={14} strokeWidth={2.2} aria-hidden />
+                      {hasNote ? `Notes (1)` : "Notes"}
+                    </button>
+                    <button
+                      type="button"
+                      className="user-btn-secondary"
+                      onClick={() => openActionableForQuestion(question)}
+                      disabled={saving || loading || !canEdit}
+                    >
+                      <ClipboardPlus size={14} strokeWidth={2.2} aria-hidden />
+                      Add as Actionable
+                    </button>
+                  </div>
+                </div>
               </div>
-              {renderQuestionInput(question)}
-              {renderAttachmentInput(question)}
-            </div>
-          ))
+            );
+          })
         )}
 
         {errorMessage && <div className="od-chart-error">{errorMessage}</div>}
@@ -725,43 +1006,114 @@ export default function ODChartQuestions() {
         {successMessage && (
           <div className="od-chart-success">{successMessage}</div>
         )}
-
-        <div className="od-chart-actions">
-          <button
-            type="button"
-            className="user-btn-secondary"
-            onClick={requestBackToChart}
-            disabled={saving}
-          >
-            Back to Chart
-          </button>
-          <button
-            type="button"
-            className="user-btn-secondary"
-            onClick={() => setActionableOpen(true)}
-            disabled={saving || loading || !canEdit || !actionablePreset}
-          >
-            <ClipboardPlus size={16} strokeWidth={2.2} aria-hidden />
-            Add as Actionable
-          </button>
-          <button
-            type="button"
-            className="user-btn-primary"
-            onClick={() => {
-              void handleSave();
-            }}
-            disabled={saving || loading || !canEdit}
-          >
-            {saving ? "Saving..." : "Save Responses"}
-          </button>
-        </div>
       </div>
+
+      {notesPanelQuestion ? (
+        <>
+          <button
+            type="button"
+            className="od-notes-backdrop"
+            aria-label="Close notes panel"
+            onClick={closeNotesPanel}
+          />
+          <aside
+            className="od-notes-drawer"
+            aria-label="Notes for this question"
+          >
+            <div className="od-notes-drawer-header">
+              <h2>Notes for this question</h2>
+              <button
+                type="button"
+                className="od-notes-close"
+                onClick={closeNotesPanel}
+                aria-label="Close"
+              >
+                <X size={18} strokeWidth={2.2} />
+              </button>
+            </div>
+
+            <div className="od-notes-ref">
+              <span className="question-number">
+                Q{notesPanelIndex >= 0 ? notesPanelIndex + 1 : ""}
+              </span>
+              <p>{notesPanelQuestion.question}</p>
+            </div>
+
+            <div className="od-notes-body">
+              <div className="od-notes-section-title">Your notes</div>
+              {notesEditing ? (
+                <textarea
+                  id={`od-note-panel-${notesPanelQuestion.id}`}
+                  className="od-notes-textarea"
+                  value={notesPanelText}
+                  onChange={(event) =>
+                    setNote(notesPanelQuestion.id, event.target.value)
+                  }
+                  placeholder="Add notes for this question..."
+                  rows={8}
+                  disabled={!canEdit || saving}
+                />
+              ) : notesPanelHasText ? (
+                <div className="od-notes-readonly">
+                  <p>{notesPanelText}</p>
+                </div>
+              ) : (
+                <p className="od-notes-empty">No notes added yet.</p>
+              )}
+
+              {noteUpdatedAt[notesPanelQuestion.id] ? (
+                <p className="od-notes-updated">
+                  Last updated:{" "}
+                  {formatNoteTimestamp(noteUpdatedAt[notesPanelQuestion.id])}
+                </p>
+              ) : null}
+
+              {renderAttachmentInput(notesPanelQuestion)}
+            </div>
+
+            <div className="od-notes-drawer-footer">
+              <button
+                type="button"
+                className="user-btn-secondary od-notes-delete"
+                onClick={() => deleteNoteForQuestion(notesPanelQuestion.id)}
+                disabled={!canEdit || saving || !notesPanelHasText}
+              >
+                <Trash2 size={14} strokeWidth={2.2} aria-hidden />
+                Delete Note
+              </button>
+              {notesEditing ? (
+                <button
+                  type="button"
+                  className="user-btn-primary"
+                  onClick={() => setNotesEditing(false)}
+                  disabled={saving}
+                >
+                  Done
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="user-btn-primary"
+                  onClick={() => openNotesPanel(notesPanelQuestion.id, true)}
+                  disabled={!canEdit || saving}
+                >
+                  <Pencil size={14} strokeWidth={2.2} aria-hidden />
+                  Edit Note
+                </button>
+              )}
+            </div>
+          </aside>
+        </>
+      ) : null}
 
       <AddActionableModal
         open={actionableOpen}
         preset={actionablePreset}
         canEdit={canEdit}
-        onClose={() => setActionableOpen(false)}
+        onClose={() => {
+          setActionableOpen(false);
+          setActionablePreset(null);
+        }}
       />
     </ODChartShell>
   );

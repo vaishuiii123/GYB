@@ -88,16 +88,22 @@ async function loadQuestions() {
 
         for await (const entity of entities) {
 
+            const questionType = entity.QuestionType || "";
+            const typeLower = String(questionType).trim().toLowerCase();
+            const hideOptions =
+                typeLower.includes("rating") || typeLower === "text";
 
             questions.push({
 
                 id: entity.rowKey,
 
-                options: optionsByQuestion.get(entity.rowKey) || [],
+                options: hideOptions
+                    ? []
+                    : optionsByQuestion.get(entity.rowKey) || [],
 
                 questionText: entity.QuestionText,
 
-                questionType: entity.QuestionType,
+                questionType,
 
                 tagId: entity.TagId,
 

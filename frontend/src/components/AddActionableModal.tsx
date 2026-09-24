@@ -11,6 +11,8 @@ export type AddActionablePreset = {
   categoryName: string;
   categoryPath: string;
   participantLabel?: string;
+  /** Prefill description (e.g. question text / note). */
+  initialDescription?: string;
   /** Admin Responses page may add actionables after workshop ends. */
   allowAfterEnd?: boolean;
 };
@@ -43,13 +45,13 @@ export default function AddActionableModal({
     if (!open) {
       return;
     }
-    setDescription("");
+    setDescription(String(preset?.initialDescription || "").trim());
     setTimeline("");
     setResponsiblePersons("");
     setComments("");
     setErrorMessage("");
     setSaving(false);
-  }, [open, preset?.categoryId, preset?.participantId]);
+  }, [open, preset?.categoryId, preset?.participantId, preset?.initialDescription]);
 
   useEffect(() => {
     if (!open) {

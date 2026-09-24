@@ -32,6 +32,8 @@ type CatalogQuestion = {
   questionNormalized: string;
   questionType: string;
   tagId: string;
+  attachmentsApplicable: string;
+  options: string[];
   categoryId: string;
   categoryName: string;
   topCategoryName: string;
@@ -46,6 +48,48 @@ const normalizeText = (value: unknown) =>
     .replace(/[?]+$/g, "")
     .trim()
     .toLowerCase();
+
+const normalizeOptionList = (values: unknown[]) =>
+  values
+    .map((value) => normalizeText(value))
+    .filter(Boolean)
+    .sort()
+    .join("|");
+
+const questionRowMatchesExisting = (
+  existing: CatalogQuestion | undefined,
+  row: {
+    question?: string;
+    questionType?: string;
+    tagId?: string;
+    attachmentsApplicable?: string;
+    options?: string[];
+  }
+) => {
+  if (!existing) {
+    return false;
+  }
+
+  const textSame =
+    normalizeText(existing.question) === normalizeText(row.question);
+  const typeSame =
+    normalizeText(existing.questionType) === normalizeText(row.questionType);
+  const tagSame =
+    String(existing.tagId || "").trim() === String(row.tagId || "").trim();
+  const attachmentSame =
+    String(existing.attachmentsApplicable || "N").toUpperCase() ===
+    String(row.attachmentsApplicable || "N").toUpperCase();
+
+  const typeLower = String(row.questionType || "").toLowerCase();
+  const isChoice =
+    typeLower.includes("multiple") || typeLower.includes("single");
+  const optionsSame = !isChoice
+    ? true
+    : normalizeOptionList(existing.options || []) ===
+      normalizeOptionList(row.options || []);
+
+  return textSame && typeSame && tagSame && attachmentSame && optionsSame;
+};
 
 const normalizeAttachmentsApplicable = (value: unknown) => {
   const raw = String(value || "")
@@ -217,6 +261,28 @@ export default function Template({ user }: PageProps) {
       return;
     }
     loadTemplates();
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const response = await fetch("/api/sync-template-questions", {
+          method: "POST",
+        });
+        const data = await response.json().catch(() => null);
+        if (cancelled || !response.ok || !data?.success) {
+          return;
+        }
+        clearAdminListCache(ADMIN_CACHE_KEYS.questions);
+        clearAdminListCache(ADMIN_CACHE_KEYS.templates);
+      } catch (error) {
+        console.error("Template/QM sync skipped:", error);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const loadTemplates = async () => {
@@ -1510,6 +1576,22 @@ export default function Template({ user }: PageProps) {
 
       const catalogById = new Map<string, CatalogQuestion>();
       const catalogByText = new Map<string, CatalogQuestion[]>();
+      const qmOptionsById = new Map<string, string[]>();
+
+      allQuestions.forEach((question: any) => {
+        const questionId = String(question.id || "").trim();
+        if (!questionId) return;
+        qmOptionsById.set(
+          questionId,
+          (question.options || [])
+            .map((option: any) =>
+              String(
+                typeof option === "string" ? option : option?.optionText || ""
+              ).trim()
+            )
+            .filter(Boolean)
+        );
+      });
 
       allCategories.forEach((category: any) => {
         (category.questions || []).forEach((question: any) => {
@@ -1522,6 +1604,10 @@ export default function Template({ user }: PageProps) {
             questionNormalized: normalizeText(question.question),
             questionType: String(question.answerType || "").trim(),
             tagId: String(question.tagId || category.tagId || "").trim(),
+            attachmentsApplicable: normalizeAttachmentsApplicable(
+              question.attachmentsApplicable || "N"
+            ),
+            options: qmOptionsById.get(questionId) || [],
             categoryId: String(category.id || "").trim(),
             categoryName: String(category.categoryName || "").trim(),
             topCategoryName: String(category.topCategoryName || "").trim(),
@@ -1550,6 +1636,10 @@ export default function Template({ user }: PageProps) {
           questionNormalized: normalizeText(question.questionText),
           questionType: String(question.questionType || "").trim(),
           tagId: String(question.tagId || "").trim(),
+          attachmentsApplicable: normalizeAttachmentsApplicable(
+            question.attachmentsApplicable || "N"
+          ),
+          options: qmOptionsById.get(questionId) || [],
           categoryId: "",
           categoryName: "",
           topCategoryName: "",
@@ -1858,6 +1948,27 @@ export default function Template({ user }: PageProps) {
             ? tagNameById.get(matched.tagId.toLowerCase()) || ""
             : "");
 
+        const resolvedTagId =
+          tagIdByName.get(normalizeText(resolvedTagName)) ||
+          matched?.tagId ||
+          "";
+        const resolvedQuestionType = questionType || matched?.questionType || "";
+        const resolvedQuestion = question || matched?.question || "";
+        const resolvedAttachments = attachmentsApplicable;
+
+        const isUnchanged = questionRowMatchesExisting(matched, {
+          question: resolvedQuestion,
+          questionType: resolvedQuestionType,
+          tagId: resolvedTagId,
+          attachmentsApplicable: resolvedAttachments,
+          options,
+        });
+
+        // Edited rows must become new Question Management entries (never update).
+        if (matched && !isUnchanged) {
+          isNew = true;
+        }
+
         const parsedRow = {
           rowNumber,
           categoryId: resolvedCategory?.id || matched?.categoryId || "",
@@ -1883,19 +1994,19 @@ export default function Template({ user }: PageProps) {
             resolvedCategory?.parentCategoryName ||
             matched?.parentCategoryName ||
             "",
-          question: question || matched?.question || "",
+          question: resolvedQuestion,
           tagName: resolvedTagName,
-          tagId:
-            tagIdByName.get(normalizeText(resolvedTagName)) ||
-            matched?.tagId ||
-            "",
-          questionType: questionType || matched?.questionType || "",
-          attachmentsApplicable,
+          tagId: resolvedTagId,
+          questionType: resolvedQuestionType,
+          attachmentsApplicable: resolvedAttachments,
           templateType: rowTemplateType,
           options,
-          questionId: matched?.id || "",
-          isNew,
-          isExisting: Boolean(matched),
+          questionId: isUnchanged ? matched?.id || "" : "",
+          sourceQuestionId: matched?.id || "",
+          isNew: Boolean(isNew || !isUnchanged),
+          isExisting: Boolean(matched && isUnchanged),
+          isEditedFork: Boolean(matched && !isUnchanged),
+          isUnchanged,
           valid: rowErrors.length === 0,
           errors: rowErrors,
         };
@@ -2036,123 +2147,102 @@ export default function Template({ user }: PageProps) {
       >();
       let createdQuestionCount = 0;
       let reusedQuestionCount = 0;
+      let forkedQuestionCount = 0;
+
+      const createQuestionFromRow = async (row: any) => {
+        const createResponse = await fetch("/api/create-question", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            questionText: row.question,
+            questionType: row.questionType,
+            tagId: row.tagId || "",
+            attachmentsApplicable: row.attachmentsApplicable || "N",
+            createdBy,
+          }),
+        });
+        const createResult = await createResponse.json();
+
+        if (!createResponse.ok || !createResult.success) {
+          throw new Error(
+            createResult.message ||
+              `Failed to create question for Excel row ${row.rowNumber}`
+          );
+        }
+
+        const newQuestionId = String(
+          createResult.data?.rowKey || createResult.data?.id || ""
+        ).trim();
+
+        if (!newQuestionId) {
+          throw new Error(
+            `Question was created but no ID was returned for Excel row ${row.rowNumber}`
+          );
+        }
+
+        if (
+          row.options?.length > 0 &&
+          (row.questionType === "Multiple Choice" ||
+            row.questionType === "Single Choice")
+        ) {
+          const optionsResponse = await fetch("/api/create-question-options", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              questionId: newQuestionId,
+              options: row.options,
+              createdBy,
+            }),
+          });
+          const optionsResult = await optionsResponse.json();
+          if (!optionsResponse.ok || !optionsResult.success) {
+            throw new Error(
+              optionsResult.message ||
+                `Failed to create options for Excel row ${row.rowNumber}`
+            );
+          }
+        }
+
+        if (row.categoryId) {
+          const assignResponse = await fetch("/api/assign-category-question", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              categoryId: row.categoryId,
+              questionId: newQuestionId,
+              modifiedBy: createdBy,
+            }),
+          });
+          const assignResult = await assignResponse.json();
+          if (
+            !assignResponse.ok &&
+            !String(assignResult.message || "")
+              .toLowerCase()
+              .includes("already")
+          ) {
+            throw new Error(
+              assignResult.message ||
+                `Failed to assign question to category for Excel row ${row.rowNumber}`
+            );
+          }
+        }
+
+        return newQuestionId;
+      };
 
       for (const row of validRows) {
         let questionId = String(row.questionId || "").trim();
 
-        if (!questionId) {
-          const createResponse = await fetch("/api/create-question", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              questionText: row.question,
-              questionType: row.questionType,
-              tagId: row.tagId || "",
-              attachmentsApplicable: row.attachmentsApplicable || "N",
-              createdBy,
-            }),
-          });
-          const createResult = await createResponse.json();
-
-          if (!createResponse.ok || !createResult.success) {
-            throw new Error(
-              createResult.message ||
-                `Failed to create question for Excel row ${row.rowNumber}`
-            );
-          }
-
-          questionId = String(
-            createResult.data?.rowKey || createResult.data?.id || ""
-          ).trim();
-
-          if (!questionId) {
-            throw new Error(
-              `Question was created but no ID was returned for Excel row ${row.rowNumber}`
-            );
-          }
-
-          if (
-            row.options?.length > 0 &&
-            (row.questionType === "Multiple Choice" ||
-              row.questionType === "Single Choice")
-          ) {
-            const optionsResponse = await fetch("/api/create-question-options", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                questionId,
-                options: row.options,
-                createdBy,
-              }),
-            });
-            const optionsResult = await optionsResponse.json();
-            if (!optionsResponse.ok || !optionsResult.success) {
-              throw new Error(
-                optionsResult.message ||
-                  `Failed to create options for Excel row ${row.rowNumber}`
-              );
-            }
-          }
-
-          if (row.categoryId) {
-            const assignResponse = await fetch("/api/assign-category-question", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                categoryId: row.categoryId,
-                questionId,
-                modifiedBy: createdBy,
-              }),
-            });
-            const assignResult = await assignResponse.json();
-            // Ignore "already assigned" style failures for safety
-            if (
-              !assignResponse.ok &&
-              !String(assignResult.message || "")
-                .toLowerCase()
-                .includes("already")
-            ) {
-              throw new Error(
-                assignResult.message ||
-                  `Failed to assign question to category for Excel row ${row.rowNumber}`
-              );
-            }
-          }
-
-          createdQuestionCount += 1;
-        } else {
+        // Never edit existing Question Management rows from template upload.
+        // Unchanged matches are reused; edited or new rows are created as new.
+        if (questionId && row.isUnchanged) {
           reusedQuestionCount += 1;
-
-          // Keep question fields in sync when reusing an existing question.
-          await fetch("/api/update-question", {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              questionId,
-              questionText: row.question,
-              questionType: row.questionType,
-              tagId: row.tagId || "",
-              attachmentsApplicable: row.attachmentsApplicable || "N",
-              modifiedBy: createdBy,
-            }),
-          });
-
-          if (
-            row.options?.length > 0 &&
-            (row.questionType === "Multiple Choice" ||
-              row.questionType === "Single Choice")
-          ) {
-            await fetch("/api/create-question-options", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                questionId,
-                options: row.options,
-                createdBy,
-                replaceExisting: true,
-              }),
-            });
+        } else {
+          if (row.isEditedFork) {
+            forkedQuestionCount += 1;
           }
+          questionId = await createQuestionFromRow(row);
+          createdQuestionCount += 1;
         }
 
         if (!uniqueQuestionIds.includes(questionId)) {
@@ -2236,8 +2326,11 @@ export default function Template({ user }: PageProps) {
           (createdQuestionCount
             ? `\n${createdQuestionCount} new question(s) added to Question Management`
             : "") +
+          (forkedQuestionCount
+            ? `\n${forkedQuestionCount} edited question(s) added as new (existing questions were not changed)`
+            : "") +
           (reusedQuestionCount
-            ? `\n${reusedQuestionCount} existing question(s) reused (no duplicates)`
+            ? `\n${reusedQuestionCount} unchanged question(s) reused`
             : "")
       );
 

@@ -146,13 +146,41 @@ const UNLOCK_VALUE_HIERARCHY = [
 function normalizeName(value) {
   return String(value || "")
     .toLowerCase()
-    .replace(/&/g, "and")
+    // Treat US/UK spelling variants as the same (Realization / Realisation).
+    .replace(/isations?/g, (match) =>
+      match.replace("sation", "zation").replace("sations", "zations")
+    )
+    // Demand & Supply / Demand/ Supply → same key.
+    .replace(/&/g, " ")
+    .replace(/\//g, " ")
+    .replace(/\band\b/g, " ")
+    .replace(/[^a-z0-9]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
 
+/** Order-insensitive key for titles like Tangible/Intangible word swaps. */
+function canonicalNameKey(value) {
+  const normalized = normalizeName(value);
+  if (!normalized) {
+    return "";
+  }
+
+  const tokens = normalized.split(" ").filter(Boolean);
+  const hasTangiblePair =
+    tokens.includes("tangible") && tokens.includes("intangible");
+
+  if (hasTangiblePair || tokens.length >= 4) {
+    return [...tokens].sort().join(" ");
+  }
+
+  return normalized;
+}
+
 function namesMatch(a, b) {
-  return normalizeName(a) === normalizeName(b);
+  const left = canonicalNameKey(a);
+  const right = canonicalNameKey(b);
+  return Boolean(left) && left === right;
 }
 
 function nextId(prefix, entities, pad = 3) {
@@ -378,4 +406,7 @@ async function seedUnlockValueCategories(connectionString, createdBy = "Admin") 
 module.exports = {
   UNLOCK_VALUE_HIERARCHY,
   seedUnlockValueCategories,
+  normalizeName,
+  canonicalNameKey,
+  namesMatch,
 };

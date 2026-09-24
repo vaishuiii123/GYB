@@ -1,5 +1,6 @@
 const { getTableClient } = require("../shared/tableHelper");
 const { invalidateCategoryStructure } = require("../shared/cacheInvalidation");
+const { namesMatch } = require("../shared/unlockValueCategories");
 
 
 module.exports = async function (context, req) {
@@ -15,10 +16,7 @@ module.exports = async function (context, req) {
         });
 
         for await (const category of existingCategories) {
-            if (
-                category.TopCategoryName.toLowerCase() 
-                === topCategoryName.toLowerCase()
-            ) {
+            if (namesMatch(category.TopCategoryName, topCategoryName)) {
                 context.res = {
                     status: 409,
                     body: {

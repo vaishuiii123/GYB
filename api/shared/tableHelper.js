@@ -111,6 +111,7 @@ function groupOptionsByQuestionIds(allOptions, questionIds) {
 
 async function listAnswersForWorkshop(answerTable, participantId, workshopId) {
   const answers = {};
+  const notes = {};
   const attachments = {};
   let organizationId = "";
   let templateId = "";
@@ -126,6 +127,11 @@ async function listAnswersForWorkshop(answerTable, participantId, workshopId) {
     })) {
       if (entity.QuestionId) {
         answers[entity.QuestionId] = entity.AnswerText || entity.OptionId || "";
+
+        const noteText = String(entity.NoteText || "").trim();
+        if (noteText) {
+          notes[entity.QuestionId] = noteText;
+        }
 
         const blobPath = String(entity.AttachmentBlobPath || "").trim();
         if (blobPath) {
@@ -150,6 +156,7 @@ async function listAnswersForWorkshop(answerTable, participantId, workshopId) {
 
   return {
     answers,
+    notes,
     attachments,
     organizationId,
     templateId,

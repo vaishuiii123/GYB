@@ -93,6 +93,11 @@ export default function VisionMission() {
   const [workshopId, setWorkshopId] = useState("");
 
   const [dragSource, setDragSource] = useState<"bank" | DropZone | null>(null);
+  const [editingChip, setEditingChip] = useState<{
+    zone: DropZone;
+    index: number;
+  } | null>(null);
+  const [editingValue, setEditingValue] = useState("");
   const savedSnapshotRef = useRef(snapshotKeywords([], []));
 
   const {
@@ -338,6 +343,58 @@ export default function VisionMission() {
     setMissionKeywords((prev) => prev.filter((item) => item !== keyword));
   };
 
+  const startEditingKeyword = (
+    zone: DropZone,
+    index: number,
+    keyword: string
+  ) => {
+    if (!canEdit) {
+      return;
+    }
+    setActiveZone(zone);
+    setEditingChip({ zone, index });
+    setEditingValue(keyword);
+  };
+
+  const commitEditingKeyword = () => {
+    if (!editingChip || !canEdit) {
+      setEditingChip(null);
+      setEditingValue("");
+      return;
+    }
+
+    const { zone, index } = editingChip;
+    const trimmed = editingValue.trim();
+    const setter = zone === "vision" ? setVisionKeywords : setMissionKeywords;
+
+    setter((prev) => {
+      if (index < 0 || index >= prev.length) {
+        return prev;
+      }
+      if (!trimmed) {
+        return prev.filter((_, itemIndex) => itemIndex !== index);
+      }
+      const duplicate = prev.some(
+        (item, itemIndex) =>
+          itemIndex !== index && item.toLowerCase() === trimmed.toLowerCase()
+      );
+      if (duplicate) {
+        return prev;
+      }
+      const next = [...prev];
+      next[index] = trimmed;
+      return next;
+    });
+
+    setEditingChip(null);
+    setEditingValue("");
+  };
+
+  const cancelEditingKeyword = () => {
+    setEditingChip(null);
+    setEditingValue("");
+  };
+
   const handleDrop = (zone: DropZone, event: React.DragEvent) => {
     event.preventDefault();
     if (!canEdit) {
@@ -414,15 +471,19 @@ export default function VisionMission() {
 
         <div className="vm-drop-zone">
           <div className="vm-selected-keywords">
-          {selectedKeywords.map((keyword) => (
+          {selectedKeywords.map((keyword, index) => {
+            const isEditing =
+              editingChip?.zone === zone && editingChip.index === index;
+
+            return (
             <div
-              key={keyword}
+              key={`${zone}-${index}-${keyword}`}
               className={`vm-chip is-selected ${
-                draggingKeyword === keyword ? "is-dragging" : ""
-              }`}
-              draggable={canEdit}
+                draggingKeyword === keyword && !isEditing ? "is-dragging" : ""
+              } ${isEditing ? "is-editing" : ""}`}
+              draggable={canEdit && !isEditing}
               onDragStart={(event) => {
-                if (!canEdit) {
+                if (!canEdit || isEditing) {
                   event.preventDefault();
                   return;
                 }
@@ -436,17 +497,58 @@ export default function VisionMission() {
                 setDragSource(null);
               }}
             >
-              <span>{keyword}</span>
+              {isEditing ? (
+                <input
+                  type="text"
+                  className="vm-chip-edit-input"
+                  value={editingValue}
+                  autoFocus
+                  onChange={(event) => setEditingValue(event.target.value)}
+                  onClick={(event) => event.stopPropagation()}
+                  onBlur={commitEditingKeyword}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      commitEditingKeyword();
+                    }
+                    if (event.key === "Escape") {
+                      event.preventDefault();
+                      cancelEditingKeyword();
+                    }
+                  }}
+                  aria-label={`Edit ${keyword}`}
+                />
+              ) : (
+                <button
+                  type="button"
+                  className="vm-chip-label"
+                  disabled={!canEdit}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    startEditingKeyword(zone, index, keyword);
+                  }}
+                  title={canEdit ? "Click to edit" : keyword}
+                >
+                  {keyword}
+                </button>
+              )}
               <button
                 type="button"
-                onClick={() => removeKeywordFromZone(zone, keyword)}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  if (isEditing) {
+                    cancelEditingKeyword();
+                  }
+                  removeKeywordFromZone(zone, keyword);
+                }}
                 aria-label={`Remove ${keyword}`}
                 disabled={!canEdit}
               >
                 <X size={14} strokeWidth={2.4} />
               </button>
             </div>
-          ))}
+            );
+          })}
 
             <input
               type="text"
@@ -492,6 +594,24 @@ export default function VisionMission() {
             {!canEdit && <WorkshopEditBanner message={editMessage} />}
 
             <div className={canEdit ? "vm-content" : "vm-content vm-readonly"}>
+              <div className="vm-statements">
+                {renderDropZone(
+                  "vision",
+                  "Vision Statement",
+                  visionKeywords,
+                  visionInput,
+                  setVisionInput
+                )}
+
+                {renderDropZone(
+                  "mission",
+                  "Mission Statement",
+                  missionKeywords,
+                  missionInput,
+                  setMissionInput
+                )}
+              </div>
+
               <section className="vm-keyword-bank">
                 <div className="vm-keyword-bank-header">
                   <h3>
@@ -540,24 +660,6 @@ export default function VisionMission() {
                   keyword to add it there. You can also drag and drop.
                 </p>
               </section>
-
-              <div className="vm-statements">
-                {renderDropZone(
-                  "vision",
-                  "Vision Statement",
-                  visionKeywords,
-                  visionInput,
-                  setVisionInput
-                )}
-
-                {renderDropZone(
-                  "mission",
-                  "Mission Statement",
-                  missionKeywords,
-                  missionInput,
-                  setMissionInput
-                )}
-              </div>
             </div>
 
             {errorMessage ? (

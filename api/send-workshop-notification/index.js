@@ -1,4 +1,8 @@
-const { getTableClient } = require("../shared/tableHelper");
+const {
+  getTableClient,
+  getEntitiesByKeys,
+  listPartition,
+} = require("../shared/tableHelper");
 const { sendSms } = require("../shared/smsProvider");
 const { sendEmail } = require("../shared/emailProvider");
 const { buildWorkshopSmsMessage } = require("../shared/workshopSmsMessage");
@@ -28,34 +32,30 @@ async function getWorkshop(workshopId) {
 async function getOrganizationParticipants(organizationId) {
   const mappingClient = getTableClient("OrganizationParticipants");
   const participantClient = getTableClient("Participants");
-  const participantIds = [];
 
-  for await (const entity of mappingClient.listEntities()) {
-    if (entity.OrganizationId === organizationId) {
-      participantIds.push(entity.ParticipantId);
-    }
-  }
+  const mappings = await listPartition(mappingClient, organizationId);
+  const participantIds = mappings
+    .map((entity) =>
+      String(entity.ParticipantId || entity.rowKey || "").trim()
+    )
+    .filter(Boolean);
 
-  const participants = [];
+  const records = await getEntitiesByKeys(
+    participantClient,
+    "Participant",
+    participantIds
+  );
 
-  for await (const participant of participantClient.listEntities()) {
-    if (!participantIds.includes(participant.rowKey)) {
-      continue;
-    }
-
-    participants.push({
-      id: participant.rowKey,
-      firstName: participant.First_Name || "",
-      lastName: participant.Last_Name || "",
-      email: participant.Email || "",
-      username: participant.Username || "",
-      phoneNo: participant.Phone_No || "",
-      password: participant.Password || "",
-      organization: participant.Organisation || "",
-    });
-  }
-
-  return participants;
+  return records.map((participant) => ({
+    id: participant.rowKey,
+    firstName: participant.First_Name || "",
+    lastName: participant.Last_Name || "",
+    email: participant.Email || "",
+    username: participant.Username || "",
+    phoneNo: participant.Phone_No || "",
+    password: participant.Password || "",
+    organization: participant.Organisation || "",
+  }));
 }
 
 /** Fresh Username + Password from Participants table (source of truth). */

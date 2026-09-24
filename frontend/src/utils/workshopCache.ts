@@ -7,7 +7,7 @@ import { fetchOnce } from "./adminListCache";
 
 const WORKSHOP_CACHE_KEY = "gyb-workshop-cache";
 const PARTICIPANT_WORKSHOP_CACHE_KEY = "gyb-participant-workshops-cache";
-const OD_CHART_CACHE_KEY = "gyb-od-chart-cache-v4";
+const OD_CHART_CACHE_KEY = "gyb-od-chart-cache-v6";
 const OD_LEAVES_CACHE_KEY = "gyb-od-leaves-cache-v1";
 const PAGE_DATA_CACHE_KEY = "gyb-page-data-cache";
 const CACHE_TTL_MS = 10 * 60 * 1000;

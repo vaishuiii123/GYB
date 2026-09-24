@@ -1,13 +1,33 @@
 const { ensureTableClient } = require("../shared/tableHelper");
-const {
-  getWorkshopById,
-  getWorkshopEditStatus,
-} = require("../shared/workshopAccess");
+const { getWorkshopById } = require("../shared/workshopAccess");
 const {
   buildWorkshopResponsePayload,
   isWorkshopEnded,
 } = require("../shared/workshopResponseStore");
 const { listPreOdWorkshopSummaries } = require("../shared/preOdResponseStore");
+
+/** Short TTL so live poll refreshes cheaply without redoing Azure scans. */
+const RESPONSE_CACHE_TTL_MS = 8_000;
+const responsePayloadCache = new Map();
+
+function getCachedPayload(workshopId) {
+  const entry = responsePayloadCache.get(String(workshopId));
+  if (!entry) {
+    return null;
+  }
+  if (Date.now() - entry.savedAt > RESPONSE_CACHE_TTL_MS) {
+    responsePayloadCache.delete(String(workshopId));
+    return null;
+  }
+  return entry.payload;
+}
+
+function setCachedPayload(workshopId, payload) {
+  responsePayloadCache.set(String(workshopId), {
+    savedAt: Date.now(),
+    payload,
+  });
+}
 
 async function countDistinctParticipantsByWorkshop(tableName) {
   const counts = new Map();
@@ -129,20 +149,15 @@ module.exports = async function (context, req) {
       return;
     }
 
-    if (!isWorkshopEnded(workshop)) {
-      context.res = {
-        status: 403,
-        body: {
-          success: false,
-          message:
-            "Workshop responses are available on the admin dashboard after the workshop ends.",
-          editStatus: getWorkshopEditStatus(workshop),
-        },
-      };
-      return;
-    }
+    // Admins can view live participant answers during the workshop so
+    // Responses/Export updates as soon as participants save.
+    const cached = getCachedPayload(workshopId);
+    const payload =
+      cached || (await buildWorkshopResponsePayload(workshop));
 
-    const payload = await buildWorkshopResponsePayload(workshop);
+    if (!cached) {
+      setCachedPayload(workshopId, payload);
+    }
 
     context.res = {
       status: 200,

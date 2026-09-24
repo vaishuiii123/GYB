@@ -141,11 +141,15 @@ async function buildCategoryQuestionsPayload({
       }
 
       const tagId = question.TagId || "";
+      const questionType = question.QuestionType || "Text";
+      const typeLower = String(questionType).trim().toLowerCase();
+      const hideOptions =
+        typeLower.includes("rating") || typeLower === "text";
 
       return {
         questionId,
         questionText: question.QuestionText || "",
-        questionType: question.QuestionType || "Text",
+        questionType,
         tagId,
         tagName: tagId ? tagNameById.get(tagId) || "" : "",
         tagColor: tagId ? tagColorById.get(tagId) || "#9B304A" : "",
@@ -153,7 +157,9 @@ async function buildCategoryQuestionsPayload({
           String(question.AttachmentsApplicable || "N").toUpperCase() === "Y"
             ? "Y"
             : "N",
-        options: optionsByQuestionId.get(questionId) || [],
+        options: hideOptions
+          ? []
+          : optionsByQuestionId.get(questionId) || [],
       };
     })
     .filter(Boolean);
@@ -169,6 +175,7 @@ async function buildCategoryQuestionsPayload({
 
   if (answerPayload) {
     responseBody.answers = answerPayload.answers;
+    responseBody.notes = answerPayload.notes || {};
     responseBody.attachments = answerPayload.attachments || {};
     responseBody.responseMeta = {
       organizationId: answerPayload.organizationId,

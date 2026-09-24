@@ -35,6 +35,7 @@ module.exports = async function (context, req) {
       organizationId,
       templateId,
       answers,
+      notes,
       attachments,
       participantName: participantNameFromClient,
     } = req.body || {};
@@ -86,21 +87,25 @@ module.exports = async function (context, req) {
 
     const attachmentMap =
       attachments && typeof attachments === "object" ? attachments : {};
+    const notesMap = notes && typeof notes === "object" ? notes : {};
 
     const questionIds = new Set([
       ...Object.keys(answers),
+      ...Object.keys(notesMap),
       ...Object.keys(attachmentMap),
     ]);
 
     const savedAnswers = {};
+    const savedNotes = {};
     const savedAttachments = {};
     const now = new Date().toISOString();
 
     for (const questionId of questionIds) {
       const answerText = String(answers[questionId] || "").trim();
+      const noteText = String(notesMap[questionId] || "").trim();
       const attachmentMeta = attachmentMap[questionId];
 
-      if (!answerText && !attachmentMeta) {
+      if (!answerText && !noteText && !attachmentMeta) {
         continue;
       }
 
@@ -156,6 +161,9 @@ module.exports = async function (context, req) {
         QuestionId: questionId,
         OptionId: optionId || existing?.OptionId || "",
         AnswerText: answerText || existing?.AnswerText || "",
+        NoteText: Object.prototype.hasOwnProperty.call(notesMap, questionId)
+          ? noteText
+          : String(existing?.NoteText || ""),
         AttachmentName: nextAttachmentName,
         AttachmentBlobPath: nextAttachmentBlobPath,
         AttachmentContentType: nextAttachmentContentType,
@@ -171,6 +179,10 @@ module.exports = async function (context, req) {
 
       if (entity.AnswerText) {
         savedAnswers[questionId] = entity.AnswerText;
+      }
+
+      if (entity.NoteText) {
+        savedNotes[questionId] = entity.NoteText;
       }
 
       if (entity.AttachmentBlobPath) {
@@ -194,6 +206,7 @@ module.exports = async function (context, req) {
           workshopId,
           participantName,
           answers: savedAnswers,
+          notes: savedNotes,
           attachments: savedAttachments,
           submittedDate: now,
         },

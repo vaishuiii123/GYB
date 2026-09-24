@@ -116,6 +116,125 @@ const TOP_DISPLAY_ORDER = [
   "business planning",
 ];
 
+function normalizeCategoryName(value: string) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/isations?/g, (match) =>
+      match.replace("sation", "zation").replace("sations", "zations")
+    )
+    .replace(/&/g, " ")
+    .replace(/\//g, " ")
+    .replace(/\band\b/g, " ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function categoryNameKey(value: string) {
+  const normalized = normalizeCategoryName(value);
+  if (!normalized) {
+    return "";
+  }
+  const tokens = normalized.split(" ").filter(Boolean);
+  const hasTangiblePair =
+    tokens.includes("tangible") && tokens.includes("intangible");
+  if (hasTangiblePair || tokens.length >= 4) {
+    return [...tokens].sort().join(" ");
+  }
+  return normalized;
+}
+
+function categoryNamesMatch(a: string, b: string) {
+  const left = categoryNameKey(a);
+  const right = categoryNameKey(b);
+  return Boolean(left) && left === right;
+}
+
+/** Merge Azure duplicates like Realization/Realisation or Tangible/Intangible word swaps. */
+function dedupeLeavesByName(leaves: Leaf[]): Leaf[] {
+  const unique: Leaf[] = [];
+  for (const leaf of leaves) {
+    const match = unique.find((item) =>
+      categoryNamesMatch(item.name, leaf.name)
+    );
+    if (match) {
+      if ((leaf.name || "").length > (match.name || "").length) {
+        match.name = leaf.name;
+      }
+      continue;
+    }
+    unique.push({ ...leaf });
+  }
+  return unique;
+}
+
+function dedupeTopsByName(tops: Top[]): Top[] {
+  const mergeMiddles = (middles: Middle[]): Middle[] => {
+    const merged: Middle[] = [];
+    for (const middle of middles) {
+      const existing = merged.find((item) =>
+        categoryNamesMatch(item.name, middle.name)
+      );
+      if (!existing) {
+        merged.push({
+          ...middle,
+          parents: middle.parents.map((parent) => ({
+            ...parent,
+            leaves: dedupeLeavesByName(parent.leaves),
+          })),
+        });
+        continue;
+      }
+
+      for (const parent of middle.parents) {
+        const existingParent = existing.parents.find((item) =>
+          categoryNamesMatch(item.name, parent.name)
+        );
+        if (!existingParent) {
+          existing.parents.push({
+            ...parent,
+            leaves: dedupeLeavesByName(parent.leaves),
+          });
+          continue;
+        }
+        for (const leaf of parent.leaves) {
+          const existingLeaf = existingParent.leaves.find((item) =>
+            categoryNamesMatch(item.name, leaf.name)
+          );
+          if (existingLeaf) {
+            if ((leaf.name || "").length > (existingLeaf.name || "").length) {
+              existingLeaf.name = leaf.name;
+            }
+            continue;
+          }
+          existingParent.leaves.push({ ...leaf });
+        }
+        existingParent.leaves = dedupeLeavesByName(existingParent.leaves);
+      }
+    }
+    return merged;
+  };
+
+  const mergedTops: Top[] = [];
+  for (const top of tops) {
+    const existing = mergedTops.find((item) =>
+      categoryNamesMatch(item.name, top.name)
+    );
+    if (!existing) {
+      mergedTops.push({
+        ...top,
+        middles: mergeMiddles(top.middles),
+      });
+      continue;
+    }
+    existing.middles = mergeMiddles([...existing.middles, ...top.middles]);
+    if ((top.name || "").length > (existing.name || "").length) {
+      existing.name = top.name;
+    }
+  }
+  return mergedTops;
+}
+
 function sortTopsForDisplay(tops: Top[]): Top[] {
   const rank = (name: string) => {
     const lower = name.toLowerCase();
@@ -251,14 +370,6 @@ function TreeFork({
       <div
         className={`od-fork-stem ${single ? "is-long" : ""}`}
         aria-hidden
-        style={
-          single
-            ? undefined
-            : {
-                alignSelf: "flex-start",
-                marginLeft: (firstCenter + lastCenter) / 2 - 1,
-              }
-        }
       />
       {!single ? (
         <div
@@ -282,7 +393,7 @@ function TreeFork({
       >
         {childArray.map((child, index) => (
           <div
-            key={index}
+            key={child.key ?? index}
             className="od-fork-col"
             style={{ width: widths[index], maxWidth: widths[index] }}
           >
@@ -637,13 +748,15 @@ function ColumnTree({
         return next;
       }
 
-      // Open only this middle; keep deeper levels closed.
-      setExpandedParentIds(new Set());
+      // Keep sibling middles open so Inventory stays visible when
+      // Receivables (or another middle) is expanded.
+      const next = new Set(prev);
+      next.add(middleId);
       const middle = top.middles.find((item) => item.id === middleId);
       middle?.parents.forEach((parent) => {
         parent.leaves.forEach((leaf) => onPrefetchLeaf?.(leaf.id));
       });
-      return new Set([middleId]);
+      return next;
     });
   };
 
@@ -657,19 +770,13 @@ function ColumnTree({
         return next;
       }
 
-      // Open only this parent; close siblings under the same middle.
+      // Keep sibling parents open under the same middle.
       const middle = top.middles.find((item) =>
         item.parents.some((parent) => parent.id === parentId)
       );
-      if (!middle) {
-        return new Set([parentId]);
-      }
-      const parent = middle.parents.find((item) => item.id === parentId);
+      const parent = middle?.parents.find((item) => item.id === parentId);
       parent?.leaves.forEach((leaf) => onPrefetchLeaf?.(leaf.id));
-      const siblingIds = new Set(middle.parents.map((item) => item.id));
-      const next = new Set(
-        [...prev].filter((id) => !siblingIds.has(id))
-      );
+      const next = new Set(prev);
       next.add(parentId);
       return next;
     });
@@ -1081,7 +1188,8 @@ function DashboardChart({
     return () => observer.disconnect();
   }, [measureNaturalSize]);
 
-  // Fit once the chart data is ready, then keep it centered.
+  // Fit once when chart data arrives. Do not re-fit on expand/collapse —
+  // that rescales the board and makes sibling nodes appear to jump/hide.
   useEffect(() => {
     if (tops.length === 0) {
       return;
@@ -1090,7 +1198,7 @@ function DashboardChart({
       fitToWidth();
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [fitToWidth, tops.length, topWidthsKey]);
+  }, [fitToWidth, tops.length]);
 
   useEffect(() => {
     if (!focusLeafId || restoreDoneRef.current || tops.length === 0) {
@@ -1457,7 +1565,7 @@ export default function ODChart() {
   };
 
 const chartTops = useMemo(() => {
-  return filterAssignedTops(tops);
+  return sortTopsForDisplay(filterAssignedTops(dedupeTopsByName(tops)));
 }, [tops]);
 
   return (

@@ -1,14 +1,15 @@
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import "../../styles/QuestionManagement.css";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Search } from "lucide-react";
 import {
   DeleteIconBtn,
-  EditIconBtn,
 } from "../../components/AdminActionIcons";
 import { appConfirm } from "../../utils/appDialog";
 import {
   ADMIN_CACHE_KEYS,
+  clearAdminListCache,
   fetchOnce,
   isAdminListCacheFresh,
   readAdminListCache,
@@ -22,14 +23,13 @@ type PageProps = {
 export default function QuestionManagement({ user }: PageProps) {
     const [tags, setTags] = useState<any[]>([]);
     const [showModal, setShowModal] = useState(false);
-    const [editMode, setEditMode] = useState(false);
-    const [selectedQuestionId, setSelectedQuestionId] = useState("");
     const [questionText, setQuestionText] = useState("");
     const [questionType, setQuestionType] = useState("");
     const [attachmentsApplicable, setAttachmentsApplicable] = useState("N");
     const [options, setOptions] = useState<string[]>(["", ""]);
     const [selectedTag, setSelectedTag] = useState("");
     const [questions, setQuestions] = useState<any[]>([]);
+    const [searchText, setSearchText] = useState("");
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [uploadFile, setUploadFile] = useState<File | null>(null);
     const [uploadRows, setUploadRows] = useState<any[]>([]);
@@ -746,15 +746,20 @@ const handleImportQuestions = async () => {
         if (cachedQuestions) {
             setQuestions(cachedQuestions);
         }
-        if (!cachedTags || !isAdminListCacheFresh(ADMIN_CACHE_KEYS.tags)) {
-            void fetchTags();
-        }
-        if (
-          !cachedQuestions ||
-          !isAdminListCacheFresh(ADMIN_CACHE_KEYS.questions)
-        ) {
+
+        void (async () => {
+          try {
+            await fetch("/api/sync-template-questions", { method: "POST" });
+            clearAdminListCache(ADMIN_CACHE_KEYS.questions);
+          } catch (error) {
+            console.error("Template/QM sync skipped:", error);
+          } finally {
+            if (!cachedTags || !isAdminListCacheFresh(ADMIN_CACHE_KEYS.tags)) {
+              void fetchTags();
+            }
             void fetchQuestions();
-        }
+          }
+        })();
     }, []);
 
     const getTagName = (tagId: string) => {
@@ -788,31 +793,10 @@ const handleImportQuestions = async () => {
         setAttachmentsApplicable("N");
         setOptions(["", ""]);
         setSelectedTag("");
-        setEditMode(false);
-        setSelectedQuestionId("");
     };
 
     const openCreateModal = () => {
         resetForm();
-        setShowModal(true);
-    };
-
-    const handleEditQuestion = (question: any) => {
-        setEditMode(true);
-        setSelectedQuestionId(question.id);
-        setQuestionText(question.questionText);
-        setQuestionType(question.questionType);
-        setAttachmentsApplicable(
-            String(question.attachmentsApplicable || "N").toUpperCase() === "Y"
-                ? "Y"
-                : "N"
-        );
-        setSelectedTag(question.tagId || "");
-        setOptions(
-            question.options?.length > 0
-                ? question.options.map((o: any) => o.optionText)
-                : ["", ""]
-        );
         setShowModal(true);
     };
 
@@ -839,21 +823,28 @@ const handleImportQuestions = async () => {
         }
     };
 
-    const saveOptions = async (questionId: string, replaceExisting = false) => {
-        const filteredOptions = options.filter((o) => o.trim() !== "");
+    const saveOptions = async (
+        questionId: string,
+        replaceExisting = false,
+        optionValues?: string[]
+    ) => {
+        const filteredOptions = (optionValues ?? options).filter(
+            (o) => o.trim() !== ""
+        );
 
         if (filteredOptions.length === 0) {
             if (!replaceExisting) return;
 
-            // Nothing left to save, so clear the stored options
-            const existingOptions = await fetchQuestionOptions(questionId);
-            await Promise.all(
-                existingOptions.map((opt: any) =>
-                    fetch(`/api/delete-question-option?id=${opt.id}`, {
-                        method: "DELETE",
-                    })
-                )
-            );
+            await fetch("/api/create-question-options", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    questionId,
+                    options: [],
+                    createdBy: user?.name || "Admin",
+                    replaceExisting: true,
+                }),
+            });
             return;
         }
 
@@ -875,61 +866,73 @@ const handleImportQuestions = async () => {
             return;
         }
 
+        const usesChoiceOptions =
+            questionType === "Multiple Choice" ||
+            questionType === "Single Choice";
+
         try {
-            if (editMode) {
-                const response = await fetch("/api/update-question", {
-                    method: "PUT",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        questionId: selectedQuestionId,
-                        questionText,
-                        questionType,
-                        tagId: selectedTag,
-                        attachmentsApplicable,
-                        modifiedBy: user?.name || "Admin",
-                    }),
-                });
-                const result = await response.json();
+            // Questions are add-only from Question Management.
+            // Template edits also create new questions (never update existing).
+            const response = await fetch("/api/create-question", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    questionText,
+                    questionType,
+                    tagId: selectedTag,
+                    attachmentsApplicable,
+                    createdBy: user?.name || "Admin",
+                }),
+            });
+            const result = await response.json();
 
-                if (result.success) {
-                    await saveOptions(selectedQuestionId, true);
-                    alert("Question updated successfully");
-                    fetchQuestions();
-                    setShowModal(false);
-                    resetForm();
-                } else {
-                    alert(result.message);
-                }
-            } else {
-                const response = await fetch("/api/create-question", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        questionText,
-                        questionType,
-                        tagId: selectedTag,
-                        attachmentsApplicable,
-                        createdBy: user?.name || "Admin",
-                    }),
-                });
-                const result = await response.json();
-
-                if (result.success) {
-                    const questionId = result.data.rowKey;
+            if (result.success) {
+                const questionId = result.data.rowKey;
+                if (usesChoiceOptions) {
                     await saveOptions(questionId);
-                    alert("Question created successfully");
-                    fetchQuestions();
-                    setShowModal(false);
-                    resetForm();
-                } else {
-                    alert(result.message);
                 }
+                alert("Question created successfully");
+                fetchQuestions();
+                setShowModal(false);
+                resetForm();
+            } else {
+                alert(result.message);
             }
         } catch (error) {
             console.error(error);
             alert("Something went wrong");
         }
     };
+
+    const filteredQuestions = useMemo(() => {
+        const query = searchText.trim().toLowerCase();
+        if (!query) {
+            return questions;
+        }
+
+        return questions.filter((question) => {
+            const tagName =
+                tags.find((tag) => tag.id === question.tagId)?.tagName || "";
+            const optionsText = (question.options || [])
+                .map((option: any) =>
+                    typeof option === "string"
+                        ? option
+                        : option?.optionText || ""
+                )
+                .join(" ");
+
+            return [
+                question.questionText,
+                question.questionType,
+                tagName,
+                optionsText,
+                String(question.attachmentsApplicable || ""),
+            ]
+                .join(" ")
+                .toLowerCase()
+                .includes(query);
+        });
+    }, [questions, searchText, tags]);
 
     return (
         <div className="category-page">
@@ -941,42 +944,62 @@ const handleImportQuestions = async () => {
                 <div className="category-body">
                     <div className="page-header">
                         <h1 className="page-title">Questions</h1>
-                    <div className="page-actions">
+                        <div className="page-actions">
+                            <button
+                                type="button"
+                                className="create-btn create-btn-secondary"
+                                onClick={downloadExcelTemplate}
+                            >
+                                Download Excel Template
+                            </button>
 
-                        <button
-                            className="create-btn"
-                            onClick={downloadExcelTemplate}
-                        >
-                            Download Excel Template
-                        </button>
+                            <button
+                                type="button"
+                                className="create-btn create-btn-secondary"
+                                onClick={() =>
+                                    document
+                                        .getElementById("questionExcelUpload")
+                                        ?.click()
+                                }
+                            >
+                                Upload Questions
+                            </button>
 
-                        <button
-                            className="create-btn"
-                            onClick={() =>
-                                document
-                                    .getElementById("questionExcelUpload")
-                                    ?.click()
-                            }
-                        >
-                            Upload Questions
-                        </button>
+                            <input
+                                id="questionExcelUpload"
+                                type="file"
+                                accept=".xlsx"
+                                style={{ display: "none" }}
+                                onChange={handleExcelUpload}
+                            />
 
-                        <input
-                            id="questionExcelUpload"
-                            type="file"
-                            accept=".xlsx"
-                            style={{ display: "none" }}
-                            onChange={handleExcelUpload}
-                        />
-
-                        <button
-                            className="create-btn"
-                            onClick={openCreateModal}
-                        >
-                            + Add Question
-                        </button>
-
+                            <button
+                                type="button"
+                                className="create-btn"
+                                onClick={openCreateModal}
+                            >
+                                + Add Question
+                            </button>
+                        </div>
                     </div>
+
+                    <div className="question-toolbar">
+                        <div className="question-search">
+                            <Search
+                                size={18}
+                                className="question-search-icon"
+                                aria-hidden
+                            />
+                            <input
+                                type="search"
+                                value={searchText}
+                                onChange={(event) =>
+                                    setSearchText(event.target.value)
+                                }
+                                placeholder="Search questions by text, type, tag, or options..."
+                                aria-label="Search questions"
+                            />
+                        </div>
                     </div>
 
                     <div className="question-table-card">
@@ -993,20 +1016,26 @@ const handleImportQuestions = async () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {questions.length === 0 ? (
+                                {filteredQuestions.length === 0 ? (
                                     <tr>
                                         <td
                                             colSpan={7}
                                             className="empty-question"
                                         >
-                                            No questions found.
-                                            <br />
-                                            Click on "Add Question" to create
-                                            your first question.
+                                            {questions.length === 0 ? (
+                                                <>
+                                                    No questions found.
+                                                    <br />
+                                                    Click on "Add Question" to
+                                                    create your first question.
+                                                </>
+                                            ) : (
+                                                "No questions match your search."
+                                            )}
                                         </td>
                                     </tr>
                                 ) : (
-                                    questions.map((question, index) => (
+                                    filteredQuestions.map((question, index) => (
                                         <tr key={question.id}>
                                             <td>{index + 1}</td>
                                             <td>{question.questionText}</td>
@@ -1038,8 +1067,25 @@ const handleImportQuestions = async () => {
                                                 )}
                                             </td>
                                             <td>
-                                                {question.options?.length >
-                                                0 ? (
+                                                {String(
+                                                    question.questionType || ""
+                                                )
+                                                    .trim()
+                                                    .toLowerCase() ===
+                                                "rating" ? (
+                                                    <ul className="question-options-list rating-options-display">
+                                                        <li className="rating-opt-red">
+                                                            Red
+                                                        </li>
+                                                        <li className="rating-opt-yellow">
+                                                            Yellow
+                                                        </li>
+                                                        <li className="rating-opt-green">
+                                                            Green
+                                                        </li>
+                                                    </ul>
+                                                ) : question.options?.length >
+                                                  0 ? (
                                                     <ul className="question-options-list">
                                                         {question.options.map(
                                                             (option: any) => (
@@ -1061,13 +1107,6 @@ const handleImportQuestions = async () => {
                                             </td>
                                             <td>
                                                 <div className="question-actions">
-                                                    <EditIconBtn
-                                                        onClick={() =>
-                                                            handleEditQuestion(
-                                                                question
-                                                            )
-                                                        }
-                                                    />
                                                     <DeleteIconBtn
                                                         onClick={() =>
                                                             handleDeleteQuestion(
@@ -1089,9 +1128,7 @@ const handleImportQuestions = async () => {
             {showModal && (
                 <div className="modal-overlay">
                     <div className="modal question-modal">
-                        <h2>
-                            {editMode ? "Edit Question" : "Add Question"}
-                        </h2>
+                        <h2>Add Question</h2>
 
                         <div className="form-group">
                             <label>Question Text</label>
@@ -1108,9 +1145,16 @@ const handleImportQuestions = async () => {
                             <label>Question Type</label>
                             <select
                                 value={questionType}
-                                onChange={(e) =>
-                                    setQuestionType(e.target.value)
-                                }
+                                onChange={(e) => {
+                                    const nextType = e.target.value;
+                                    setQuestionType(nextType);
+                                    if (
+                                        nextType === "Text" ||
+                                        nextType === "Rating"
+                                    ) {
+                                        setOptions(["", ""]);
+                                    }
+                                }}
                             >
                                 <option value="">Select type</option>
                                 <option value="Multiple Choice">
@@ -1123,6 +1167,23 @@ const handleImportQuestions = async () => {
                                 <option value="Rating">Rating</option>
                             </select>
                         </div>
+
+                        {questionType === "Rating" ? (
+                            <div className="form-group">
+                                <label>Answer Options</label>
+                                <ul className="question-options-list rating-options-display">
+                                    <li className="rating-opt-red">Red</li>
+                                    <li className="rating-opt-yellow">
+                                        Yellow
+                                    </li>
+                                    <li className="rating-opt-green">Green</li>
+                                </ul>
+                                <p className="rating-options-hint">
+                                    Rating questions always use Red, Yellow, and
+                                    Green.
+                                </p>
+                            </div>
+                        ) : null}
 
                         <div className="form-group">
                             <label>Attachments Applicable</label>

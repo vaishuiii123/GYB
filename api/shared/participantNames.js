@@ -148,6 +148,62 @@ async function loadParticipantDisplayName(participantId) {
   return "";
 }
 
+/** Point-read participants by id — avoids a full Participants table scan. */
+async function loadParticipantRecordsByIds(participantIds = []) {
+  const byId = new Map();
+  const uniqueIds = [
+    ...new Set(
+      (participantIds || []).map((id) => String(id || "").trim()).filter(Boolean)
+    ),
+  ];
+
+  if (uniqueIds.length === 0) {
+    return byId;
+  }
+
+  const cachedRecords = participantRecordsCache.records;
+  const missing = [];
+
+  for (const id of uniqueIds) {
+    if (cachedRecords?.has(id)) {
+      byId.set(id, cachedRecords.get(id));
+    } else {
+      missing.push(id);
+    }
+  }
+
+  if (missing.length === 0) {
+    return byId;
+  }
+
+  const client = getTableClient("Participants");
+  await Promise.all(
+    missing.map(async (id) => {
+      try {
+        const entity = await client.getEntity("Participant", id);
+        byId.set(id, {
+          id,
+          firstName: readField(entity, "First_Name", "firstName", "FirstName"),
+          middleName: readField(
+            entity,
+            "Middle_Name",
+            "middleName",
+            "MiddleName"
+          ),
+          lastName: readField(entity, "Last_Name", "lastName", "LastName"),
+          email: readField(entity, "Email", "email"),
+          phoneNo: readField(entity, "Phone_No", "phoneNo", "Phone"),
+          displayName: formatParticipantEntityName(entity),
+        });
+      } catch {
+        // participant may have been removed
+      }
+    })
+  );
+
+  return byId;
+}
+
 async function findStoredNameInTable(tableName, participantId) {
   const client = getTableClient(tableName);
   const filter = `RowKey eq '${escapeODataValue(participantId)}'`;
@@ -227,6 +283,7 @@ module.exports = {
   formatParticipantEntityName,
   isUsableDisplayName,
   loadAllParticipantRecords,
+  loadParticipantRecordsByIds,
   loadParticipantDisplayName,
   loadStoredParticipantNames,
   pickDisplayName,

@@ -1,7 +1,28 @@
 const fs = require("fs");
 const path = require("path");
 const { TableClient } = require("@azure/data-tables");
-const XLSX = require("../../frontend/node_modules/xlsx");
+
+function resolveXlsx() {
+  const candidates = [
+    path.resolve(__dirname, "../../frontend/node_modules/xlsx"),
+    path.resolve(
+      "C:/Users/VaishnaviSapkal/Downloads/GYB-main_GYB/GYB-main/frontend/node_modules/xlsx"
+    ),
+    path.resolve(
+      "C:/Users/VaishnaviSapkal/Downloads/GYB/frontend/node_modules/xlsx"
+    ),
+  ];
+  for (const candidate of candidates) {
+    try {
+      return require(candidate);
+    } catch {
+      // try next
+    }
+  }
+  return require("xlsx");
+}
+
+const XLSX = resolveXlsx();
 
 const TEMPLATE_NAME = "Master Organizational Development template";
 const PARTITIONS = {
@@ -100,15 +121,25 @@ function readConnectionString() {
     return process.env.AZURE_STORAGE_CONNECTION_STRING;
   }
 
-  const settingsPath = path.resolve(__dirname, "../local.settings.json");
-  const settings = JSON.parse(fs.readFileSync(settingsPath, "utf8"));
-  const connectionString =
-    settings?.Values?.AZURE_STORAGE_CONNECTION_STRING;
+  const settingsCandidates = [
+    path.resolve(__dirname, "../local.settings.json"),
+    path.resolve("C:/Users/VaishnaviSapkal/Downloads/GYB/api/local.settings.json"),
+    path.resolve(
+      "C:/Users/VaishnaviSapkal/Downloads/GYB-main_GYB/GYB-main/api/local.settings.json"
+    ),
+  ];
 
-  if (!connectionString) {
-    throw new Error("AZURE_STORAGE_CONNECTION_STRING is not configured.");
+  for (const settingsPath of settingsCandidates) {
+    if (!fs.existsSync(settingsPath)) continue;
+    const settings = JSON.parse(fs.readFileSync(settingsPath, "utf8"));
+    const connectionString =
+      settings?.Values?.AZURE_STORAGE_CONNECTION_STRING;
+    if (connectionString) {
+      return connectionString;
+    }
   }
-  return connectionString;
+
+  throw new Error("AZURE_STORAGE_CONNECTION_STRING is not configured.");
 }
 
 function readWorkbook(workbookPath) {
@@ -367,7 +398,7 @@ async function main() {
         partitionKey: PARTITIONS.questions,
         rowKey: nextQuestionId(),
         QuestionText: row.question,
-        QuestionType: "Text",
+        QuestionType: "Rating",
         TagId: tag?.rowKey || "",
         AttachmentsApplicable: "N",
         CreatedBy: createdBy,
@@ -383,7 +414,7 @@ async function main() {
         partitionKey: PARTITIONS.questions,
         rowKey: question.rowKey,
         QuestionText: row.question,
-        QuestionType: question.QuestionType || "Text",
+        QuestionType: "Rating",
         TagId: tag?.rowKey || question.TagId || "",
         AttachmentsApplicable: question.AttachmentsApplicable || "N",
         CreatedBy: question.CreatedBy || createdBy,
@@ -392,6 +423,12 @@ async function main() {
         ModifiedDate: now,
       });
       orderedQuestions.push(question.rowKey);
+    } else {
+      // Keep Master OD questions as Red/Yellow/Green Rating.
+      const plan = questionPlans.get(question.rowKey);
+      plan.QuestionType = "Rating";
+      plan.ModifiedBy = createdBy;
+      plan.ModifiedDate = now;
     }
     categoryPlan.questionIds.add(question.rowKey);
   }

@@ -44,6 +44,7 @@ async function main() {
         questionSrNos: srNos.master,
       },
       {
+        // Consumer Pre OD = master (33) + consumer (67) = 100
         templateName: "Consumer Pre OD",
         questionCount: srNos.consumer.length,
         questionSrNos: srNos.consumer,
@@ -68,12 +69,15 @@ async function main() {
 
   const created = [];
   for (const item of plan.create) {
+    const questionAttachments = Object.fromEntries(
+      item.questionSrNos.map((srNo) => [String(srNo), "Y"])
+    );
     const result = await api("create-pre-od-template", {
       method: "POST",
       body: JSON.stringify({
         templateName: item.templateName,
         questionSrNos: item.questionSrNos,
-        questionAttachments: {},
+        questionAttachments,
         createdBy: "Pre OD workbook import",
       }),
     });

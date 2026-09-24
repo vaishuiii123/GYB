@@ -6,14 +6,12 @@ import {
   FileSpreadsheet,
   FileText,
   LayoutDashboard,
-  MessageSquareText,
   Target,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import UserHeader from "./UserHeader";
 import {
   fetchParticipantWorkshops,
-  getFeedbackAccessStatus,
   getPreOdAccessStatus,
   getWorkshopModuleAccessStatus,
   prefetchOdChart,
@@ -36,9 +34,9 @@ type ModuleCard = {
   title: string;
   description: string;
   path: string;
-  theme: "pink" | "blue" | "green" | "yellow" | "coral" | "slate";
+  theme: "pink" | "blue" | "green" | "yellow" | "slate";
   icon: LucideIcon;
-  access: "preOd" | "feedback" | "open";
+  access: "preOd" | "open";
 };
 
 const MODULE_CARDS: ModuleCard[] = [
@@ -83,16 +81,6 @@ const MODULE_CARDS: ModuleCard[] = [
     access: "open",
   },
   {
-    key: "feedback",
-    title: "Workshop Feedback",
-    description:
-      "Share one-time feedback after the workshop has ended.",
-    path: "/workshop-feedback",
-    theme: "coral",
-    icon: MessageSquareText,
-    access: "feedback",
-  },
-  {
     key: "reports",
     title: "Reports",
     description:
@@ -103,9 +91,6 @@ const MODULE_CARDS: ModuleCard[] = [
     access: "open",
   },
 ];
-
-const FEEDBACK_CLOSED_NOTE =
-  "This window will start once the workshop is finished.";
 
 const PRE_OD_CLOSED_NOTE =
   "This questionnaire is closed because the workshop has started.";
@@ -183,7 +168,6 @@ export default function UserDashboard() {
   );
 
   const preOdStatus = getPreOdAccessStatus(workshop);
-  const feedbackStatus = getFeedbackAccessStatus(workshop);
   const moduleStatus = getWorkshopModuleAccessStatus(
     workshop ? workshopFromSelected(workshop) : null
   );
@@ -298,16 +282,6 @@ export default function UserDashboard() {
         };
       }
 
-      if (card.access === "feedback") {
-        return {
-          ...card,
-          enabled: feedbackStatus.enabled,
-          note: feedbackStatus.enabled
-            ? ""
-            : feedbackStatus.message || FEEDBACK_CLOSED_NOTE,
-        };
-      }
-
       return {
         ...card,
         enabled: moduleStatus.enabled,
@@ -318,8 +292,6 @@ export default function UserDashboard() {
     preOdStatus.enabled,
     preOdStatus.canFill,
     preOdStatus.message,
-    feedbackStatus.enabled,
-    feedbackStatus.message,
     moduleStatus.enabled,
     moduleStatus.message,
   ]);

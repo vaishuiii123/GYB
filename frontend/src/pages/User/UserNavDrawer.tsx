@@ -1,7 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { workshopNavItems } from "./userMenuItems";
 import {
-  getFeedbackAccessStatus,
   getPreOdAccessStatus,
   getWorkshopModuleAccessStatus,
   workshopFromSelected,
@@ -23,7 +22,6 @@ export default function UserNavDrawer({ open, onClose }: UserNavDrawerProps) {
     ? workshopFromSelected(selectedWorkshop)
     : null;
   const preOdStatus = getPreOdAccessStatus(selectedWorkshop);
-  const feedbackStatus = getFeedbackAccessStatus(selectedWorkshop);
   const moduleStatus = getWorkshopModuleAccessStatus(workshopRecord);
 
   const handleNavigate = (path: string | null) => {
@@ -48,7 +46,6 @@ export default function UserNavDrawer({ open, onClose }: UserNavDrawerProps) {
           {workshopNavItems.map((item, index) => {
             const isActive = item.match?.(location.pathname) ?? false;
             const isPreOdItem = item.path === "/pre-od-workshop";
-            const isFeedbackItem = item.path === "/workshop-feedback";
             const isWorkshopModule =
               item.path === "/vision-mission" ||
               item.path === "/od-chart" ||
@@ -61,11 +58,6 @@ export default function UserNavDrawer({ open, onClose }: UserNavDrawerProps) {
             if (isPreOdItem && !preOdStatus.enabled) {
               path = null;
               title = preOdStatus.message;
-            }
-
-            if (isFeedbackItem && !feedbackStatus.enabled) {
-              path = null;
-              title = feedbackStatus.message;
             }
 
             if (isWorkshopModule && !moduleStatus.enabled) {

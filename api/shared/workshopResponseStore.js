@@ -8,9 +8,8 @@ const { listPreOdResponsesForWorkshop } = require("./preOdResponseStore");
 const { PRE_OD_QUESTIONS } = require("./preOdQuestions");
 const { parseCustomQuestions } = require("./preOdCustomQuestions");
 const {
-  loadAllParticipantRecords,
+  loadParticipantRecordsByIds,
   loadParticipantDisplayName,
-  loadStoredParticipantNames,
   pickDisplayName,
 } = require("./participantNames");
 
@@ -60,6 +59,7 @@ async function listOdResponsesForWorkshop(workshopId) {
         participantId,
         participantName: "",
         answers: {},
+        notes: {},
         attachments: {},
         submittedDate: "",
         templateId: "",
@@ -68,6 +68,11 @@ async function listOdResponsesForWorkshop(workshopId) {
       if (entity.QuestionId) {
         current.answers[entity.QuestionId] =
           entity.AnswerText || entity.OptionId || "";
+
+        const noteText = String(entity.NoteText || "").trim();
+        if (noteText) {
+          current.notes[entity.QuestionId] = noteText;
+        }
 
         const blobPath = String(entity.AttachmentBlobPath || "").trim();
         if (blobPath) {
@@ -150,59 +155,26 @@ async function listActionablesForWorkshop(workshopId) {
   return [...byParticipant.values()];
 }
 
-async function listVisionMissionForParticipants(participantIds, workshopId) {
+async function listVisionMissionForWorkshop(workshopId) {
   const results = [];
+  const normalizedWorkshopId = String(workshopId || "").trim();
+  if (!normalizedWorkshopId) {
+    return results;
+  }
+
   const tableClient = await ensureTableClient("VisionMissionResponse");
 
-  for (const participantId of participantIds) {
-    try {
-      let entity = null;
-
-      if (workshopId) {
-        try {
-          entity = await tableClient.getEntity(
-            String(workshopId),
-            String(participantId)
-          );
-        } catch {
-          entity = null;
-        }
-      }
-
-      if (!entity) {
-        try {
-          const legacy = await tableClient.getEntity(
-            "Participant",
-            participantId
-          );
-          // Only use legacy row when it belongs to this workshop.
-          if (
-            !workshopId ||
-            (legacy.WorkshopId &&
-              String(legacy.WorkshopId) === String(workshopId))
-          ) {
-            entity = legacy;
-          }
-        } catch {
-          entity = null;
-        }
-      }
-
-      if (!entity) {
-        continue;
-      }
-
-      if (
-        workshopId &&
-        entity.WorkshopId &&
-        String(entity.WorkshopId) !== String(workshopId)
-      ) {
-        continue;
-      }
-
+  try {
+    // Workshop-scoped rows use PartitionKey = workshopId (fast path).
+    for await (const entity of tableClient.listEntities({
+      queryOptions: {
+        filter: `PartitionKey eq '${escapeODataValue(normalizedWorkshopId)}'`,
+      },
+    })) {
+      const participantId = String(entity.rowKey || entity.ParticipantId || "").trim();
       const visionText = entity.VisionText || "";
       const missionText = entity.MissionText || "";
-      if (!visionText && !missionText) {
+      if (!participantId || (!visionText && !missionText)) {
         continue;
       }
 
@@ -214,9 +186,9 @@ async function listVisionMissionForParticipants(participantIds, workshopId) {
         missionKeywords: safeJsonArray(entity.MissionKeywords),
         submittedDate: entity.SubmittedDate || "",
       });
-    } catch {
-      // no response
     }
+  } catch {
+    // table may not exist
   }
 
   return results;
@@ -265,16 +237,14 @@ async function loadQuestionLabels(questionIds) {
 
 async function buildWorkshopResponsePayload(workshop) {
   const workshopId = workshop.id;
-  const participantIds = await listOrganizationParticipantIds(
-    workshop.organizationId
-  );
 
+  // Fetch response sources first — do not scan the whole org roster.
   const [preOdResponses, odResponses, actionableGroups, visionResponses] =
     await Promise.all([
       listPreOdResponsesForWorkshop(workshopId),
       listOdResponsesForWorkshop(workshopId),
       listActionablesForWorkshop(workshopId),
-      listVisionMissionForParticipants(participantIds, workshopId),
+      listVisionMissionForWorkshop(workshopId),
     ]);
 
   const allParticipantIds = new Set([
@@ -282,23 +252,21 @@ async function buildWorkshopResponsePayload(workshop) {
     ...odResponses.map((item) => item.participantId),
     ...actionableGroups.map((item) => item.participantId),
     ...visionResponses.map((item) => item.participantId),
-    ...participantIds,
   ]);
 
-  const participantIdList = [...allParticipantIds].map((id) =>
-    String(id || "").trim()
-  ).filter(Boolean);
+  const participantIdList = [...allParticipantIds]
+    .map((id) => String(id || "").trim())
+    .filter(Boolean);
 
-  const [participantRecords, storedNames] = await Promise.all([
-    loadAllParticipantRecords(),
-    loadStoredParticipantNames(participantIdList),
-  ]);
+  // Point-read only responders (avoids full Participants table scan).
+  const participantRecords = await loadParticipantRecordsByIds(
+    participantIdList
+  );
 
   // Fill any missing ids with a direct lookup fallback.
   await Promise.all(
-    [...allParticipantIds].map(async (rawId) => {
-      const participantId = String(rawId || "").trim();
-      if (!participantId || participantRecords.has(participantId)) {
+    participantIdList.map(async (participantId) => {
+      if (participantRecords.has(participantId)) {
         return;
       }
       const displayName = await loadParticipantDisplayName(participantId);
@@ -316,31 +284,46 @@ async function buildWorkshopResponsePayload(workshop) {
     })
   );
 
-  const questionIds = odResponses.flatMap((item) =>
-    Object.keys(item.answers || {})
-  );
+  const questionIds = [
+    ...new Set(
+      odResponses.flatMap((item) => [
+        ...Object.keys(item.answers || {}),
+        ...Object.keys(item.notes || {}),
+        ...Object.keys(item.attachments || {}),
+      ])
+    ),
+  ];
   const { labels: questionLabels, types: questionTypes } =
     await loadQuestionLabels(questionIds);
 
-  const participants = [...allParticipantIds]
-    .map((rawId) => {
-      const participantId = String(rawId || "").trim();
-      const preOd = preOdResponses.find(
-        (item) => String(item.participantId).trim() === participantId
-      );
-      const od = odResponses.find(
-        (item) => String(item.participantId).trim() === participantId
-      );
-      const actionables = actionableGroups.find(
-        (item) => String(item.participantId).trim() === participantId
-      );
-      const vision = visionResponses.find(
-        (item) => String(item.participantId).trim() === participantId
-      );
+  const preOdById = new Map(
+    preOdResponses.map((item) => [String(item.participantId).trim(), item])
+  );
+  const odById = new Map(
+    odResponses.map((item) => [String(item.participantId).trim(), item])
+  );
+  const actionableById = new Map(
+    actionableGroups.map((item) => [String(item.participantId).trim(), item])
+  );
+  const visionById = new Map(
+    visionResponses.map((item) => [String(item.participantId).trim(), item])
+  );
+
+  const participants = participantIdList
+    .map((participantId) => {
+      const preOd = preOdById.get(participantId);
+      const od = odById.get(participantId);
+      const actionables = actionableById.get(participantId);
+      const vision = visionById.get(participantId);
 
       const hasAny =
         Boolean(preOd) ||
-        Boolean(od && Object.keys(od.answers || {}).length) ||
+        Boolean(
+          od &&
+            (Object.keys(od.answers || {}).length ||
+              Object.keys(od.notes || {}).length ||
+              Object.keys(od.attachments || {}).length)
+        ) ||
         Boolean(actionables?.items?.length) ||
         Boolean(vision);
 
@@ -353,8 +336,7 @@ async function buildWorkshopResponsePayload(workshop) {
         pickDisplayName(
           record?.displayName,
           od?.participantName,
-          preOd?.participantName,
-          storedNames.get(participantId)
+          preOd?.participantName
         ) || "Unknown";
 
       return {
@@ -373,6 +355,7 @@ async function buildWorkshopResponsePayload(workshop) {
         odChart: od
           ? {
               answers: od.answers || {},
+              notes: od.notes || {},
               attachments: od.attachments || {},
               submittedDate: od.submittedDate || "",
             }

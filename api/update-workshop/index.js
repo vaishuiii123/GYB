@@ -1,6 +1,61 @@
 const { getTableClient } = require("../shared/tableHelper");
 const { validateWorkshopDateOrder } = require("../shared/workshopDates");
 const { CACHE_KEYS, invalidate, invalidatePrefix } = require("../shared/listCache");
+const { PRE_OD_QUESTIONS } = require("../shared/preOdQuestions");
+const {
+  normalizeCustomQuestions,
+  serializeCustomQuestions,
+} = require("../shared/preOdCustomQuestions");
+const {
+  normalizeQuestionAttachments,
+  serializeQuestionAttachments,
+} = require("../shared/preOdAttachments");
+
+function buildPreOdFields(body) {
+  const {
+    questionSrNos,
+    customQuestions,
+    questionAttachments,
+    preOdTemplateId,
+    preOdTemplateName,
+  } = body || {};
+
+  const hasPreOdPayload =
+    questionSrNos !== undefined ||
+    customQuestions !== undefined ||
+    questionAttachments !== undefined ||
+    preOdTemplateId !== undefined ||
+    preOdTemplateName !== undefined;
+
+  if (!hasPreOdPayload) {
+    return null;
+  }
+
+  const srNos = Array.isArray(questionSrNos)
+    ? questionSrNos.map((item) => String(item).trim()).filter(Boolean)
+    : String(questionSrNos || "")
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+
+  const validSrNos = new Set(PRE_OD_QUESTIONS.map((item) => String(item.srNo)));
+  const filteredSrNos = srNos.filter((srNo) => validSrNos.has(String(srNo)));
+  const normalizedCustom = normalizeCustomQuestions(customQuestions);
+  const attachmentsMap = normalizeQuestionAttachments(
+    questionAttachments,
+    filteredSrNos
+  );
+  const questionCount = filteredSrNos.length + normalizedCustom.length;
+
+  return {
+    PreOdQuestionSrNos: filteredSrNos.join(","),
+    PreOdCustomQuestions: serializeCustomQuestions(normalizedCustom),
+    PreOdQuestionAttachments: serializeQuestionAttachments(attachmentsMap),
+    PreOdQuestionCount: questionCount,
+    PreOdTemplateId: String(preOdTemplateId || ""),
+    PreOdTemplateName: String(preOdTemplateName || ""),
+  };
+}
 
 module.exports = async function (context, req) {
   try {
@@ -15,6 +70,8 @@ module.exports = async function (context, req) {
       endDate,
       templateId,
       templateName,
+      preOdTemplateId,
+      preOdTemplateName,
       organizationId,
       organizationName,
       participantCount,
@@ -64,6 +121,8 @@ module.exports = async function (context, req) {
       return;
     }
 
+    const preOdFields = buildPreOdFields(body);
+
     await client.updateEntity(
       {
         partitionKey: "Workshop",
@@ -74,9 +133,18 @@ module.exports = async function (context, req) {
         EndDate: dates.endDate,
         TemplateId: templateId,
         TemplateName: templateName || "",
+        PreOdTemplateId:
+          preOdTemplateId !== undefined
+            ? String(preOdTemplateId || "")
+            : workshop.PreOdTemplateId || "",
+        PreOdTemplateName:
+          preOdTemplateName !== undefined
+            ? String(preOdTemplateName || "")
+            : workshop.PreOdTemplateName || "",
         OrganizationId: organizationId,
         OrganizationName: organizationName || "",
-        ParticipantCount: participantCount || 0,
+        ParticipantCount: Number(participantCount) || 0,
+        ...(preOdFields || {}),
       },
       "Merge"
     );

@@ -32,7 +32,7 @@
 
 .export-filters {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 18px;
   margin-bottom: 28px;
 }
@@ -81,6 +81,11 @@
 .export-filter-badge.is-question {
   background: #fce7f0;
   color: #be185d;
+}
+
+.export-filter-badge.is-tag {
+  background: #e0f2fe;
+  color: #0284c7;
 }
 
 .export-filter-card label {
@@ -448,26 +453,6 @@
   background: #effaf5;
 }
 
-.export-add-actionable-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border-radius: 8px;
-  border: 1px solid #e8c9d4;
-  background: #f8e9ee;
-  color: #6a0e24;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  white-space: nowrap;
-  font-family: inherit;
-}
-
-.export-add-actionable-btn:hover {
-  background: #f1d8e1;
-}
-
 /* =========================================
    NO ATTACHMENT
 ========================================= */
@@ -532,6 +517,12 @@
     padding-right: 25px;
   }
 
+  .export-filters {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 1100px) {
   .export-filters {
     grid-template-columns: repeat(2, 1fr);
   }

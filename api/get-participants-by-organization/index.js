@@ -33,13 +33,14 @@ module.exports = async function (context, req) {
       async () => {
         const mappings = await listPartition(
           mappingClient,
-          organizationId,
-          ["ParticipantId"]
+          organizationId
         );
         const records = await getEntitiesByKeys(
           participantClient,
           "Participant",
-          mappings.map((entity) => entity.ParticipantId)
+          mappings.map(
+            (entity) => entity.ParticipantId || entity.rowKey
+          )
         );
 
         return records.map((participant) => ({

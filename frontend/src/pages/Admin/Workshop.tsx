@@ -476,6 +476,10 @@ export default function Workshop({ user }: PageProps) {
         templateName: selectedTemplate?.templateName,
         preOdTemplateId: selectedPreOdTemplate?.id,
         preOdTemplateName: selectedPreOdTemplate?.templateName,
+        // Include Pre-OD assignment in the same save to avoid a second API call.
+        questionSrNos: selectedPreOdTemplate?.questionSrNos || [],
+        questionAttachments: selectedPreOdTemplate?.questionAttachments || {},
+        customQuestions: [],
         organizationId: selectedOrganization?.id,
         organizationName: selectedOrganization?.organizationName,
         participantCount: participants.length,
@@ -503,9 +507,31 @@ export default function Workshop({ user }: PageProps) {
         const workshopId =
           modalMode === "edit" ? editingWorkshopId : data.workshopId;
 
-        if (workshopId) {
-          await applyPreOdTemplate(workshopId);
-        }
+        const nextWorkshop = {
+          id: workshopId,
+          workshopName: payload.workshopName,
+          preOdStartDate: data.preOdStartDate || payload.preOdStartDate,
+          startDate: data.startDate || payload.startDate,
+          endDate: data.endDate || payload.endDate,
+          templateId: payload.templateId,
+          templateName: payload.templateName,
+          preOdTemplateId: payload.preOdTemplateId,
+          preOdTemplateName: payload.preOdTemplateName,
+          organizationId: payload.organizationId,
+          organizationName: payload.organizationName,
+          participantCount: payload.participantCount,
+          createdDate: new Date().toISOString(),
+        };
+
+        setWorkshops((prev) => {
+          const withoutCurrent = prev.filter(
+            (item) => String(item.id) !== String(workshopId)
+          );
+          const updated = [nextWorkshop, ...withoutCurrent];
+          writeAdminListCache(ADMIN_CACHE_KEYS.workshops, updated);
+          return updated;
+        });
+        clearAdminListCache(ADMIN_CACHE_KEYS.workshops);
 
         alert(
           modalMode === "edit"
@@ -513,12 +539,12 @@ export default function Workshop({ user }: PageProps) {
             : "Workshop created successfully"
         );
         resetForm();
-        await loadWorkshops();
         setShowCreatePopup(false);
+        void loadWorkshops(true);
       } else {
         const message = String(data.message || data.error || "");
         if (/resource not found|does not exist|not found/i.test(message)) {
-          await loadWorkshops();
+          await loadWorkshops(true);
           alert(
             "This workshop no longer exists. The list has been refreshed."
           );
@@ -531,7 +557,7 @@ export default function Workshop({ user }: PageProps) {
       const message =
         error instanceof Error ? error.message : "Failed to save workshop";
       if (/resource not found|does not exist|not found/i.test(message)) {
-        await loadWorkshops();
+        await loadWorkshops(true);
         alert("This workshop no longer exists. The list has been refreshed.");
       } else {
         alert(message);

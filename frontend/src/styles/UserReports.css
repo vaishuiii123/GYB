@@ -152,6 +152,26 @@
   overflow-wrap: anywhere;
 }
 
+.user-reports-like-export .user-reports-export-toolbar {
+  margin-bottom: 18px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.user-reports-like-export .export-actions {
+  align-items: center;
+  gap: 12px;
+}
+
+.user-reports-like-export .export-table-card {
+  margin-top: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
 @media (max-width: 860px) {
   .user-reports-page {
     padding: 20px 16px;

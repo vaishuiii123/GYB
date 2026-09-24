@@ -7,7 +7,30 @@ module.exports = async function (context, req) {
 
     const { questionId, options, createdBy, replaceExisting } = req.body || {};
 
-    if (!questionId || !options || options.length === 0) {
+    if (!questionId) {
+      context.res = {
+        status: 400,
+        body: {
+          success: false,
+          message: "QuestionId is required.",
+        },
+      };
+      return;
+    }
+
+    const optionList = Array.isArray(options) ? options : null;
+    if (optionList === null) {
+      context.res = {
+        status: 400,
+        body: {
+          success: false,
+          message: "options must be an array.",
+        },
+      };
+      return;
+    }
+
+    if (optionList.length === 0 && !replaceExisting) {
       context.res = {
         status: 400,
         body: {
@@ -30,6 +53,19 @@ module.exports = async function (context, req) {
       }
     }
 
+    if (optionList.length === 0) {
+      invalidateQuestionStructure();
+      context.res = {
+        status: 200,
+        body: {
+          success: true,
+          message: "Options cleared successfully.",
+          data: [],
+        },
+      };
+      return;
+    }
+
     let maxNumber = 0;
 
     const existingOptions = tableClient.listEntities({
@@ -47,7 +83,7 @@ module.exports = async function (context, req) {
 
     const createdOptions = [];
 
-    for (const optionText of options) {
+    for (const optionText of optionList) {
       const text = String(optionText || "").trim();
       if (!text) {
         continue;

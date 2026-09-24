@@ -180,7 +180,8 @@ module.exports = async function (context, req) {
     context.res = {
       status: 200,
       headers: {
-        "Cache-Control": "private, max-age=20",
+        // Live admin/participant reports poll this endpoint; avoid browser caching.
+        "Cache-Control": "private, no-store",
       },
       body: {
         success: true,

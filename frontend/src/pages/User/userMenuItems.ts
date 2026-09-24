@@ -31,11 +31,6 @@ export const workshopNavItems: UserMenuItem[] = [
     match: (pathname) => pathname.startsWith("/actionables"),
   },
   {
-    label: "Workshop Feedback",
-    path: "/workshop-feedback",
-    match: (pathname) => pathname.startsWith("/workshop-feedback"),
-  },
-  {
     label: "Reports",
     path: "/reports",
     match: (pathname) => pathname.startsWith("/reports"),
@@ -72,12 +67,6 @@ export const dashboardCards: DashboardCard[] = [
     description:
       "Track key priorities & takeaways from the Organization Development Workshop.",
     path: "/actionables",
-  },
-  {
-    title: "Workshop Feedback",
-    description:
-      "Share one-time feedback after the workshop has ended.",
-    path: "/workshop-feedback",
   },
   {
     title: "Reports",

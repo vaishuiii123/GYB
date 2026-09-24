@@ -4,9 +4,99 @@ const {
   resolveOdTemplate,
 } = require("../shared/resolveOdTemplate");
 const { getOrLoad } = require("../shared/listCache");
+const { namesMatch } = require("../shared/unlockValueCategories");
 
 function parseIds(value) {
   return parseQuestionIds(value);
+}
+
+function mergeNamedNodes(nodes, getName, mergeInto) {
+  const merged = [];
+
+  for (const node of nodes) {
+    const existing = merged.find((item) =>
+      namesMatch(getName(item), getName(node))
+    );
+    if (existing) {
+      mergeInto(existing, node);
+    } else {
+      merged.push(node);
+    }
+  }
+
+  return merged;
+}
+
+/** Collapse Azure duplicates that only differ by spelling or word order. */
+function dedupeChartTops(tops) {
+  const dedupedMiddles = (middles) =>
+    mergeNamedNodes(
+      middles,
+      (middle) => middle.name,
+      (target, source) => {
+        target.parents = mergeNamedNodes(
+          [...target.parents, ...source.parents],
+          (parent) => parent.name,
+          (parentTarget, parentSource) => {
+            parentTarget.leaves = mergeNamedNodes(
+              [...parentTarget.leaves, ...parentSource.leaves],
+              (leaf) => leaf.name,
+              (leafTarget, leafSource) => {
+                // Keep the seed-style / longer display name.
+                if ((leafSource.name || "").length > (leafTarget.name || "").length) {
+                  leafTarget.name = leafSource.name;
+                }
+                if (
+                  (leafSource.fullPath || "").length >
+                  (leafTarget.fullPath || "").length
+                ) {
+                  leafTarget.fullPath = leafSource.fullPath;
+                }
+                leafTarget.hasAssignedQuestions =
+                  Boolean(leafTarget.hasAssignedQuestions) ||
+                  Boolean(leafSource.hasAssignedQuestions);
+                leafTarget.assignedQuestionCount = Math.max(
+                  Number(leafTarget.assignedQuestionCount || 0),
+                  Number(leafSource.assignedQuestionCount || 0)
+                );
+                if (Array.isArray(leafSource.questions)) {
+                  const byId = new Map(
+                    (leafTarget.questions || []).map((question) => [
+                      question.id,
+                      question,
+                    ])
+                  );
+                  for (const question of leafSource.questions) {
+                    if (!byId.has(question.id)) {
+                      byId.set(question.id, question);
+                    }
+                  }
+                  leafTarget.questions = [...byId.values()];
+                }
+              }
+            );
+            parentTarget.leaves.sort((a, b) => a.name.localeCompare(b.name));
+          }
+        );
+        target.parents.sort((a, b) => a.name.localeCompare(b.name));
+      }
+    );
+
+  return mergeNamedNodes(
+    tops.map((top) => ({
+      ...top,
+      middles: dedupedMiddles(top.middles),
+    })),
+    (top) => top.name,
+    (target, source) => {
+      target.middles = dedupedMiddles([...target.middles, ...source.middles]);
+      target.middles.sort((a, b) => a.name.localeCompare(b.name));
+      // Prefer the longer / seed-style label when merging word-order variants.
+      if ((source.name || "").length > (target.name || "").length) {
+        target.name = source.name;
+      }
+    }
+  );
 }
 
 const DEFAULT_TAG_COLOR = "#9B304A";
@@ -192,9 +282,46 @@ async function buildChartBody(template, includeQuestions) {
               const parentCategories =
                 categoriesByParentId.get(parent.rowKey) || [];
 
-              const leaves = parentCategories
-                .map((category) => buildLeaf(category, top, middle, parent))
-                .sort((a, b) => a.name.localeCompare(b.name));
+              const leaves = mergeNamedNodes(
+                parentCategories
+                  .map((category) => buildLeaf(category, top, middle, parent))
+                  .sort((a, b) => a.name.localeCompare(b.name)),
+                (leaf) => leaf.name,
+                (leafTarget, leafSource) => {
+                  if (
+                    (leafSource.name || "").length > (leafTarget.name || "").length
+                  ) {
+                    leafTarget.name = leafSource.name;
+                  }
+                  if (
+                    (leafSource.fullPath || "").length >
+                    (leafTarget.fullPath || "").length
+                  ) {
+                    leafTarget.fullPath = leafSource.fullPath;
+                  }
+                  leafTarget.hasAssignedQuestions =
+                    Boolean(leafTarget.hasAssignedQuestions) ||
+                    Boolean(leafSource.hasAssignedQuestions);
+                  leafTarget.assignedQuestionCount = Math.max(
+                    Number(leafTarget.assignedQuestionCount || 0),
+                    Number(leafSource.assignedQuestionCount || 0)
+                  );
+                  if (Array.isArray(leafSource.questions)) {
+                    const byId = new Map(
+                      (leafTarget.questions || []).map((question) => [
+                        question.id,
+                        question,
+                      ])
+                    );
+                    for (const question of leafSource.questions) {
+                      if (!byId.has(question.id)) {
+                        byId.set(question.id, question);
+                      }
+                    }
+                    leafTarget.questions = [...byId.values()];
+                  }
+                }
+              );
 
               return {
                 id: parent.rowKey,
@@ -226,7 +353,7 @@ async function buildChartBody(template, includeQuestions) {
       id: templateId,
       templateName: template.TemplateName || "",
     },
-    tops: topsArray,
+    tops: dedupeChartTops(topsArray),
   };
 }
 
@@ -250,7 +377,7 @@ module.exports = async function (context, req) {
 
     // Serve from memory before any Azure round-trips when templateId is known.
     if (templateIdQuery) {
-      const earlyHit = getMemoryCachedChart(`${templateIdQuery}:${mode}`);
+      const earlyHit = getMemoryCachedChart(`${templateIdQuery}:${mode}:dedupe-v3`);
       if (earlyHit) {
         context.res = {
           status: 200,
@@ -279,7 +406,7 @@ module.exports = async function (context, req) {
       return;
     }
 
-    const cacheKey = `${templateId}:${mode}`;
+    const cacheKey = `${templateId}:${mode}:dedupe-v3`;
     const cachedBody = getMemoryCachedChart(cacheKey);
     if (cachedBody) {
       context.res = {

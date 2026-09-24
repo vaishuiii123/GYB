@@ -1,7 +1,29 @@
 const fs = require("fs");
 const path = require("path");
 const { TableClient } = require("@azure/data-tables");
-const XLSX = require("../../frontend/node_modules/xlsx");
+
+function resolveXlsx() {
+  const candidates = [
+    path.resolve(__dirname, "../../frontend/node_modules/xlsx"),
+    path.resolve(
+      __dirname,
+      "../../../GYB-main_GYB/GYB-main/frontend/node_modules/xlsx"
+    ),
+    path.resolve(
+      "C:/Users/VaishnaviSapkal/Downloads/GYB-main_GYB/GYB-main/frontend/node_modules/xlsx"
+    ),
+  ];
+  for (const candidate of candidates) {
+    try {
+      return require(candidate);
+    } catch {
+      // try next
+    }
+  }
+  return require("xlsx");
+}
+
+const XLSX = resolveXlsx();
 
 const TEMPLATE_NAME = "Consumer OD template";
 const API_BASE = process.env.GYB_API_BASE || "http://127.0.0.1:7071/api";
@@ -17,6 +39,20 @@ function normalize(value) {
 
 function text(value) {
   return String(value || "").replace(/\s+/g, " ").trim();
+}
+
+function isYes(value) {
+  const raw = String(value || "").trim().toUpperCase();
+  return raw === "Y" || raw === "YES" || raw === "TRUE" || raw === "1";
+}
+
+/** Replace Pre-OD / OD company placeholders with KNAV. */
+function personalizeCompany(value) {
+  return text(value)
+    .replace(/<<Company's>>/gi, "KNAV's")
+    .replace(/<<Compamy's>>/gi, "KNAV's")
+    .replace(/<<Company>>/gi, "KNAV")
+    .replace(/<<Compamy>>/gi, "KNAV");
 }
 
 function parseIds(value) {
@@ -52,17 +88,37 @@ function readConnectionString() {
   if (process.env.AZURE_STORAGE_CONNECTION_STRING) {
     return process.env.AZURE_STORAGE_CONNECTION_STRING;
   }
-  const settings = JSON.parse(
-    fs.readFileSync(path.resolve(__dirname, "../local.settings.json"), "utf8")
-  );
-  const connectionString = settings?.Values?.AZURE_STORAGE_CONNECTION_STRING;
-  if (!connectionString) {
-    throw new Error("AZURE_STORAGE_CONNECTION_STRING is not configured.");
+
+  const settingsCandidates = [
+    path.resolve(__dirname, "../local.settings.json"),
+    path.resolve(__dirname, "../../api/local.settings.json"),
+    path.resolve("C:/Users/VaishnaviSapkal/Downloads/GYB/api/local.settings.json"),
+    path.resolve(
+      "C:/Users/VaishnaviSapkal/Downloads/GYB-main_GYB/GYB-main/api/local.settings.json"
+    ),
+  ];
+
+  for (const settingsPath of settingsCandidates) {
+    if (!fs.existsSync(settingsPath)) {
+      continue;
+    }
+    const settings = JSON.parse(fs.readFileSync(settingsPath, "utf8"));
+    const connectionString = settings?.Values?.AZURE_STORAGE_CONNECTION_STRING;
+    if (connectionString) {
+      return connectionString;
+    }
   }
-  return connectionString;
+
+  throw new Error("AZURE_STORAGE_CONNECTION_STRING is not configured.");
 }
 
-function mapFormat(formatRaw) {
+function mapFormat(formatRaw, options = {}) {
+  const forceRating = Boolean(options.forceRating);
+  if (forceRating) {
+    // Master OD (and master-sourced consumer rows): Red / Yellow / Green rating.
+    return { questionType: "Rating", options: [] };
+  }
+
   const format = text(formatRaw);
   const lower = format.toLowerCase();
   if (!format || lower === "textual answer" || lower === "text") {
@@ -84,45 +140,76 @@ function mapFormat(formatRaw) {
     };
   }
   // Fallback: treat slash/comma-separated formats as single-choice options.
-  const options = format
+  const optionsList = format
     .split(/[,/]/)
     .map((item) => text(item))
     .filter(Boolean);
-  if (options.length > 1) {
-    return { questionType: "Single Choice", options };
+  if (optionsList.length > 1) {
+    return { questionType: "Single Choice", options: optionsList };
   }
   return { questionType: "Text", options: [] };
 }
 
-function readWorkbook(workbookPath) {
+function readWorkbook(workbookPath, options = {}) {
+  const requireConsumerFlag = Boolean(options.requireConsumerFlag);
+  const forceRating = Boolean(options.forceRating);
   const workbook = XLSX.readFile(workbookPath);
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-  if (rows.length === 0) throw new Error("The workbook has no question rows.");
-  return rows.map((row, index) => {
-    const format = mapFormat(row["Format (for additional questions)"]);
-    const parsed = {
-      sourceRow: index + 2,
-      top: text(row["Topmost category"]),
-      middle: text(row["Middle Category"]),
-      parent: text(row["Parent Category"]),
-      category: text(row.Category),
-      question: text(row.Question),
-      tag: text(row.Tag),
-      questionType: format.questionType,
-      options: format.options,
-    };
-    if (
-      !parsed.top ||
-      !parsed.middle ||
-      !parsed.parent ||
-      !parsed.category ||
-      !parsed.question
-    ) {
-      throw new Error(`Required data is missing on workbook row ${index + 2}.`);
+  if (rows.length === 0) throw new Error(`The workbook has no question rows: ${workbookPath}`);
+
+  return rows
+    .map((row, index) => {
+      const format = mapFormat(row["Format (for additional questions)"], {
+        forceRating,
+      });
+      const parsed = {
+        sourceRow: index + 2,
+        sourceFile: path.basename(workbookPath),
+        fromMaster: forceRating,
+        top: text(row["Topmost category"]),
+        middle: text(row["Middle Category"]),
+        parent: text(row["Parent Category"]),
+        category: text(row.Category),
+        question: personalizeCompany(row.Question),
+        tag: text(row.Tag),
+        questionType: format.questionType,
+        options: format.options,
+        d2c: isYes(row["Consumer D2C"]),
+        retail: isYes(row["Consumer Retail"]),
+      };
+      return parsed;
+    })
+    .filter((parsed) => {
+      if (
+        !parsed.top ||
+        !parsed.middle ||
+        !parsed.parent ||
+        !parsed.category ||
+        !parsed.question
+      ) {
+        return false;
+      }
+      // Master workbook: only keep rows flagged for Consumer D2C / Retail.
+      if (requireConsumerFlag && !parsed.d2c && !parsed.retail) {
+        return false;
+      }
+      return true;
+    });
+}
+
+function mergeWorkbookRows(rowSets) {
+  const byQuestion = new Map();
+  for (const rows of rowSets) {
+    for (const row of rows) {
+      const key = normalize(row.question);
+      if (!key || byQuestion.has(key)) {
+        continue;
+      }
+      byQuestion.set(key, row);
     }
-    return parsed;
-  });
+  }
+  return [...byQuestion.values()];
 }
 
 async function apiPost(route, body) {
@@ -141,14 +228,56 @@ async function apiPost(route, body) {
 }
 
 async function main() {
-  const workbookPath = path.resolve(process.argv[2] || "");
+  const args = process.argv.slice(2).filter((arg) => arg !== "--execute");
   const execute = process.argv.includes("--execute");
 
-  if (!workbookPath || !fs.existsSync(workbookPath)) {
-    throw new Error("Pass the path to the Consumer OD workbook.");
+  const defaultMaster = path.resolve(
+    "C:/Users/VaishnaviSapkal/Downloads/Master OD Template.xlsx"
+  );
+  const defaultConsumer = path.resolve(
+    "C:/Users/VaishnaviSapkal/Downloads/Comsumer OD Template.xlsx"
+  );
+
+  // Usage:
+  //   node rebuild-consumer-od-template.js [--execute]
+  //   node rebuild-consumer-od-template.js <master.xlsx> <consumer.xlsx> [--execute]
+  //   node rebuild-consumer-od-template.js <single.xlsx> [--execute]
+  let masterPath = defaultMaster;
+  let consumerPath = defaultConsumer;
+  let singlePath = "";
+
+  if (args.length >= 2) {
+    masterPath = path.resolve(args[0]);
+    consumerPath = path.resolve(args[1]);
+  } else if (args.length === 1) {
+    singlePath = path.resolve(args[0]);
   }
 
-  const rows = readWorkbook(workbookPath);
+  let rows;
+  if (singlePath) {
+    if (!fs.existsSync(singlePath)) {
+      throw new Error(`Workbook not found: ${singlePath}`);
+    }
+    rows = mergeWorkbookRows([readWorkbook(singlePath)]);
+  } else {
+    if (!fs.existsSync(masterPath)) {
+      throw new Error(`Master workbook not found: ${masterPath}`);
+    }
+    if (!fs.existsSync(consumerPath)) {
+      throw new Error(`Consumer workbook not found: ${consumerPath}`);
+    }
+    rows = mergeWorkbookRows([
+      // Master sheet no longer has Consumer D2C/Retail flags — include all
+      // master questions as Rating, then add Consumer-only extras.
+      readWorkbook(masterPath, { forceRating: true }),
+      readWorkbook(consumerPath),
+    ]);
+  }
+
+  if (rows.length === 0) {
+    throw new Error("No consumer OD questions found after merging workbooks.");
+  }
+
   const connectionString = readConnectionString();
   const clients = {
     tags: TableClient.fromConnectionString(connectionString, "Tags"),
@@ -232,6 +361,7 @@ async function main() {
     parents: [],
     categories: [],
     questions: [],
+    questionUpdates: [],
     options: [],
   };
   const categoryAssignments = new Map();
@@ -344,7 +474,7 @@ async function main() {
         QuestionText: row.question,
         QuestionType: row.questionType,
         TagId: tag?.rowKey || "",
-        AttachmentsApplicable: "N",
+        AttachmentsApplicable: "Y",
         CreatedBy: CREATED_BY,
         CreatedDate: now,
         ModifiedBy: CREATED_BY,
@@ -352,6 +482,34 @@ async function main() {
       };
       questionByText.set(normalize(row.question), question);
       created.questions.push(question);
+    } else {
+      // Ensure linked master/consumer questions allow attachments and use KNAV text.
+      // Master-sourced questions must stay Red/Yellow/Green Rating.
+      const nextText = personalizeCompany(question.QuestionText || row.question);
+      const needsAttachmentUpdate =
+        String(question.AttachmentsApplicable || "N").toUpperCase() !== "Y";
+      const needsTextUpdate = nextText !== String(question.QuestionText || "");
+      const needsTypeUpdate =
+        Boolean(row.fromMaster) &&
+        String(question.QuestionType || "") !== "Rating";
+      if (needsAttachmentUpdate || needsTextUpdate || needsTypeUpdate) {
+        question.AttachmentsApplicable = "Y";
+        question.QuestionText = nextText;
+        if (needsTypeUpdate) {
+          question.QuestionType = "Rating";
+        }
+        question.ModifiedBy = CREATED_BY;
+        question.ModifiedDate = now;
+        created.questionUpdates.push({
+          partitionKey: "Question",
+          rowKey: question.rowKey,
+          QuestionText: nextText,
+          AttachmentsApplicable: "Y",
+          ...(needsTypeUpdate ? { QuestionType: "Rating" } : {}),
+          ModifiedBy: CREATED_BY,
+          ModifiedDate: now,
+        });
+      }
     }
 
     if (!orderedQuestionIds.includes(question.rowKey)) {
@@ -362,20 +520,28 @@ async function main() {
       assignment.questionIds.push(question.rowKey);
     }
 
-    if (row.options.length > 0) {
+    const effectiveType = row.fromMaster
+      ? "Rating"
+      : row.questionType;
+    const effectiveOptions = row.fromMaster ? [] : row.options;
+
+    if (effectiveOptions.length > 0) {
       optionPlans.push({
         questionId: question.rowKey,
-        options: row.options,
+        options: effectiveOptions,
         isNew,
-        questionType: row.questionType,
-        updateType: !isNew && question.QuestionType !== row.questionType,
+        questionType: effectiveType,
+        updateType: !isNew && question.QuestionType !== effectiveType,
       });
-    } else if (!isNew && question.QuestionType !== row.questionType) {
+    } else if (
+      !isNew &&
+      (question.QuestionType !== effectiveType || row.fromMaster)
+    ) {
       optionPlans.push({
         questionId: question.rowKey,
         options: [],
         isNew: false,
-        questionType: row.questionType,
+        questionType: effectiveType,
         updateType: true,
       });
     }
@@ -403,6 +569,7 @@ async function main() {
       parents: created.parents.length,
       categories: created.categories.length,
       questions: created.questions.length,
+      questionUpdates: created.questionUpdates.length,
       optionSets: optionPlans.filter((item) => item.options.length > 0).length,
     },
     existingTemplateId: existingTemplate?.rowKey || null,
@@ -423,6 +590,9 @@ async function main() {
     await clients.categories.createEntity(entity);
   for (const entity of created.questions)
     await clients.questions.createEntity(entity);
+  for (const entity of created.questionUpdates) {
+    await clients.questions.updateEntity(entity, "Merge");
+  }
 
   for (const plan of optionPlans) {
     if (plan.updateType) {

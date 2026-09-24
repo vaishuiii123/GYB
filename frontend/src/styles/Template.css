@@ -82,6 +82,26 @@
     box-sizing: border-box;
 }
 
+.template-details-search {
+    max-width: 480px;
+}
+
+.template-details-search input {
+    border-radius: 10px;
+}
+
+.template-details-search input:focus {
+    outline: none;
+    border-color: #9b304a;
+    box-shadow: 0 0 0 3px rgba(155, 48, 74, 0.12);
+}
+
+.template-empty-search {
+    text-align: center;
+    padding: 40px 16px !important;
+    color: #6b7280;
+}
+
 .filter-icon {
     position: absolute;
     left: 14px;
@@ -247,54 +267,6 @@
     color: #6b7280;
     font-size: 14px;
     margin-bottom: 12px;
-}
-
-.selected-summary {
-    background: #fdf2f4;
-    border: 1px solid #f3d0d8;
-    border-radius: 10px;
-    padding: 14px 16px;
-    margin-bottom: 20px;
-}
-
-.selected-summary-title {
-    font-weight: 600;
-    color: #9B304A;
-    margin-bottom: 10px;
-    font-size: 14px;
-}
-
-.selected-summary-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-
-.selected-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 999px;
-    padding: 6px 12px;
-    font-size: 13px;
-    color: #374151;
-    max-width: 100%;
-}
-
-.selected-chip button {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: #9ca3af;
-    font-size: 16px;
-    line-height: 1;
-    padding: 0;
-}
-
-.selected-chip button:hover {
-    color: #dc2626;
 }
 
 .card-footer {

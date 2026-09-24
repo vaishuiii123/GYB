@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo, Fragment } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { Search } from "lucide-react";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import "../../styles/Template.css";
@@ -20,6 +21,7 @@ export default function TemplateDetails({ user }: PageProps) {
   const [template, setTemplate] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [searchText, setSearchText] = useState("");
 
   useEffect(() => {
     if (!id) {
@@ -84,7 +86,23 @@ export default function TemplateDetails({ user }: PageProps) {
   const groupedQuestions = useMemo(() => {
     if (!template?.questions) return {};
 
-    return template.questions.reduce(
+    const query = searchText.trim().toLowerCase();
+    const questions = query
+      ? template.questions.filter((question: any) =>
+          [
+            question.question,
+            question.categoryName,
+            question.tagName,
+            question.answerType,
+            String(question.attachmentsApplicable || ""),
+          ]
+            .join(" ")
+            .toLowerCase()
+            .includes(query)
+        )
+      : template.questions;
+
+    return questions.reduce(
       (groups: Record<string, any[]>, question: any) => {
         const key = question.categoryName || "General";
         if (!groups[key]) groups[key] = [];
@@ -93,7 +111,9 @@ export default function TemplateDetails({ user }: PageProps) {
       },
       {}
     );
-  }, [template]);
+  }, [template, searchText]);
+
+  const hasFilteredQuestions = Object.keys(groupedQuestions).length > 0;
 
   if (loading && !template) {
     return (
@@ -156,6 +176,17 @@ export default function TemplateDetails({ user }: PageProps) {
               </div>
             </div>
 
+            <div className="filter-box template-details-search">
+              <Search size={18} className="filter-icon" aria-hidden />
+              <input
+                type="search"
+                value={searchText}
+                onChange={(event) => setSearchText(event.target.value)}
+                placeholder="Search questions by text, category, tag, or answer type..."
+                aria-label="Search template questions"
+              />
+            </div>
+
             <table className="template-table">
               <thead>
                 <tr>
@@ -168,54 +199,67 @@ export default function TemplateDetails({ user }: PageProps) {
                 </tr>
               </thead>
               <tbody>
-                {Object.entries(groupedQuestions).map(
-                  ([categoryName, questions]) => (
-                    <Fragment key={categoryName}>
-                      <tr className="category-header-row">
-                        <td colSpan={6}>{categoryName}</td>
-                      </tr>
-                      {(questions as any[]).map((q) => {
-                        rowIndex += 1;
-                        const tagColor = String(q.tagColor || "").trim();
-                        return (
-                          <tr
-                            key={`${categoryName}-${q.id}`}
-                            className={tagColor ? "tag-colored-row" : undefined}
-                            style={
-                              tagColor
-                                ? {
-                                    color: tagColor,
-                                    borderLeft: `4px solid ${tagColor}`,
-                                  }
-                                : undefined
-                            }
-                          >
-                            <td>{rowIndex}</td>
-                            <td>{q.question}</td>
-                            <td>{categoryName}</td>
-                            <td>
-                              {q.tagName ? (
-                                <span
-                                  className="template-tag-label"
-                                  style={{ color: tagColor || undefined }}
-                                >
-                                  {q.tagName}
-                                </span>
-                              ) : (
-                                "-"
-                              )}
-                            </td>
-                            <td>{q.answerType}</td>
-                            <td>
-                              {String(q.attachmentsApplicable || "N").toUpperCase() ===
-                              "Y"
-                                ? "Yes"
-                                : "No"}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </Fragment>
+                {!hasFilteredQuestions ? (
+                  <tr>
+                    <td colSpan={6} className="template-empty-search">
+                      {searchText.trim()
+                        ? "No questions match your search."
+                        : "No questions found in this template."}
+                    </td>
+                  </tr>
+                ) : (
+                  Object.entries(groupedQuestions).map(
+                    ([categoryName, questions]) => (
+                      <Fragment key={categoryName}>
+                        <tr className="category-header-row">
+                          <td colSpan={6}>{categoryName}</td>
+                        </tr>
+                        {(questions as any[]).map((q) => {
+                          rowIndex += 1;
+                          const tagColor = String(q.tagColor || "").trim();
+                          return (
+                            <tr
+                              key={`${categoryName}-${q.id}`}
+                              className={
+                                tagColor ? "tag-colored-row" : undefined
+                              }
+                              style={
+                                tagColor
+                                  ? {
+                                      color: tagColor,
+                                      borderLeft: `4px solid ${tagColor}`,
+                                    }
+                                  : undefined
+                              }
+                            >
+                              <td>{rowIndex}</td>
+                              <td>{q.question}</td>
+                              <td>{categoryName}</td>
+                              <td>
+                                {q.tagName ? (
+                                  <span
+                                    className="template-tag-label"
+                                    style={{ color: tagColor || undefined }}
+                                  >
+                                    {q.tagName}
+                                  </span>
+                                ) : (
+                                  "-"
+                                )}
+                              </td>
+                              <td>{q.answerType}</td>
+                              <td>
+                                {String(
+                                  q.attachmentsApplicable || "N"
+                                ).toUpperCase() === "Y"
+                                  ? "Yes"
+                                  : "No"}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </Fragment>
+                    )
                   )
                 )}
               </tbody>

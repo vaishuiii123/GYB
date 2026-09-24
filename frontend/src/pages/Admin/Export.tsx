@@ -1,14 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import SearchableSelect from "../../components/SearchableSelect";
-import AddActionableModal, {
-  type AddActionablePreset,
-} from "../../components/AddActionableModal";
 import {
   Building2,
   CalendarDays,
-  ClipboardPlus,
   Eye,
   Folder,
   HelpCircle,
@@ -16,6 +12,8 @@ import {
   List,
   Search,
   SlidersHorizontal,
+  StickyNote,
+  Tags,
   Zap,
 } from "lucide-react";
 import "../../styles/Export.css";
@@ -37,6 +35,12 @@ type Workshop = {
   templateId?: string;
 };
 
+type TagOption = {
+  id: string;
+  tagName: string;
+  tagColor?: string;
+};
+
 type ExportRow = {
   participant: string;
   participantId?: string;
@@ -51,6 +55,7 @@ type ExportRow = {
   questionId?: string;
   questionType?: string;
   response: string;
+  note?: string;
   attachment: string;
   attachmentFileName?: string;
   source: "preod" | "od";
@@ -115,6 +120,8 @@ function uniqueZipPath(
 }
 
 type ResponseData = {
+  success?: boolean;
+  message?: string;
   workshop?: {
     workshopName?: string;
     organizationName?: string;
@@ -131,16 +138,27 @@ type ResponseData = {
   questionTypes?: Record<string, string>;
 };
 
+const RESPONSES_POLL_MS = 10000;
+
 type Category = {
   id: string;
   categoryName: string;
   fullPath?: string;
+  tagId?: string;
   questions?: Array<{
     id: string;
     question: string;
     answerType?: string;
+    tagId?: string;
   }>;
 };
+
+function resolveQuestionTagId(
+  question: { tagId?: string },
+  category: { tagId?: string }
+) {
+  return String(question.tagId || category.tagId || "").trim();
+}
 
 /** Single-hue blue family — darker → lighter by slice index. */
 function shadeOfBase(index: number, total: number) {
@@ -510,7 +528,12 @@ export default function Export({ user }: PageProps) {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [workshops, setWorkshops] = useState<Workshop[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [tags, setTags] = useState<TagOption[]>([]);
   const [assignedCategoryIds, setAssignedCategoryIds] =  useState<string[]>([]);
+  const [assignedQuestionIds, setAssignedQuestionIds] = useState<string[]>([]);
+  const [templateCategories, setTemplateCategories] = useState<
+    Array<{ id: string; name: string }>
+  >([]);
   const [exportType, setExportType] = useState<"preod" | "od">("od");
 
   const [selectedOrganization, setSelectedOrganization] =
@@ -520,6 +543,9 @@ export default function Export({ user }: PageProps) {
     useState("");
 
   const [selectedCategory, setSelectedCategory] =
+    useState("");
+
+  const [selectedTag, setSelectedTag] =
     useState("");
 
   const [selectedQuestion, setSelectedQuestion] =
@@ -545,15 +571,15 @@ export default function Export({ user }: PageProps) {
   const [error, setError] =
     useState("");
 
+  const loadedWorkshopRef = useRef("");
+
   const [search, setSearch] =
     useState("");
 
   const [activeView, setActiveView] =
-    useState<"all" | "summary" | "vision" | "actionable">("all");
+    useState<"all" | "summary" | "vision" | "notes" | "actionable">("all");
 
   const [exportingZip, setExportingZip] = useState(false);
-  const [actionablePreset, setActionablePreset] =
-    useState<AddActionablePreset | null>(null);
 
   /*
    * --------------------------------------------------
@@ -570,10 +596,12 @@ export default function Export({ user }: PageProps) {
           organizationsResponse,
           workshopsResponse,
           categoriesResponse,
+          tagsResponse,
         ] = await Promise.all([
           fetch("/api/get-organizations"),
           fetch("/api/get-workshops"),
           fetch("/api/get-all-categories"),
+          fetch("/api/get-tags"),
         ]);
 
         const organizationsData =
@@ -584,6 +612,8 @@ export default function Export({ user }: PageProps) {
 
         const categoriesData =
           await categoriesResponse.json();
+
+        const tagsData = await tagsResponse.json().catch(() => null);
 
         if (
           organizationsResponse.ok &&
@@ -609,6 +639,18 @@ export default function Export({ user }: PageProps) {
         ) {
           setCategories(
             categoriesData.categories || []
+          );
+        }
+
+        if (tagsResponse.ok && tagsData?.success) {
+          setTags(
+            (tagsData.data || tagsData.tags || []).map(
+              (tag: { id?: string; tagName?: string; tagColor?: string }) => ({
+                id: String(tag.id || ""),
+                tagName: String(tag.tagName || ""),
+                tagColor: String(tag.tagColor || ""),
+              })
+            ).filter((tag: TagOption) => tag.id && tag.tagName)
           );
         }
       } catch (err) {
@@ -659,7 +701,13 @@ export default function Export({ user }: PageProps) {
   const questionMetaById = useMemo(() => {
     const map = new Map<
       string,
-      { id: string; name: string; path: string; answerType: string }
+      {
+        id: string;
+        name: string;
+        path: string;
+        answerType: string;
+        tagId: string;
+      }
     >();
 
     for (const category of categories) {
@@ -669,6 +717,7 @@ export default function Export({ user }: PageProps) {
           name: String(category.categoryName || ""),
           path: category.fullPath || category.categoryName || "Category",
           answerType: String(question.answerType || ""),
+          tagId: resolveQuestionTagId(question, category),
         });
       }
     }
@@ -678,7 +727,7 @@ export default function Export({ user }: PageProps) {
 
   /*
    * --------------------------------------------------
-   * Load responses for selected workshop
+   * Load responses for selected workshop (live poll)
    * --------------------------------------------------
    */
 
@@ -688,20 +737,21 @@ export default function Export({ user }: PageProps) {
       setVisionMissionRows([]);
       setActionableRows([]);
       setSelectedCategory("");
+      setSelectedTag("");
       setSelectedQuestion("");
+      setLoading(false);
       return;
     }
 
-    // Category metadata is required to build response rows. Waiting here
-    // avoids loading the same workshop once before and once after it arrives.
-    if (categories.length === 0) {
-      return;
-    }
+    let cancelled = false;
 
     const loadResponses = async () => {
+      const isFirstLoad = loadedWorkshopRef.current !== selectedWorkshop;
       try {
-        setLoading(true);
-        setError("");
+        if (isFirstLoad) {
+          setLoading(true);
+          setError("");
+        }
 
         const response = await fetch(
           `/api/get-workshop-responses?workshopId=${encodeURIComponent(
@@ -712,9 +762,13 @@ export default function Export({ user }: PageProps) {
         const data: ResponseData =
           await response.json();
 
-        if (!response.ok) {
+        if (cancelled) {
+          return;
+        }
+
+        if (!response.ok || data.success === false) {
           throw new Error(
-            "Unable to load workshop responses."
+            data.message || "Unable to load workshop responses."
           );
         }
 
@@ -803,58 +857,34 @@ export default function Export({ user }: PageProps) {
              */
 
             if (participant.odChart) {
-              Object.entries(
-                participant.odChart.answers || {}
-              ).forEach(
-                ([questionId, answer]) => {
-                  const attachmentMeta =
-                    participant.odChart.attachments?.[questionId];
-                  const attachmentUrl = attachmentMeta?.blobPath
-                    ? `/api/get-od-attachment?participantId=${encodeURIComponent(
-                        participant.participantId
-                      )}&workshopId=${encodeURIComponent(
-                        selectedWorkshop
-                      )}&questionId=${encodeURIComponent(questionId)}`
-                    : "-";
-                  const categoryMeta = getCategoryMetaForQuestion(questionId);
+              const odAnswers = participant.odChart.answers || {};
+              const odNotes = participant.odChart.notes || {};
+              const odAttachments = participant.odChart.attachments || {};
+              const odQuestionIds = new Set([
+                ...Object.keys(odAnswers),
+                ...Object.keys(odNotes),
+                ...Object.keys(odAttachments),
+              ]);
 
-                  rows.push({
-                    participant: participantName,
-                    participantId: String(participant.participantId || ""),
-                    organization: organizationName,
-                    organizationId,
-                    workshop: workshopName,
-                    workshopId,
-                    category: categoryMeta.path,
-                    categoryId: categoryMeta.id,
-                    categoryPath: categoryMeta.path,
-                    question:
-                      data.questionLabels?.[questionId] || questionId,
-                    questionId,
-                    questionType:
-                      data.questionTypes?.[questionId] ||
-                      getQuestionTypeForQuestion(questionId),
-                    response: String(answer || ""),
-                    attachment: attachmentUrl,
-                    attachmentFileName: attachmentMeta?.blobPath
-                      ? String(attachmentMeta?.fileName || "attachment")
-                      : undefined,
-                    source: "od",
-                  });
-                }
-              );
+              odQuestionIds.forEach((questionId) => {
+                const answer = odAnswers[questionId];
+                const noteText = String(odNotes[questionId] || "").trim();
+                const attachmentMeta = odAttachments[questionId];
+                const hasAnswer =
+                  answer !== undefined && String(answer).trim() !== "";
+                const hasAttachment = Boolean(attachmentMeta?.blobPath);
 
-              // Include OD attachments that exist without a text answer.
-              Object.entries(
-                participant.odChart.attachments || {}
-              ).forEach(([questionId, attachmentMeta]: [string, any]) => {
-                if (
-                  !attachmentMeta?.blobPath ||
-                  participant.odChart.answers?.[questionId] !== undefined
-                ) {
+                if (!hasAnswer && !hasAttachment && !noteText) {
                   return;
                 }
 
+                const attachmentUrl = hasAttachment
+                  ? `/api/get-od-attachment?participantId=${encodeURIComponent(
+                      participant.participantId
+                    )}&workshopId=${encodeURIComponent(
+                      selectedWorkshop
+                    )}&questionId=${encodeURIComponent(questionId)}`
+                  : "-";
                 const categoryMeta = getCategoryMetaForQuestion(questionId);
 
                 rows.push({
@@ -864,7 +894,7 @@ export default function Export({ user }: PageProps) {
                   organizationId,
                   workshop: workshopName,
                   workshopId,
-                  category: getCategoryForQuestion(questionId),
+                  category: categoryMeta.path,
                   categoryId: categoryMeta.id,
                   categoryPath: categoryMeta.path,
                   question:
@@ -873,15 +903,12 @@ export default function Export({ user }: PageProps) {
                   questionType:
                     data.questionTypes?.[questionId] ||
                     getQuestionTypeForQuestion(questionId),
-                  response: "",
-                  attachment: `/api/get-od-attachment?participantId=${encodeURIComponent(
-                    participant.participantId
-                  )}&workshopId=${encodeURIComponent(
-                    selectedWorkshop
-                  )}&questionId=${encodeURIComponent(questionId)}`,
-                  attachmentFileName: String(
-                    attachmentMeta?.fileName || "attachment"
-                  ),
+                  response: hasAnswer ? String(answer) : "",
+                  note: noteText,
+                  attachment: attachmentUrl,
+                  attachmentFileName: hasAttachment
+                    ? String(attachmentMeta?.fileName || "attachment")
+                    : undefined,
                   source: "od",
                 });
               });
@@ -916,41 +943,6 @@ export default function Export({ user }: PageProps) {
                   submittedDate: vm.submittedDate || "",
                 });
               }
-
-              const visionResponse =
-                visionKeywords.length > 0
-                  ? visionKeywords.join(", ")
-                  : visionText;
-              const missionResponse =
-                missionKeywords.length > 0
-                  ? missionKeywords.join(", ")
-                  : missionText;
-
-              if (visionResponse) {
-                rows.push({
-                  participant: participantName,
-                  organization: organizationName,
-                  workshop: workshopName,
-                  category: "Vision & Mission",
-                  question: "Vision",
-                  response: visionResponse,
-                  attachment: "-",
-                  source: "od",
-                });
-              }
-
-              if (missionResponse) {
-                rows.push({
-                  participant: participantName,
-                  organization: organizationName,
-                  workshop: workshopName,
-                  category: "Vision & Mission",
-                  question: "Mission",
-                  response: missionResponse,
-                  attachment: "-",
-                  source: "od",
-                });
-              }
             }
 
             /*
@@ -978,22 +970,48 @@ export default function Export({ user }: PageProps) {
         setResponses(rows);
         setVisionMissionRows(visionRows);
         setActionableRows(actionableList);
+        setError("");
+        loadedWorkshopRef.current = selectedWorkshop;
       } catch (err) {
         console.error(err);
 
-        setError(
-          "Unable to load workshop responses."
-        );
+        if (cancelled) {
+          return;
+        }
 
-        setResponses([]);
-        setVisionMissionRows([]);
-        setActionableRows([]);
+        // Keep existing rows on background poll failures; only hard-fail
+        // the first load so the table does not flicker empty.
+        if (loadedWorkshopRef.current !== selectedWorkshop) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Unable to load workshop responses."
+          );
+
+          setResponses([]);
+          setVisionMissionRows([]);
+          setActionableRows([]);
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
     loadResponses();
+
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === "hidden") {
+        return;
+      }
+      void loadResponses();
+    }, RESPONSES_POLL_MS);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
   }, [selectedWorkshop, categories, workshops]);
 
   /*
@@ -1050,41 +1068,61 @@ const availableCategories = useMemo(() => {
     }));
   }
 
-  if (assignedCategoryIds.length === 0) {
-    return [];
-  }
+  // OD: only categories that own at least one question on this workshop's template.
+  const templateQuestionIds = new Set(
+    assignedQuestionIds.map((id) => String(id))
+  );
 
-  return categories
-    .filter((category) =>
-      assignedCategoryIds.includes(
-        String(category.id)
-      )
-    )
-    .map((category) => {
-      const fullPath =
-        category.fullPath ||
-        category.categoryName ||
-        "";
+  const fromTemplate =
+    templateCategories.length > 0
+      ? templateCategories
+      : categories
+          .filter((category) =>
+            assignedCategoryIds.includes(String(category.id))
+          )
+          .map((category) => {
+            const fullPath =
+              category.fullPath || category.categoryName || "";
+            const displayName =
+              fullPath.split(">").pop()?.trim() || "";
+            return { id: category.id, name: displayName };
+          })
+          .filter((category) => category.name);
 
-      const displayName =
-        fullPath
-          .split(">")
-          .pop()
-          ?.trim() || "";
-
-      return {
-        id: category.id,
-        name: displayName,
-      };
+  return fromTemplate
+    .filter((category) => {
+      if (templateQuestionIds.size === 0) {
+        return true;
+      }
+      const match = categories.find(
+        (item) => String(item.id) === String(category.id)
+      );
+      // Keep category only if it has a template question linked to it.
+      return (match?.questions || []).some((question) =>
+        templateQuestionIds.has(String(question.id))
+      );
     })
-    .filter((category) => category.name)
-    .sort((a, b) =>
-      a.name.localeCompare(b.name)
-    );
+    .filter((category) => {
+      if (!selectedTag) {
+        return true;
+      }
+      const match = categories.find(
+        (item) => String(item.id) === String(category.id)
+      );
+      return (match?.questions || []).some(
+        (question) =>
+          templateQuestionIds.has(String(question.id)) &&
+          resolveQuestionTagId(question, match) === String(selectedTag)
+      );
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
 }, [
   categories,
   assignedCategoryIds,
+  assignedQuestionIds,
+  templateCategories,
   selectedWorkshop,
+  selectedTag,
   exportType,
   responses,
 ]);
@@ -1110,6 +1148,10 @@ const availableQuestions = useMemo(() => {
     ).sort();
   }
 
+  const templateQuestionIds = new Set(
+    assignedQuestionIds.map((id) => String(id))
+  );
+
   const scopedCategories = categories.filter((category) => {
     if (
       assignedCategoryIds.length > 0 &&
@@ -1127,6 +1169,20 @@ const availableQuestions = useMemo(() => {
     new Set(
       scopedCategories.flatMap((category) =>
         (category.questions || [])
+          .filter((question) => {
+            if (
+              templateQuestionIds.size > 0 &&
+              !templateQuestionIds.has(String(question.id))
+            ) {
+              return false;
+            }
+            if (!selectedTag) {
+              return true;
+            }
+            return (
+              resolveQuestionTagId(question, category) === String(selectedTag)
+            );
+          })
           .map((question) => question.question)
           .filter(Boolean)
       )
@@ -1135,11 +1191,127 @@ const availableQuestions = useMemo(() => {
 }, [
   categories,
   selectedCategory,
+  selectedTag,
   selectedWorkshop,
   assignedCategoryIds,
+  assignedQuestionIds,
   exportType,
   responses,
 ]);
+
+  const availableTags = useMemo(() => {
+    if (!selectedWorkshop || exportType !== "od") {
+      return [];
+    }
+
+    // Scope to workshop template categories, then to the selected category.
+    const scopedCategories = categories.filter((category) => {
+      if (
+        assignedCategoryIds.length === 0 ||
+        !assignedCategoryIds.includes(String(category.id))
+      ) {
+        return false;
+      }
+      if (
+        selectedCategory &&
+        String(category.id) !== String(selectedCategory)
+      ) {
+        return false;
+      }
+      return true;
+    });
+
+    // Question IDs that actually have OD responses in the current category scope.
+    const selectedCategoryName = selectedCategory
+      ? categories.find((c) => String(c.id) === String(selectedCategory))
+          ?.categoryName ||
+        availableCategories.find((c) => c.id === selectedCategory)?.name ||
+        ""
+      : "";
+
+    const answeredQuestionIds = new Set<string>();
+    for (const item of responses) {
+      if (item.source !== "od") continue;
+      const questionId = String(item.questionId || "").trim();
+      if (!questionId) continue;
+      if (selectedCategory) {
+        const lastCategory =
+          (item.category || "").split(">").pop()?.trim() || "";
+        if (lastCategory !== selectedCategoryName) continue;
+      }
+      answeredQuestionIds.add(questionId);
+    }
+
+    const usedTagIds = new Set<string>();
+    for (const category of scopedCategories) {
+      for (const question of category.questions || []) {
+        // When a category is selected, only show tags for questions that
+        // already have at least one response in that category.
+        if (
+          selectedCategory &&
+          !answeredQuestionIds.has(String(question.id))
+        ) {
+          continue;
+        }
+        const tagId = resolveQuestionTagId(question, category);
+        if (tagId) {
+          usedTagIds.add(tagId);
+        }
+      }
+    }
+
+    // No category selected: show tags from answered questions when any exist,
+    // otherwise fall back to all tags used by template questions.
+    if (!selectedCategory && answeredQuestionIds.size > 0) {
+      usedTagIds.clear();
+      for (const category of scopedCategories) {
+        for (const question of category.questions || []) {
+          if (!answeredQuestionIds.has(String(question.id))) continue;
+          const tagId = resolveQuestionTagId(question, category);
+          if (tagId) usedTagIds.add(tagId);
+        }
+      }
+    }
+
+    return tags
+      .filter((tag) => usedTagIds.has(String(tag.id)))
+      .sort((a, b) => a.tagName.localeCompare(b.tagName));
+  }, [
+    tags,
+    categories,
+    assignedCategoryIds,
+    selectedCategory,
+    selectedWorkshop,
+    exportType,
+    responses,
+    availableCategories,
+  ]);
+
+  // Drop stale tag when it no longer belongs to the filtered list (e.g. after category change).
+  useEffect(() => {
+    if (!selectedTag || exportType !== "od") {
+      return;
+    }
+    if (!availableTags.some((tag) => String(tag.id) === String(selectedTag))) {
+      setSelectedTag("");
+    }
+  }, [availableTags, selectedTag, exportType]);
+
+  // Drop stale category when it is not present in this workshop's responses.
+  useEffect(() => {
+    if (!selectedCategory || !selectedWorkshop) {
+      return;
+    }
+    if (
+      !availableCategories.some(
+        (category) => String(category.id) === String(selectedCategory)
+      )
+    ) {
+      setSelectedCategory("");
+      setSelectedTag("");
+      setSelectedQuestion("");
+    }
+  }, [availableCategories, selectedCategory, selectedWorkshop]);
 
   /*
    * --------------------------------------------------
@@ -1187,6 +1359,19 @@ const availableQuestions = useMemo(() => {
   }
 }
 
+    if (selectedTag && exportType === "od") {
+      data = data.filter((item) => {
+        const questionId = String(item.questionId || "").trim();
+        if (!questionId) {
+          return false;
+        }
+        return (
+          String(questionMetaById.get(questionId)?.tagId || "") ===
+          String(selectedTag)
+        );
+      });
+    }
+
     if (selectedQuestion) {
       data = data.filter(
         (item) =>
@@ -1207,6 +1392,7 @@ const availableQuestions = useMemo(() => {
           item.category,
           item.question,
           item.response,
+          item.note,
         ]
           .join(" ")
           .toLowerCase()
@@ -1219,11 +1405,23 @@ const availableQuestions = useMemo(() => {
     responses,
     exportType,
     selectedCategory,
+    selectedTag,
     selectedQuestion,
     search,
     categories,
     availableCategories,
+    questionMetaById,
   ]);
+
+  const filteredNotes = useMemo(() => {
+    if (exportType !== "od") {
+      return [];
+    }
+
+    return filteredResponses.filter((item) =>
+      Boolean(String(item.note || "").trim())
+    );
+  }, [filteredResponses, exportType]);
 
   const filteredVisionMission = useMemo(() => {
     if (exportType !== "od") {
@@ -1300,7 +1498,11 @@ const availableQuestions = useMemo(() => {
     setSelectedOrganization(value);
     setSelectedWorkshop("");
     setSelectedCategory("");
+    setSelectedTag("");
     setSelectedQuestion("");
+    setAssignedCategoryIds([]);
+    setAssignedQuestionIds([]);
+    setTemplateCategories([]);
     setResponses([]);
     setVisionMissionRows([]);
     setActionableRows([]);
@@ -1313,34 +1515,44 @@ const availableQuestions = useMemo(() => {
 
   // Reset dependent dropdowns
   setSelectedCategory("");
+  setSelectedTag("");
   setSelectedQuestion("");
   setAssignedCategoryIds([]);
+  setAssignedQuestionIds([]);
+  setTemplateCategories([]);
   setResponses([]);
 
   if (!workshopId) {
     return;
   }
 
-  const workshop = organizationWorkshops.find(
-    (item) =>
-      String(item.id) === String(workshopId)
-  );
-
-  if (!workshop) {
-    console.warn(
-      "Selected workshop was not found."
-    );
-    return;
-  }
-
-  if (!workshop.templateId) {
-    console.warn(
-      "Selected workshop does not have a template."
-    );
-    return;
-  }
-
   try {
+    // Refresh workshops so TemplateId is current after template re-uploads.
+    const workshopsResponse = await fetch("/api/get-workshops");
+    const workshopsData = await workshopsResponse.json().catch(() => null);
+    if (workshopsResponse.ok && workshopsData?.success) {
+      setWorkshops(workshopsData.workshops || []);
+    }
+
+    const workshopList =
+      workshopsData?.success && Array.isArray(workshopsData.workshops)
+        ? workshopsData.workshops
+        : organizationWorkshops;
+
+    const workshop = workshopList.find(
+      (item: Workshop) => String(item.id) === String(workshopId)
+    );
+
+    if (!workshop) {
+      console.warn("Selected workshop was not found.");
+      return;
+    }
+
+    if (!workshop.templateId) {
+      console.warn("Selected workshop does not have a template.");
+      return;
+    }
+
     const response = await fetch(
       `/api/get-template-details?templateId=${encodeURIComponent(
         workshop.templateId
@@ -1349,67 +1561,99 @@ const availableQuestions = useMemo(() => {
 
     const data = await response.json();
 
-    if (
-      !response.ok ||
-      !data.success ||
-      !data.template
-    ) {
-      console.error(
-        "Could not load template details"
-      );
+    if (!response.ok || !data.success || !data.template) {
+      console.error("Could not load template details");
       return;
     }
 
-    const categoryIds = (
-      data.template.categoryIds || []
+    const templateQuestions = Array.isArray(data.template.questions)
+      ? data.template.questions
+      : [];
+
+    const questionIds = (
+      data.template.questionIds ||
+      templateQuestions.map((item: { id?: string }) => item.id) ||
+      []
     )
-      .map((id: string) =>
-        String(id).trim()
-      )
+      .map((id: string) => String(id || "").trim())
       .filter(Boolean);
 
-    setAssignedCategoryIds(categoryIds);
+    // Categories of questions that are actually on this template.
+    const categoryById = new Map<string, string>();
+    for (const question of templateQuestions) {
+      const categoryId = String(question.categoryId || "").trim();
+      if (!categoryId) continue;
+      const leaf =
+        String(question.categoryName || "").trim() ||
+        String(question.categoryPath || "")
+          .split(">")
+          .pop()
+          ?.trim() ||
+        "";
+      if (!leaf) continue;
+      if (!categoryById.has(categoryId)) {
+        categoryById.set(categoryId, leaf);
+      }
+    }
 
-  } catch (error) {
-    console.error(
-      "Error loading workshop categories:",
-      error
+    const derivedCategories = Array.from(categoryById.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    setAssignedQuestionIds(questionIds);
+    setTemplateCategories(derivedCategories);
+    setAssignedCategoryIds(
+      derivedCategories.length > 0
+        ? derivedCategories.map((item) => item.id)
+        : (data.template.categoryIds || [])
+            .map((id: string) => String(id).trim())
+            .filter(Boolean)
     );
-
+  } catch (error) {
+    console.error("Error loading workshop categories:", error);
     setAssignedCategoryIds([]);
+    setAssignedQuestionIds([]);
+    setTemplateCategories([]);
   }
 };
 
   const handleCategoryChange = (value: string) => {
     setSelectedCategory(value);
+    // Cascading filters: category change always resets tag/question unless still valid.
+    setSelectedTag("");
+    setSelectedQuestion("");
+
     if (!value) {
-      setSelectedQuestion("");
       return;
     }
+  };
 
-    // Keep question only if it still belongs to the newly selected category.
-    if (!selectedQuestion) {
-      return;
-    }
+  const handleTagChange = (value: string) => {
+    setSelectedTag(value);
 
-    if (exportType === "preod") {
-      const stillValid = responses.some(
-        (item) =>
-          item.source === "preod" &&
-          item.category === value &&
-          item.question === selectedQuestion
+    if (value && selectedCategory) {
+      const category = categories.find(
+        (item) => String(item.id) === String(selectedCategory)
       );
-      if (!stillValid) {
-        setSelectedQuestion("");
+      const categoryHasTag = category?.questions?.some(
+        (question) =>
+          resolveQuestionTagId(question, category) === String(value)
+      );
+      if (!categoryHasTag) {
+        setSelectedCategory("");
       }
+    }
+
+    if (!value || !selectedQuestion) {
       return;
     }
 
-    const category = categories.find(
-      (item) => String(item.id) === String(value)
-    );
-    const stillValid = category?.questions?.some(
-      (question) => question.question === selectedQuestion
+    const stillValid = categories.some((category) =>
+      (category.questions || []).some(
+        (question) =>
+          question.question === selectedQuestion &&
+          resolveQuestionTagId(question, category) === String(value)
+      )
     );
     if (!stillValid) {
       setSelectedQuestion("");
@@ -1422,7 +1666,7 @@ const availableQuestions = useMemo(() => {
       return;
     }
 
-    // Vice versa: selecting a question reveals its category.
+    // Vice versa: selecting a question reveals its category (and tag for OD).
     if (exportType === "preod") {
       const match = responses.find(
         (item) =>
@@ -1442,6 +1686,17 @@ const availableQuestions = useMemo(() => {
     );
     if (category) {
       setSelectedCategory(category.id);
+      const matchedQuestion = category.questions?.find(
+        (question) => question.question === value
+      );
+      const tagId = matchedQuestion
+        ? resolveQuestionTagId(matchedQuestion, category)
+        : "";
+      if (tagId) {
+        setSelectedTag(tagId);
+      } else {
+        setSelectedTag("");
+      }
     }
   };
 
@@ -1512,6 +1767,7 @@ const availableQuestions = useMemo(() => {
           Category: item.category,
           Question: item.question,
           Response: item.response,
+          Notes: item.note || "",
           "Attachment File":
             plannedFileNameByIndex.get(index) ||
             item.attachmentFileName ||
@@ -1526,6 +1782,7 @@ const availableQuestions = useMemo(() => {
         { wch: 25 },
         { wch: 35 },
         { wch: 50 },
+        { wch: 40 },
         { wch: 40 },
         { wch: 28 },
         { wch: 70 },
@@ -1556,6 +1813,21 @@ const availableQuestions = useMemo(() => {
           visionSheet,
           "Vision & Mission"
         );
+      }
+
+      if (exportType === "od" && filteredNotes.length > 0) {
+        const notesSheet = XLSX.utils.json_to_sheet(
+          filteredNotes.map((item) => ({
+            Participant: item.participant,
+            Organization: item.organization,
+            Workshop: item.workshop,
+            Category: item.category,
+            Question: item.question,
+            Notes: item.note || "",
+            Response: item.response || "",
+          }))
+        );
+        XLSX.utils.book_append_sheet(workbook, notesSheet, "Notes");
       }
 
       if (exportType === "od" && actionableRows.length > 0) {
@@ -1710,6 +1982,7 @@ const availableQuestions = useMemo(() => {
               setExportType("preod");
               setActiveView("all");
               setSelectedCategory("");
+              setSelectedTag("");
               setSelectedQuestion("");
             }}
           />
@@ -1727,6 +2000,7 @@ const availableQuestions = useMemo(() => {
             onChange={() => {
               setExportType("od");
               setSelectedCategory("");
+              setSelectedTag("");
               setSelectedQuestion("");
             }}
           />
@@ -1805,6 +2079,27 @@ const availableQuestions = useMemo(() => {
 
         <div className="export-filter-card">
           <div className="export-filter-card-top">
+            <span className="export-filter-badge is-tag" aria-hidden>
+              <Tags size={16} strokeWidth={2.2} />
+            </span>
+            <label htmlFor="export-tag">Select Tag</label>
+          </div>
+          <SearchableSelect
+            id="export-tag"
+            value={selectedTag}
+            placeholder="Select Tag"
+            searchPlaceholder="Search tag..."
+            disabled={!selectedWorkshop}
+            onChange={handleTagChange}
+            options={availableTags.map((tag) => ({
+              value: tag.id,
+              label: tag.tagName,
+            }))}
+          />
+        </div>
+
+        <div className="export-filter-card">
+          <div className="export-filter-card-top">
             <span className="export-filter-badge is-question" aria-hidden>
               <HelpCircle size={16} strokeWidth={2.2} />
             </span>
@@ -1864,6 +2159,15 @@ const availableQuestions = useMemo(() => {
 
               <button
                 type="button"
+                className={activeView === "notes" ? "active" : ""}
+                onClick={() => setActiveView("notes")}
+              >
+                <StickyNote size={16} strokeWidth={2.2} />
+                Notes
+              </button>
+
+              <button
+                type="button"
                 className={activeView === "actionable" ? "active" : ""}
                 onClick={() => setActiveView("actionable")}
               >
@@ -1907,16 +2211,22 @@ const availableQuestions = useMemo(() => {
       {/* =========================================
           LOADING / ERROR
       ========================================= */}
-      {loadingInitial || loading ? (
+      {loadingInitial ? (
 
         <div className="export-message">
           Loading...
         </div>
 
-      ) : error ? (
+      ) : error && responses.length === 0 ? (
 
         <div className="export-message error">
           {error}
+        </div>
+
+      ) : loading && responses.length === 0 ? (
+
+        <div className="export-message">
+          Loading responses...
         </div>
 
       ) : activeView === "summary" ? (
@@ -1975,6 +2285,45 @@ const availableQuestions = useMemo(() => {
                         {item.missionKeywords.length > 0
                           ? item.missionKeywords.join(", ")
                           : item.missionText || "-"}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : activeView === "notes" ? (
+        <section className="export-table-card">
+          <div className="export-table-scroll">
+            <table className="export-table">
+              <thead>
+                <tr>
+                  <th>Participant</th>
+                  <th>Category</th>
+                  <th>Question</th>
+                  <th>Notes</th>
+                  <th>Response</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredNotes.length === 0 ? (
+                  <tr>
+                    <td colSpan={5}>No notes found.</td>
+                  </tr>
+                ) : (
+                  filteredNotes.map((item, index) => (
+                    <tr key={`${item.participant}-note-${index}`}>
+                      <td>{item.participant}</td>
+                      <td>
+                        {item.category?.split(">").pop()?.trim() || "-"}
+                      </td>
+                      <td>{item.question}</td>
+                      <td className="export-text-cell">
+                        {item.note || "-"}
+                      </td>
+                      <td className="export-text-cell">
+                        {item.response || "-"}
                       </td>
                     </tr>
                   ))
@@ -2048,8 +2397,8 @@ const availableQuestions = useMemo(() => {
                   <th>Category</th>
                   <th>Question</th>
                   <th>Response</th>
+                  <th>Notes</th>
                   <th>Attachment</th>
-                  <th>Action</th>
                 </tr>
               </thead>
 
@@ -2102,6 +2451,12 @@ const availableQuestions = useMemo(() => {
                         </td>
 
 
+                        {/* NOTES */}
+                        <td className="export-text-cell">
+                          {item.note ? item.note : "-"}
+                        </td>
+
+
                         {/* ATTACHMENT */}
                         <td>
 
@@ -2134,45 +2489,6 @@ const availableQuestions = useMemo(() => {
 
                         </td>
 
-                        <td>
-                          {item.source === "od" &&
-                          item.participantId &&
-                          item.categoryId &&
-                          item.workshopId ? (
-                            <button
-                              type="button"
-                              className="export-add-actionable-btn"
-                              title="Add as Actionable"
-                              onClick={() =>
-                                setActionablePreset({
-                                  participantId: item.participantId!,
-                                  workshopId: item.workshopId!,
-                                  organizationId: item.organizationId || "",
-                                  categoryId: item.categoryId!,
-                                  categoryName:
-                                    item.category
-                                      ?.split(">")
-                                      .pop()
-                                      ?.trim() ||
-                                    item.category ||
-                                    "Category",
-                                  categoryPath:
-                                    item.categoryPath ||
-                                    item.category ||
-                                    "",
-                                  participantLabel: item.participant,
-                                  allowAfterEnd: true,
-                                })
-                              }
-                            >
-                              <ClipboardPlus size={15} strokeWidth={2.2} />
-                              <span>Add as Actionable</span>
-                            </button>
-                          ) : (
-                            <span className="export-no-attachment">-</span>
-                          )}
-                        </td>
-
                       </tr>
 
                     )
@@ -2189,12 +2505,6 @@ const availableQuestions = useMemo(() => {
         </section>
 
       )}
-
-      <AddActionableModal
-        open={Boolean(actionablePreset)}
-        preset={actionablePreset}
-        onClose={() => setActionablePreset(null)}
-      />
 
     </main>
 
