@@ -5,6 +5,10 @@ const {
 } = require("../shared/tableHelper");
 const { assertWorkshopEditable } = require("../shared/workshopAccess");
 const { loadParticipantDisplayName } = require("../shared/participantNames");
+const {
+  normalizeAttachmentList,
+  serializeAttachmentsJson,
+} = require("../shared/attachmentHelper");
 
 function buildOptionLookup(optionClient) {
   return listPartition(optionClient, "QuestionOption").then((allOptions) => {
@@ -103,10 +107,18 @@ module.exports = async function (context, req) {
     for (const questionId of questionIds) {
       const answerText = String(answers[questionId] || "").trim();
       const noteText = String(notesMap[questionId] || "").trim();
-      const attachmentMeta = attachmentMap[questionId];
+      const hasAttachmentKey = Object.prototype.hasOwnProperty.call(
+        attachmentMap,
+        questionId
+      );
+      const attachmentList = hasAttachmentKey
+        ? normalizeAttachmentList(attachmentMap[questionId])
+        : null;
 
-      if (!answerText && !noteText && !attachmentMeta) {
-        continue;
+      if (!answerText && !noteText && !(attachmentList && attachmentList.length)) {
+        if (!hasAttachmentKey) {
+          continue;
+        }
       }
 
       try {
@@ -135,20 +147,21 @@ module.exports = async function (context, req) {
         existing = null;
       }
 
-      const nextAttachmentName = attachmentMeta
-        ? String(attachmentMeta.fileName || attachmentMeta.name || "").trim()
-        : String(existing?.AttachmentName || "").trim();
-      const nextAttachmentBlobPath = attachmentMeta
-        ? String(attachmentMeta.blobPath || "").trim()
-        : String(existing?.AttachmentBlobPath || "").trim();
-      const nextAttachmentContentType = attachmentMeta
-        ? String(
-            attachmentMeta.contentType || "application/octet-stream"
-          ).trim()
-        : String(existing?.AttachmentContentType || "").trim();
-      const nextAttachmentSize = attachmentMeta
-        ? Number(attachmentMeta.size || 0)
-        : Number(existing?.AttachmentSize || 0);
+      const nextList = hasAttachmentKey
+        ? attachmentList
+        : normalizeAttachmentList(
+            existing?.AttachmentsJson ||
+              (existing?.AttachmentBlobPath
+                ? {
+                    fileName: existing.AttachmentName,
+                    blobPath: existing.AttachmentBlobPath,
+                    contentType: existing.AttachmentContentType,
+                    size: existing.AttachmentSize,
+                  }
+                : [])
+          );
+
+      const primary = nextList[0] || null;
 
       const entity = {
         partitionKey: String(participantId),
@@ -164,10 +177,13 @@ module.exports = async function (context, req) {
         NoteText: Object.prototype.hasOwnProperty.call(notesMap, questionId)
           ? noteText
           : String(existing?.NoteText || ""),
-        AttachmentName: nextAttachmentName,
-        AttachmentBlobPath: nextAttachmentBlobPath,
-        AttachmentContentType: nextAttachmentContentType,
-        AttachmentSize: nextAttachmentSize || 0,
+        AttachmentName: primary ? primary.fileName : "",
+        AttachmentBlobPath: primary ? primary.blobPath : "",
+        AttachmentContentType: primary
+          ? primary.contentType
+          : "",
+        AttachmentSize: primary ? primary.size || 0 : 0,
+        AttachmentsJson: serializeAttachmentsJson(nextList),
         SubmittedDate: now,
       };
 
@@ -185,13 +201,8 @@ module.exports = async function (context, req) {
         savedNotes[questionId] = entity.NoteText;
       }
 
-      if (entity.AttachmentBlobPath) {
-        savedAttachments[questionId] = {
-          fileName: entity.AttachmentName,
-          blobPath: entity.AttachmentBlobPath,
-          contentType: entity.AttachmentContentType,
-          size: entity.AttachmentSize,
-        };
+      if (nextList.length > 0) {
+        savedAttachments[questionId] = nextList;
       }
     }
 

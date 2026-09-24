@@ -454,37 +454,65 @@ export default function Reports() {
             odQuestionIds.forEach((questionId) => {
               const answer = odAnswers[questionId];
               const noteText = String(odNotes[questionId] || "").trim();
-              const attachmentMeta = odAttachments[questionId];
+              const attachmentList = Array.isArray(odAttachments[questionId])
+                ? odAttachments[questionId]
+                : odAttachments[questionId]?.blobPath
+                  ? [odAttachments[questionId]]
+                  : [];
               const hasAnswer =
                 answer !== undefined && String(answer).trim() !== "";
-              const hasAttachment = Boolean(attachmentMeta?.blobPath);
+              const hasAttachment = attachmentList.length > 0;
 
               if (!hasAnswer && !hasAttachment && !noteText) {
                 return;
               }
 
               const meta = questionMetaById.get(String(questionId));
-              rows.push({
-                participant: participantName,
-                participantId,
-                category: meta?.path || "OD Chart",
-                question:
-                  data.questionLabels?.[questionId] || String(questionId),
-                questionId,
-                questionType:
-                  data.questionTypes?.[questionId] || meta?.answerType || "",
-                response: hasAnswer ? String(answer) : "",
-                note: noteText,
-                attachment: hasAttachment
-                  ? `/api/get-od-attachment?participantId=${encodeURIComponent(
-                      participantId
-                    )}&workshopId=${encodeURIComponent(
-                      selectedWorkshop.id
-                    )}&questionId=${encodeURIComponent(questionId)}`
-                  : "-",
-                attachmentFileName: hasAttachment
-                  ? String(attachmentMeta?.fileName || "attachment")
-                  : undefined,
+              if (!hasAttachment) {
+                rows.push({
+                  participant: participantName,
+                  participantId,
+                  category: meta?.path || "OD Chart",
+                  question:
+                    data.questionLabels?.[questionId] || String(questionId),
+                  questionId,
+                  questionType:
+                    data.questionTypes?.[questionId] || meta?.answerType || "",
+                  response: hasAnswer ? String(answer) : "",
+                  note: noteText,
+                  attachment: "-",
+                  attachmentFileName: undefined,
+                });
+                return;
+              }
+
+              attachmentList.forEach((attachmentMeta: any, attachIndex: number) => {
+                const blobPath = String(attachmentMeta?.blobPath || "").trim();
+                rows.push({
+                  participant: participantName,
+                  participantId,
+                  category: meta?.path || "OD Chart",
+                  question:
+                    data.questionLabels?.[questionId] || String(questionId),
+                  questionId,
+                  questionType:
+                    data.questionTypes?.[questionId] || meta?.answerType || "",
+                  response:
+                    attachIndex === 0 && hasAnswer ? String(answer) : "",
+                  note: attachIndex === 0 ? noteText : "",
+                  attachment: blobPath
+                    ? `/api/get-od-attachment?participantId=${encodeURIComponent(
+                        participantId
+                      )}&workshopId=${encodeURIComponent(
+                        selectedWorkshop.id
+                      )}&questionId=${encodeURIComponent(
+                        questionId
+                      )}&blobPath=${encodeURIComponent(blobPath)}`
+                    : "-",
+                  attachmentFileName: String(
+                    attachmentMeta?.fileName || "attachment"
+                  ),
+                });
               });
             });
           }

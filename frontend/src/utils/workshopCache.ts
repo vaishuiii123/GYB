@@ -642,7 +642,18 @@ export type CategoryQuestionsPayload = {
     options: { optionText: string }[] | string[];
   }>;
   answers?: Record<string, string>;
-  attachments?: Record<string, { fileName: string; blobPath?: string; contentType?: string; size?: number }>;
+  notes?: Record<string, string>;
+  attachments?: Record<
+    string,
+    | { id?: string; fileName: string; blobPath?: string; contentType?: string; size?: number }
+    | Array<{
+        id?: string;
+        fileName: string;
+        blobPath?: string;
+        contentType?: string;
+        size?: number;
+      }>
+  >;
 };
 
 function categoryQuestionsCacheKey(

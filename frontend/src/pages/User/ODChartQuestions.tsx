@@ -37,6 +37,7 @@ import {
   ATTACHMENT_ACCEPT,
   ATTACHMENT_HINT,
   isAllowedAttachmentFile,
+  normalizeAttachmentList,
 } from "../../utils/attachmentTypes";
 const STATUS_OPTIONS = [
   { value: "Red", label: "Red", className: "status-red" },
@@ -71,6 +72,7 @@ function statusPresetFor(value: string) {
   );
 }
 type AttachmentMeta = {
+  id: string;
   fileName: string;
   blobPath?: string;
   contentType?: string;
@@ -78,10 +80,22 @@ type AttachmentMeta = {
 };
 
 type PendingFile = {
+  id: string;
   file: File;
   fileName: string;
   contentType: string;
 };
+
+function makeAttachmentId() {
+  return `att_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function attachmentsForQuestion(
+  map: Record<string, AttachmentMeta[]>,
+  questionId: string
+): AttachmentMeta[] {
+  return map[questionId] || [];
+}
 
 function loadNavState(
   location: ReturnType<typeof useLocation>
@@ -120,10 +134,10 @@ export default function ODChartQuestions() {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [savedAttachments, setSavedAttachments] = useState<
-    Record<string, AttachmentMeta>
+    Record<string, AttachmentMeta[]>
   >({});
   const [pendingFiles, setPendingFiles] = useState<
-    Record<string, PendingFile>
+    Record<string, PendingFile[]>
   >({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -208,7 +222,7 @@ export default function ODChartQuestions() {
       }>;
       answers?: Record<string, string>;
       notes?: Record<string, string>;
-      attachments?: Record<string, AttachmentMeta>;
+      attachments?: Record<string, unknown>;
     }) => {
       setQuestions(
         (data.data || []).map((item) => ({
@@ -239,7 +253,19 @@ export default function ODChartQuestions() {
           }
         });
         setNoteUpdatedAt(initialUpdated);
-        setSavedAttachments(data.attachments || {});
+        const nextAttachments: Record<string, AttachmentMeta[]> = {};
+        Object.entries(data.attachments || {}).forEach(([questionId, value]) => {
+          nextAttachments[questionId] = normalizeAttachmentList(value).map(
+            (item) => ({
+              id: item.id || item.blobPath || item.fileName,
+              fileName: item.fileName,
+              blobPath: item.blobPath,
+              contentType: item.contentType,
+              size: item.size,
+            })
+          );
+        });
+        setSavedAttachments(nextAttachments);
         setPendingFiles({});
       }
     };
@@ -274,7 +300,7 @@ export default function ODChartQuestions() {
             options: { optionText: string }[] | string[];
           }>;
           answers?: Record<string, string>;
-          attachments?: Record<string, AttachmentMeta>;
+          attachments?: Record<string, AttachmentMeta[] | AttachmentMeta>;
         }>(cacheKey);
 
         const activeWorkshop = getActiveWorkshopContext().workshop;
@@ -431,21 +457,49 @@ export default function ODChartQuestions() {
     setNotesEditing(true);
   };
 
-  const clearAttachmentForQuestion = (questionId: string) => {
+  const clearAttachmentForQuestion = (
+    questionId: string,
+    attachmentId?: string
+  ) => {
     if (!canEdit) {
       return;
     }
     answersDirtyRef.current = true;
     setIsDirty(true);
+
+    if (!attachmentId) {
+      setPendingFiles((prev) => {
+        const next = { ...prev };
+        delete next[questionId];
+        return next;
+      });
+      setSavedAttachments((prev) => ({
+        ...prev,
+        [questionId]: [],
+      }));
+      return;
+    }
+
     setPendingFiles((prev) => {
+      const nextList = (prev[questionId] || []).filter(
+        (item) => item.id !== attachmentId
+      );
       const next = { ...prev };
-      delete next[questionId];
+      if (nextList.length) {
+        next[questionId] = nextList;
+      } else {
+        delete next[questionId];
+      }
       return next;
     });
     setSavedAttachments((prev) => {
-      const next = { ...prev };
-      delete next[questionId];
-      return next;
+      const nextList = (prev[questionId] || []).filter(
+        (item) => item.id !== attachmentId
+      );
+      return {
+        ...prev,
+        [questionId]: nextList,
+      };
     });
   };
 
@@ -489,21 +543,32 @@ export default function ODChartQuestions() {
       return;
     }
 
-    const file = event.target.files?.[0];
-    if (!file) {
+    const files = Array.from(event.target.files || []);
+    if (!files.length) {
       return;
     }
 
-    if (file.size > 10 * 1024 * 1024) {
-      setErrorMessage("Attachment exceeds the 10 MB size limit.");
-      event.target.value = "";
-      return;
+    const accepted: PendingFile[] = [];
+    for (const file of files) {
+      if (file.size > 10 * 1024 * 1024) {
+        setErrorMessage(`"${file.name}" exceeds the 10 MB size limit.`);
+        continue;
+      }
+      if (!isAllowedAttachmentFile(file.name, file.type)) {
+        setErrorMessage(
+          `"${file.name}" is unsupported. Allowed: images, Word, Excel, and PDF.`
+        );
+        continue;
+      }
+      accepted.push({
+        id: makeAttachmentId(),
+        file,
+        fileName: file.name,
+        contentType: file.type || "application/octet-stream",
+      });
     }
 
-    if (!isAllowedAttachmentFile(file.name, file.type)) {
-      setErrorMessage(
-        "Unsupported file type. Allowed: images, Word, Excel, and PDF."
-      );
+    if (!accepted.length) {
       event.target.value = "";
       return;
     }
@@ -512,13 +577,10 @@ export default function ODChartQuestions() {
     setIsDirty(true);
     setPendingFiles((prev) => ({
       ...prev,
-      [questionId]: {
-        file,
-        fileName: file.name,
-        contentType: file.type || "application/octet-stream",
-      },
+      [questionId]: [...(prev[questionId] || []), ...accepted],
     }));
     setErrorMessage("");
+    event.target.value = "";
   };
 
   const handleSave = async (): Promise<boolean> => {
@@ -540,41 +602,48 @@ export default function ODChartQuestions() {
       setErrorMessage("");
       setSuccessMessage("");
 
-      const uploadedAttachments: Record<string, AttachmentMeta> = {
+      const uploadedAttachments: Record<string, AttachmentMeta[]> = {
         ...savedAttachments,
       };
 
-      for (const [questionId, pending] of Object.entries(pendingFiles)) {
-        const base64 = await fileToBase64(pending.file);
-        const uploadResponse = await fetch("/api/upload-od-attachment", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            participantId: participant.id,
-            workshopId: navState.workshop.id,
-            organizationId: participant.organizationId || "",
-            questionId,
-            fileName: pending.fileName,
-            contentType: pending.contentType,
-            base64,
-          }),
-        });
-        const uploadResult = await uploadResponse.json();
+      for (const [questionId, pendingList] of Object.entries(pendingFiles)) {
+        const merged = [...(uploadedAttachments[questionId] || [])];
 
-        if (!uploadResponse.ok || !uploadResult.success) {
-          setErrorMessage(
-            uploadResult.message ||
-              `Failed to upload attachment for question ${questionId}.`
-          );
-          return false;
+        for (const pending of pendingList) {
+          const base64 = await fileToBase64(pending.file);
+          const uploadResponse = await fetch("/api/upload-od-attachment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              participantId: participant.id,
+              workshopId: navState.workshop.id,
+              organizationId: participant.organizationId || "",
+              questionId,
+              fileName: pending.fileName,
+              contentType: pending.contentType,
+              base64,
+            }),
+          });
+          const uploadResult = await uploadResponse.json();
+
+          if (!uploadResponse.ok || !uploadResult.success) {
+            setErrorMessage(
+              uploadResult.message ||
+                `Failed to upload attachment for question ${questionId}.`
+            );
+            return false;
+          }
+
+          merged.push({
+            id: pending.id,
+            fileName: uploadResult.data.fileName,
+            blobPath: uploadResult.data.blobPath,
+            contentType: uploadResult.data.contentType,
+            size: uploadResult.data.size,
+          });
         }
 
-        uploadedAttachments[questionId] = {
-          fileName: uploadResult.data.fileName,
-          blobPath: uploadResult.data.blobPath,
-          contentType: uploadResult.data.contentType,
-          size: uploadResult.data.size,
-        };
+        uploadedAttachments[questionId] = merged;
       }
 
       const response = await fetch("/api/save-od-responses", {
@@ -617,7 +686,7 @@ export default function ODChartQuestions() {
           data?: unknown;
           answers?: Record<string, string>;
           notes?: Record<string, string>;
-          attachments?: Record<string, AttachmentMeta>;
+          attachments?: Record<string, AttachmentMeta[]>;
         }>(cacheKey);
         if (existing?.success) {
           setCachedPageData(cacheKey, {
@@ -794,94 +863,147 @@ export default function ODChartQuestions() {
     );
   };
 
-  const renderAttachmentInput = (question: Question) => {
-    if (question.attachmentsApplicable !== "Y") {
-      return null;
-    }
+  const getQuestionAttachments = (questionId: string) => {
+    const pending = pendingFiles[questionId] || [];
+    const saved = attachmentsForQuestion(savedAttachments, questionId);
+    const pendingIds = new Set(pending.map((item) => item.id));
 
-    const pending = pendingFiles[question.id];
-    const saved = savedAttachments[question.id];
-    const displayName = pending?.fileName || saved?.fileName || "";
-    const sizeLabel = formatFileSize(pending?.file.size || saved?.size);
-    const savedUrl =
-      saved?.blobPath && !pending && navState && participant.id
-        ? `/api/get-od-attachment?participantId=${encodeURIComponent(
-            String(participant.id)
-          )}&workshopId=${encodeURIComponent(
-            navState.workshop.id
-          )}&questionId=${encodeURIComponent(question.id)}`
-        : "";
+    const items: Array<{
+      id: string;
+      fileName: string;
+      size?: number;
+      contentType?: string;
+      file?: File;
+      blobPath?: string;
+      pending: boolean;
+    }> = [
+      ...pending.map((item) => ({
+        id: item.id,
+        fileName: item.fileName,
+        size: item.file.size,
+        contentType: item.contentType,
+        file: item.file,
+        pending: true as const,
+      })),
+      ...saved
+        .filter((item) => !pendingIds.has(item.id))
+        .map((item) => ({
+          id: item.id,
+          fileName: item.fileName,
+          size: item.size,
+          contentType: item.contentType,
+          blobPath: item.blobPath,
+          pending: false as const,
+        })),
+    ];
+
+    return items;
+  };
+
+  const attachmentUrlFor = (questionId: string, blobPath?: string) => {
+    if (!blobPath || !navState || !participant.id) {
+      return "";
+    }
+    return `/api/get-od-attachment?participantId=${encodeURIComponent(
+      String(participant.id)
+    )}&workshopId=${encodeURIComponent(
+      navState.workshop.id
+    )}&questionId=${encodeURIComponent(
+      questionId
+    )}&blobPath=${encodeURIComponent(blobPath)}`;
+  };
+
+  const renderAttachmentPanel = (question: Question) => {
+    const items = getQuestionAttachments(question.id);
 
     return (
-      <div className="od-notes-attachments">
-        <div className="od-notes-section-title">Attachments</div>
-        {displayName ? (
-          <div className="od-notes-file-row">
-            <div className="od-notes-file-main">
-              <span className="od-notes-file-icon" aria-hidden>
-                <FileText size={18} strokeWidth={2} />
-              </span>
-              <div>
-                <span className="od-notes-file-name">{displayName}</span>
-                {sizeLabel ? (
-                  <span className="od-notes-file-size">{sizeLabel}</span>
-                ) : null}
-                <div className="od-notes-file-actions">
+      <div className="od-attach-card">
+        <div className="od-attach-card-head">
+          <span className="od-attach-card-title">
+            <Paperclip size={14} strokeWidth={2.2} aria-hidden />
+            Attachments
+            {items.length > 0 ? ` (${items.length})` : ""}
+          </span>
+          {canEdit ? (
+            <label className="od-attach-upload-btn">
+              <input
+                id={`od-attach-${question.id}`}
+                type="file"
+                accept={ATTACHMENT_ACCEPT}
+                multiple
+                disabled={saving}
+                onChange={(event) =>
+                  handleAttachmentChange(question.id, event)
+                }
+              />
+              Choose files
+            </label>
+          ) : null}
+        </div>
+
+        {items.length ? (
+          <ul className="od-attach-list">
+            {items.map((item) => {
+              const url = attachmentUrlFor(question.id, item.blobPath);
+              return (
+                <li key={item.id} className="od-attach-list-item">
+                  <span className="od-attach-list-icon" aria-hidden>
+                    <FileText size={12} strokeWidth={2} />
+                  </span>
+                  <span className="od-attach-list-name" title={item.fileName}>
+                    {item.fileName}
+                  </span>
+                  {formatFileSize(item.size) ? (
+                    <span className="od-attach-list-size">
+                      {formatFileSize(item.size)}
+                    </span>
+                  ) : null}
                   <button
                     type="button"
                     className="od-notes-file-action"
                     onClick={() =>
                       setAttachmentPreview({
-                        url: savedUrl || undefined,
-                        file: pending?.file,
-                        fileName: displayName,
-                        contentType:
-                          pending?.contentType || saved?.contentType || "",
+                        url: url || undefined,
+                        file: item.file,
+                        fileName: item.fileName,
+                        contentType: item.contentType || "",
                       })
                     }
                   >
                     Preview
                   </button>
-                  {savedUrl ? (
+                  {url ? (
                     <a
                       className="od-notes-file-action"
-                      href={`${savedUrl}&inline=0`}
+                      href={`${url}&inline=0`}
                       target="_blank"
                       rel="noreferrer"
                     >
                       Download
                     </a>
                   ) : null}
-                </div>
-              </div>
-            </div>
-            {canEdit ? (
-              <button
-                type="button"
-                className="od-notes-file-remove"
-                onClick={() => clearAttachmentForQuestion(question.id)}
-                disabled={saving}
-                aria-label="Remove attachment"
-              >
-                <Trash2 size={16} strokeWidth={2} />
-              </button>
-            ) : null}
-          </div>
+                  {canEdit ? (
+                    <button
+                      type="button"
+                      className="od-notes-file-remove"
+                      onClick={() =>
+                        clearAttachmentForQuestion(question.id, item.id)
+                      }
+                      disabled={saving}
+                      aria-label={`Remove ${item.fileName}`}
+                    >
+                      <Trash2 size={12} strokeWidth={2} />
+                    </button>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
         ) : (
-          <p className="od-notes-empty-attach">No attachments yet.</p>
+          <p className="od-attach-empty">No attachments yet.</p>
         )}
-        {canEdit ? (
-          <label className="od-notes-upload">
-            <input
-              type="file"
-              accept={ATTACHMENT_ACCEPT}
-              disabled={saving}
-              onChange={(event) => handleAttachmentChange(question.id, event)}
-            />
-            <span>Choose File</span>
-            <small>{ATTACHMENT_HINT}</small>
-          </label>
-        ) : null}
+
+        <p className="od-attach-hint">{ATTACHMENT_HINT}</p>
       </div>
     );
   };
@@ -955,12 +1077,6 @@ export default function ODChartQuestions() {
           questions.map((question, index) => {
             const noteText = String(notes[question.id] || "").trim();
             const hasNote = Boolean(noteText);
-            const pending = pendingFiles[question.id];
-            const saved = savedAttachments[question.id];
-            const hasAttachment = Boolean(
-              pending?.fileName || saved?.fileName || saved?.blobPath
-            );
-            const attachmentCount = hasAttachment ? 1 : 0;
             const isNotesOpen = notesPanelQuestionId === question.id;
 
             return (
@@ -987,16 +1103,9 @@ export default function ODChartQuestions() {
 
                 {renderQuestionInput(question)}
 
-                <div className="question-card-footer">
-                  <div className="question-card-meta">
-                    <span className="question-meta-item">
-                      <Paperclip size={14} strokeWidth={2.2} aria-hidden />
-                      {attachmentCount > 0
-                        ? `${attachmentCount} Attachment`
-                        : "No attachments"}
-                    </span>
-                  </div>
+                {renderAttachmentPanel(question)}
 
+                <div className="question-card-footer">
                   <div className="question-card-actions">
                     <button
                       type="button"
@@ -1094,8 +1203,6 @@ export default function ODChartQuestions() {
                   {formatNoteTimestamp(noteUpdatedAt[notesPanelQuestion.id])}
                 </p>
               ) : null}
-
-              {renderAttachmentInput(notesPanelQuestion)}
             </div>
 
             <div className="od-notes-drawer-footer">

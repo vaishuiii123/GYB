@@ -875,48 +875,87 @@ export default function Export({ user }: PageProps) {
               odQuestionIds.forEach((questionId) => {
                 const answer = odAnswers[questionId];
                 const noteText = String(odNotes[questionId] || "").trim();
-                const attachmentMeta = odAttachments[questionId];
+                const attachmentList = Array.isArray(odAttachments[questionId])
+                  ? odAttachments[questionId]
+                  : odAttachments[questionId]?.blobPath
+                    ? [odAttachments[questionId]]
+                    : [];
                 const hasAnswer =
                   answer !== undefined && String(answer).trim() !== "";
-                const hasAttachment = Boolean(attachmentMeta?.blobPath);
+                const hasAttachment = attachmentList.length > 0;
 
                 if (!hasAnswer && !hasAttachment && !noteText) {
                   return;
                 }
 
-                const attachmentUrl = hasAttachment
-                  ? `/api/get-od-attachment?participantId=${encodeURIComponent(
-                      participant.participantId
-                    )}&workshopId=${encodeURIComponent(
-                      selectedWorkshop
-                    )}&questionId=${encodeURIComponent(questionId)}`
-                  : "-";
                 const categoryMeta = getCategoryMetaForQuestion(questionId);
 
-                rows.push({
-                  participant: participantName,
-                  participantId: String(participant.participantId || ""),
-                  organization: organizationName,
-                  organizationId,
-                  workshop: workshopName,
-                  workshopId,
-                  category: categoryMeta.path,
-                  categoryId: categoryMeta.id,
-                  categoryPath: categoryMeta.path,
-                  question:
-                    data.questionLabels?.[questionId] || questionId,
-                  questionId,
-                  questionType:
-                    data.questionTypes?.[questionId] ||
-                    getQuestionTypeForQuestion(questionId),
-                  response: hasAnswer ? String(answer) : "",
-                  note: noteText,
-                  attachment: attachmentUrl,
-                  attachmentFileName: hasAttachment
-                    ? String(attachmentMeta?.fileName || "attachment")
-                    : undefined,
-                  source: "od",
-                });
+                if (!hasAttachment) {
+                  rows.push({
+                    participant: participantName,
+                    participantId: String(participant.participantId || ""),
+                    organization: organizationName,
+                    organizationId,
+                    workshop: workshopName,
+                    workshopId,
+                    category: categoryMeta.path,
+                    categoryId: categoryMeta.id,
+                    categoryPath: categoryMeta.path,
+                    question:
+                      data.questionLabels?.[questionId] || questionId,
+                    questionId,
+                    questionType:
+                      data.questionTypes?.[questionId] ||
+                      getQuestionTypeForQuestion(questionId),
+                    response: hasAnswer ? String(answer) : "",
+                    note: noteText,
+                    attachment: "-",
+                    attachmentFileName: undefined,
+                    source: "od",
+                  });
+                  return;
+                }
+
+                attachmentList.forEach(
+                  (attachmentMeta: any, attachIndex: number) => {
+                    const blobPath = String(
+                      attachmentMeta?.blobPath || ""
+                    ).trim();
+                    rows.push({
+                      participant: participantName,
+                      participantId: String(participant.participantId || ""),
+                      organization: organizationName,
+                      organizationId,
+                      workshop: workshopName,
+                      workshopId,
+                      category: categoryMeta.path,
+                      categoryId: categoryMeta.id,
+                      categoryPath: categoryMeta.path,
+                      question:
+                        data.questionLabels?.[questionId] || questionId,
+                      questionId,
+                      questionType:
+                        data.questionTypes?.[questionId] ||
+                        getQuestionTypeForQuestion(questionId),
+                      response:
+                        attachIndex === 0 && hasAnswer ? String(answer) : "",
+                      note: attachIndex === 0 ? noteText : "",
+                      attachment: blobPath
+                        ? `/api/get-od-attachment?participantId=${encodeURIComponent(
+                            participant.participantId
+                          )}&workshopId=${encodeURIComponent(
+                            selectedWorkshop
+                          )}&questionId=${encodeURIComponent(
+                            questionId
+                          )}&blobPath=${encodeURIComponent(blobPath)}`
+                        : "-",
+                      attachmentFileName: String(
+                        attachmentMeta?.fileName || "attachment"
+                      ),
+                      source: "od",
+                    });
+                  }
+                );
               });
             }
 

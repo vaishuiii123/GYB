@@ -110,6 +110,7 @@ function groupOptionsByQuestionIds(allOptions, questionIds) {
 }
 
 async function listAnswersForWorkshop(answerTable, participantId, workshopId) {
+  const { attachmentsFromAnswerEntity } = require("./attachmentHelper");
   const answers = {};
   const notes = {};
   const attachments = {};
@@ -133,16 +134,9 @@ async function listAnswersForWorkshop(answerTable, participantId, workshopId) {
           notes[entity.QuestionId] = noteText;
         }
 
-        const blobPath = String(entity.AttachmentBlobPath || "").trim();
-        if (blobPath) {
-          attachments[entity.QuestionId] = {
-            fileName: String(entity.AttachmentName || "attachment"),
-            blobPath,
-            contentType: String(
-              entity.AttachmentContentType || "application/octet-stream"
-            ),
-            size: Number(entity.AttachmentSize || 0),
-          };
+        const list = attachmentsFromAnswerEntity(entity);
+        if (list.length > 0) {
+          attachments[entity.QuestionId] = list;
         }
       }
 

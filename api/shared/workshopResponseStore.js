@@ -74,16 +74,12 @@ async function listOdResponsesForWorkshop(workshopId) {
           current.notes[entity.QuestionId] = noteText;
         }
 
-        const blobPath = String(entity.AttachmentBlobPath || "").trim();
-        if (blobPath) {
-          current.attachments[entity.QuestionId] = {
-            fileName: String(entity.AttachmentName || "attachment"),
-            blobPath,
-            contentType: String(
-              entity.AttachmentContentType || "application/octet-stream"
-            ),
-            size: Number(entity.AttachmentSize || 0),
-          };
+        const {
+          attachmentsFromAnswerEntity,
+        } = require("./attachmentHelper");
+        const list = attachmentsFromAnswerEntity(entity);
+        if (list.length > 0) {
+          current.attachments[entity.QuestionId] = list;
         }
       }
 

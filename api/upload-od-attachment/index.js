@@ -2,7 +2,6 @@ const { getTableClient } = require("../shared/tableHelper");
 const { assertWorkshopEditable } = require("../shared/workshopAccess");
 const { uploadAttachmentBlob } = require("../shared/blobHelper");
 const {
-  isAttachmentsApplicable,
   isAllowedAttachmentFile,
   MAX_ATTACHMENT_BYTES,
   sanitizeFileName,
@@ -48,9 +47,8 @@ module.exports = async function (context, req) {
       return;
     }
 
-    let question;
     try {
-      question = await getTableClient("Questions").getEntity(
+      await getTableClient("Questions").getEntity(
         "Question",
         String(questionId)
       );
@@ -60,17 +58,6 @@ module.exports = async function (context, req) {
         body: {
           success: false,
           message: `Question ${questionId} was not found.`,
-        },
-      };
-      return;
-    }
-
-    if (!isAttachmentsApplicable(question.AttachmentsApplicable)) {
-      context.res = {
-        status: 400,
-        body: {
-          success: false,
-          message: "Attachments are not applicable for this question.",
         },
       };
       return;

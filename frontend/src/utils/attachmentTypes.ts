@@ -89,7 +89,57 @@ export function isAllowedAttachmentFile(
 }
 
 export function canInlinePreview(kind: AttachmentKind): boolean {
-  return kind === "image" || kind === "pdf";
+  return (
+    kind === "image" ||
+    kind === "pdf" ||
+    kind === "doc" ||
+    kind === "excel"
+  );
+}
+
+export function normalizeAttachmentList(
+  value: unknown
+): Array<{
+  id?: string;
+  fileName: string;
+  blobPath?: string;
+  contentType?: string;
+  size?: number;
+}> {
+  if (!value) {
+    return [];
+  }
+
+  const asItem = (item: any) => {
+    if (!item || typeof item !== "object") {
+      return null;
+    }
+    const fileName = String(item.fileName || item.name || "").trim();
+    const blobPath = String(item.blobPath || "").trim();
+    if (!fileName && !blobPath) {
+      return null;
+    }
+    return {
+      id: String(item.id || blobPath || fileName),
+      fileName: fileName || "attachment",
+      blobPath: blobPath || undefined,
+      contentType: String(item.contentType || "application/octet-stream"),
+      size: Number(item.size || 0),
+    };
+  };
+
+  if (Array.isArray(value)) {
+    return value.map(asItem).filter(Boolean) as Array<{
+      id?: string;
+      fileName: string;
+      blobPath?: string;
+      contentType?: string;
+      size?: number;
+    }>;
+  }
+
+  const single = asItem(value);
+  return single ? [single] : [];
 }
 
 export function withInlineDisposition(url: string): string {

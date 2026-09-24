@@ -5,19 +5,25 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: 20px;
   background: rgba(15, 23, 42, 0.55);
 }
 
 .attachment-preview-modal {
-  width: min(960px, 100%);
-  max-height: min(90vh, 900px);
+  width: min(1100px, 96vw);
+  max-height: min(92vh, 920px);
   display: flex;
   flex-direction: column;
   background: #ffffff;
   border-radius: 14px;
   box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
   overflow: hidden;
+}
+
+.attachment-preview-modal.is-large {
+  width: min(1100px, 96vw);
+  max-height: min(92vh, 920px);
+  border: 1px solid #e5e7eb;
 }
 
 .attachment-preview-header {
@@ -67,35 +73,72 @@
 
 .attachment-preview-body {
   flex: 1;
-  min-height: 280px;
+  min-height: 420px;
   overflow: auto;
-  padding: 16px 18px;
+  padding: 18px;
   background: #f8fafc;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
 }
 
 .attachment-preview-image {
   max-width: 100%;
-  max-height: min(65vh, 640px);
+  max-height: min(72vh, 720px);
   object-fit: contain;
   border-radius: 8px;
   background: #fff;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  margin: auto;
 }
 
 .attachment-preview-frame {
   width: 100%;
-  height: min(65vh, 640px);
+  height: min(72vh, 720px);
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   background: #fff;
 }
 
+.attachment-preview-html {
+  width: 100%;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  overflow: auto;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #111827;
+}
+
+.attachment-preview-html.is-doc p {
+  margin: 0 0 0.75em;
+}
+
+.attachment-preview-html.is-excel {
+  padding: 0;
+}
+
+.attachment-preview-html.is-excel table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.attachment-preview-html.is-excel td,
+.attachment-preview-html.is-excel th {
+  border: 1px solid #e5e7eb;
+  padding: 6px 8px;
+  white-space: nowrap;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .attachment-preview-office,
 .attachment-preview-status {
-  margin: 0;
+  margin: auto;
   text-align: center;
   color: #4b5563;
   font-size: 14px;
@@ -128,8 +171,17 @@
 }
 
 @media (max-width: 640px) {
-  .attachment-preview-modal {
+  .attachment-preview-backdrop {
+    padding: 12px;
+  }
+
+  .attachment-preview-modal.is-large {
+    width: 100%;
     max-height: 94vh;
+  }
+
+  .attachment-preview-body {
+    min-height: 280px;
   }
 
   .attachment-preview-footer {

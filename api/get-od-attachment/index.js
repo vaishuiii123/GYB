@@ -1,12 +1,16 @@
 const { getTableClient } = require("../shared/tableHelper");
 const { downloadAttachmentBlob } = require("../shared/blobHelper");
-const { buildContentDisposition } = require("../shared/attachmentHelper");
+const {
+  buildContentDisposition,
+  attachmentsFromAnswerEntity,
+} = require("../shared/attachmentHelper");
 
 module.exports = async function (context, req) {
   try {
     const participantId = String(req.query.participantId || "").trim();
     const workshopId = String(req.query.workshopId || "").trim();
     const questionId = String(req.query.questionId || "").trim();
+    const requestedBlobPath = String(req.query.blobPath || "").trim();
     const inline =
       String(req.query.inline || "").trim() === "1" ||
       String(req.query.inline || "")
@@ -41,7 +45,12 @@ module.exports = async function (context, req) {
       return;
     }
 
-    const blobPath = String(entity.AttachmentBlobPath || "").trim();
+    const list = attachmentsFromAnswerEntity(entity);
+    const selected = requestedBlobPath
+      ? list.find((item) => item.blobPath === requestedBlobPath)
+      : list[0];
+
+    const blobPath = String(selected?.blobPath || "").trim();
     if (!blobPath) {
       context.res = {
         status: 404,
@@ -55,7 +64,7 @@ module.exports = async function (context, req) {
 
     const downloaded = await downloadAttachmentBlob(blobPath);
     const fileName =
-      String(entity.AttachmentName || "attachment").replace(
+      String(selected.fileName || "attachment").replace(
         /[<>:"/\\|?*\x00-\x1f]+/g,
         "_"
       ) || "attachment";
@@ -64,7 +73,7 @@ module.exports = async function (context, req) {
       status: 200,
       headers: {
         "Content-Type":
-          entity.AttachmentContentType ||
+          selected.contentType ||
           downloaded.contentType ||
           "application/octet-stream",
         "Content-Disposition": buildContentDisposition(fileName, inline),

@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import { Download, ExternalLink, X } from "lucide-react";
+import mammoth from "mammoth";
+import * as XLSX from "xlsx";
 import {
   canInlinePreview,
   getAttachmentKind,
+  getFileExtension,
   withAttachmentDisposition,
   withInlineDisposition,
   type AttachmentKind,
@@ -21,8 +24,23 @@ type Props = {
   onClose: () => void;
 };
 
+async function loadArrayBuffer(target: AttachmentPreviewTarget): Promise<ArrayBuffer> {
+  if (target.file) {
+    return target.file.arrayBuffer();
+  }
+  if (!target.url) {
+    throw new Error("No attachment file is available to preview.");
+  }
+  const response = await fetch(withInlineDisposition(target.url));
+  if (!response.ok) {
+    throw new Error("Unable to load attachment for preview.");
+  }
+  return response.arrayBuffer();
+}
+
 export default function AttachmentPreviewModal({ target, onClose }: Props) {
   const [objectUrl, setObjectUrl] = useState("");
+  const [htmlPreview, setHtmlPreview] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -34,6 +52,7 @@ export default function AttachmentPreviewModal({ target, onClose }: Props) {
   useEffect(() => {
     if (!target) {
       setObjectUrl("");
+      setHtmlPreview("");
       setLoading(false);
       setError("");
       return;
@@ -46,35 +65,69 @@ export default function AttachmentPreviewModal({ target, onClose }: Props) {
       setLoading(true);
       setError("");
       setObjectUrl("");
+      setHtmlPreview("");
 
       try {
-        if (target.file) {
-          createdUrl = URL.createObjectURL(target.file);
+        if (kind === "image" || kind === "pdf") {
+          if (target.file) {
+            createdUrl = URL.createObjectURL(target.file);
+            if (!revoked) {
+              setObjectUrl(createdUrl);
+            }
+            return;
+          }
+
+          if (!target.url) {
+            setError("No attachment file is available to preview.");
+            return;
+          }
+
+          const response = await fetch(withInlineDisposition(target.url));
+          if (!response.ok) {
+            throw new Error("Unable to load attachment for preview.");
+          }
+
+          const blob = await response.blob();
+          createdUrl = URL.createObjectURL(blob);
           if (!revoked) {
             setObjectUrl(createdUrl);
           }
           return;
         }
 
-        if (!target.url) {
-          setError("No attachment file is available to preview.");
+        if (kind === "doc") {
+          const ext = getFileExtension(target.fileName);
+          if (ext === ".doc") {
+            setError(
+              "Preview for legacy .doc files is limited. Convert to .docx, or download to open."
+            );
+            return;
+          }
+          const buffer = await loadArrayBuffer(target);
+          const result = await mammoth.convertToHtml({ arrayBuffer: buffer });
+          if (!revoked) {
+            setHtmlPreview(result.value || "<p>(Empty document)</p>");
+          }
           return;
         }
 
-        if (!inlineCapable) {
+        if (kind === "excel") {
+          const buffer = await loadArrayBuffer(target);
+          const workbook = XLSX.read(buffer, { type: "array" });
+          const firstSheet = workbook.SheetNames[0];
+          if (!firstSheet) {
+            setError("This Excel file has no sheets to preview.");
+            return;
+          }
+          const sheet = workbook.Sheets[firstSheet];
+          const html = XLSX.utils.sheet_to_html(sheet);
+          if (!revoked) {
+            setHtmlPreview(html || "<p>(Empty sheet)</p>");
+          }
           return;
         }
 
-        const response = await fetch(withInlineDisposition(target.url));
-        if (!response.ok) {
-          throw new Error("Unable to load attachment for preview.");
-        }
-
-        const blob = await response.blob();
-        createdUrl = URL.createObjectURL(blob);
-        if (!revoked) {
-          setObjectUrl(createdUrl);
-        }
+        setError("Preview is not available for this file type.");
       } catch (err) {
         if (!revoked) {
           setError(
@@ -98,7 +151,7 @@ export default function AttachmentPreviewModal({ target, onClose }: Props) {
         URL.revokeObjectURL(createdUrl);
       }
     };
-  }, [target, inlineCapable]);
+  }, [target, kind, inlineCapable]);
 
   if (!target) {
     return null;
@@ -124,12 +177,13 @@ export default function AttachmentPreviewModal({ target, onClose }: Props) {
   };
 
   return (
-    <div className="attachment-preview-backdrop" role="presentation">
+    <div className="attachment-preview-backdrop" role="presentation" onClick={onClose}>
       <div
-        className="attachment-preview-modal"
+        className="attachment-preview-modal is-large"
         role="dialog"
         aria-modal="true"
         aria-label={`Preview ${target.fileName}`}
+        onClick={(event) => event.stopPropagation()}
       >
         <div className="attachment-preview-header">
           <div>
@@ -171,14 +225,13 @@ export default function AttachmentPreviewModal({ target, onClose }: Props) {
             />
           ) : null}
 
-          {!loading && !error && !inlineCapable ? (
-            <div className="attachment-preview-office">
-              <p>
-                Browser preview is not available for{" "}
-                {kind === "excel" ? "Excel" : "Word"} files.
-              </p>
-              <p>Download the file to open it in the desktop app.</p>
-            </div>
+          {!loading && !error && htmlPreview ? (
+            <div
+              className={`attachment-preview-html ${
+                kind === "excel" ? "is-excel" : "is-doc"
+              }`}
+              dangerouslySetInnerHTML={{ __html: htmlPreview }}
+            />
           ) : null}
         </div>
 

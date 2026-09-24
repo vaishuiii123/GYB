@@ -77,6 +77,75 @@ function buildContentDisposition(fileName, inline = false) {
   return `${mode}; filename="${safe}"`;
 }
 
+function normalizeAttachmentItem(item) {
+  if (!item || typeof item !== "object") {
+    return null;
+  }
+
+  const blobPath = String(item.blobPath || "").trim();
+  const fileName = String(item.fileName || item.name || "").trim();
+  if (!blobPath && !fileName) {
+    return null;
+  }
+
+  return {
+    id: String(item.id || blobPath || fileName),
+    fileName: fileName || "attachment",
+    blobPath,
+    contentType: String(item.contentType || "application/octet-stream"),
+    size: Number(item.size || 0),
+  };
+}
+
+function normalizeAttachmentList(value) {
+  if (!value) {
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(normalizeAttachmentItem).filter(Boolean);
+  }
+
+  if (typeof value === "string") {
+    try {
+      return normalizeAttachmentList(JSON.parse(value));
+    } catch {
+      return [];
+    }
+  }
+
+  const single = normalizeAttachmentItem(value);
+  return single ? [single] : [];
+}
+
+function attachmentsFromAnswerEntity(entity) {
+  const fromJson = normalizeAttachmentList(entity?.AttachmentsJson);
+  if (fromJson.length > 0) {
+    return fromJson;
+  }
+
+  const blobPath = String(entity?.AttachmentBlobPath || "").trim();
+  if (!blobPath) {
+    return [];
+  }
+
+  return [
+    {
+      id: blobPath,
+      fileName: String(entity.AttachmentName || "attachment"),
+      blobPath,
+      contentType: String(
+        entity.AttachmentContentType || "application/octet-stream"
+      ),
+      size: Number(entity.AttachmentSize || 0),
+    },
+  ];
+}
+
+function serializeAttachmentsJson(list) {
+  return JSON.stringify(normalizeAttachmentList(list));
+}
+
 module.exports = {
   normalizeAttachmentsApplicable,
   isAttachmentsApplicable,
@@ -86,4 +155,8 @@ module.exports = {
   isAllowedAttachmentFile,
   sanitizeFileName,
   buildContentDisposition,
+  normalizeAttachmentItem,
+  normalizeAttachmentList,
+  attachmentsFromAnswerEntity,
+  serializeAttachmentsJson,
 };
