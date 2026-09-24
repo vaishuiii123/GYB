@@ -951,21 +951,16 @@ export default function ODChartQuestions() {
                         ? `${attachmentCount} Attachment`
                         : "No attachments"}
                     </span>
-                    {hasNote ? (
-                      <span className="question-meta-item is-note-added">
+                    <span
+                      className={`question-meta-item ${
+                        hasNote ? "is-note-added" : ""
+                      }`}
+                    >
+                      {hasNote ? (
                         <Check size={14} strokeWidth={2.4} aria-hidden />
-                        1 Note Added
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        className="question-meta-link"
-                        onClick={() => openNotesPanel(question.id, true)}
-                        disabled={saving || loading}
-                      >
-                        Add Note
-                      </button>
-                    )}
+                      ) : null}
+                      {hasNote ? "1 Note Added" : "0 Notes"}
+                    </span>
                   </div>
 
                   <div className="question-card-actions">
@@ -977,13 +972,13 @@ export default function ODChartQuestions() {
                       onClick={() =>
                         isNotesOpen
                           ? closeNotesPanel()
-                          : openNotesPanel(question.id)
+                          : openNotesPanel(question.id, !hasNote)
                       }
                       disabled={saving || loading}
                       aria-expanded={isNotesOpen}
                     >
                       <StickyNote size={14} strokeWidth={2.2} aria-hidden />
-                      {hasNote ? `Notes (1)` : "Notes"}
+                      {hasNote ? "Notes (1)" : "Add Note"}
                     </button>
                     <button
                       type="button"
