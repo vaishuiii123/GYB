@@ -1948,10 +1948,11 @@ export default function Template({ user }: PageProps) {
             ? tagNameById.get(matched.tagId.toLowerCase()) || ""
             : "");
 
-        const resolvedTagId =
+        const resolvedTagId = String(
           tagIdByName.get(normalizeText(resolvedTagName)) ||
-          matched?.tagId ||
-          "";
+            matched?.tagId ||
+            ""
+        );
         const resolvedQuestionType = questionType || matched?.questionType || "";
         const resolvedQuestion = question || matched?.question || "";
         const resolvedAttachments = attachmentsApplicable;

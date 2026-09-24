@@ -1,5 +1,6 @@
 import {
   Children,
+  isValidElement,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -393,7 +394,7 @@ function TreeFork({
       >
         {childArray.map((child, index) => (
           <div
-            key={child.key ?? index}
+            key={isValidElement(child) && child.key != null ? child.key : index}
             className="od-fork-col"
             style={{ width: widths[index], maxWidth: widths[index] }}
           >

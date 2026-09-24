@@ -173,8 +173,13 @@ export default function UserLogin() {
       try {
         data = await response.json();
       } catch {
+        const isLocal =
+          window.location.hostname === "localhost" ||
+          window.location.hostname === "127.0.0.1";
         setErrorMessage(
-          "Unable to reach the login service. Make sure the API is running on port 7071."
+          isLocal
+            ? "Unable to reach the login service. Make sure the API is running on port 7071."
+            : "Unable to reach the login service. The API may be restarting after a deploy — wait a minute and try again."
         );
         return;
       }
@@ -241,8 +246,13 @@ export default function UserLogin() {
       }
     } catch (error) {
       console.error(error);
+      const isLocal =
+        window.location.hostname === "localhost" ||
+        window.location.hostname === "127.0.0.1";
       setErrorMessage(
-        "Unable to sign in. Check that the API (port 7071) is running, then try again."
+        isLocal
+          ? "Unable to sign in. Check that the API (port 7071) is running, then try again."
+          : "Unable to sign in. The API may be restarting after a deploy — wait a minute and try again."
       );
     } finally {
       setLoading(false);
