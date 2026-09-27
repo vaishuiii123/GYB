@@ -438,6 +438,7 @@ export default function UserLogin() {
 
         <div className="user-login-card">
           <div className="user-login-card-header">
+            <h2>Sign in</h2>
           </div>
 
           {infoMessage ? (

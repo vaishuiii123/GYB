@@ -1,9 +1,11 @@
 import {
   getParticipantFromStorage,
   getSelectedWorkshop,
+  setSelectedWorkshop,
   type SelectedWorkshop,
 } from "./selectedWorkshop";
 import { fetchOnce } from "./adminListCache";
+import { pickOngoingWorkshop } from "./workshopLifecycle";
 
 const WORKSHOP_CACHE_KEY = "gyb-workshop-cache";
 const PARTICIPANT_WORKSHOP_CACHE_KEY = "gyb-participant-workshops-cache";
@@ -11,8 +13,12 @@ const OD_CHART_CACHE_KEY = "gyb-od-chart-cache-v6";
 const OD_LEAVES_CACHE_KEY = "gyb-od-leaves-cache-v1";
 const PAGE_DATA_CACHE_KEY = "gyb-page-data-cache";
 const CACHE_TTL_MS = 10 * 60 * 1000;
+/** Schedule/access dates must stay fresh when admins change workshop timing. */
+const PARTICIPANT_WORKSHOP_TTL_MS = 15 * 1000;
 /** OD chart structure rarely changes — keep longer for faster revisits. */
 const OD_CHART_TTL_MS = 60 * 60 * 1000;
+
+export const WORKSHOP_SCHEDULE_UPDATED_EVENT = "gyb-workshop-schedule-updated";
 
 /** Dedupe concurrent workshop/chart loaders (StrictMode / parallel pages). */
 const inflightJson = new Map<string, Promise<unknown>>();
@@ -239,7 +245,7 @@ type CacheEntry<T> = {
   data: T;
 };
 
-function readCache<T>(key: string): T | null {
+function readCache<T>(key: string, ttlMs = CACHE_TTL_MS): T | null {
   try {
     const raw = sessionStorage.getItem(key);
     if (!raw) {
@@ -247,7 +253,7 @@ function readCache<T>(key: string): T | null {
     }
 
     const entry = JSON.parse(raw) as CacheEntry<T>;
-    if (Date.now() - entry.savedAt > CACHE_TTL_MS) {
+    if (Date.now() - entry.savedAt > ttlMs) {
       sessionStorage.removeItem(key);
       return null;
     }
@@ -288,7 +294,8 @@ export function getCachedParticipantWorkshops(
   organizationId?: string
 ) {
   return readCache<WorkshopResponse>(
-    participantWorkshopsCacheKey(participantId, organizationId)
+    participantWorkshopsCacheKey(participantId, organizationId),
+    PARTICIPANT_WORKSHOP_TTL_MS
   );
 }
 
@@ -312,6 +319,9 @@ export function clearCachedParticipantWorkshops(
     sessionStorage.removeItem(
       participantWorkshopsCacheKey(participantId, organizationId)
     );
+    if (organizationId) {
+      sessionStorage.removeItem(`${WORKSHOP_CACHE_KEY}:${organizationId}`);
+    }
   } catch {
     // ignore
   }
@@ -490,9 +500,16 @@ export async function fetchParticipantWorkshops(
     params.set("organizationId", organizationId);
   }
 
+  // Bust shared GET dedupe so forced schedule refresh always hits the API.
+  if (options?.forceRefresh) {
+    params.set("_ts", String(Date.now()));
+  }
+
   const url = `/api/get-workshop-by-organization?${params.toString()}`;
   const inflightKey = `participant-workshops:${url}`;
-  const existing = inflightJson.get(inflightKey);
+  const existing = options?.forceRefresh
+    ? undefined
+    : inflightJson.get(inflightKey);
   if (existing) {
     return existing as Promise<WorkshopResponse>;
   }
@@ -501,9 +518,16 @@ export async function fetchParticipantWorkshops(
     let data: WorkshopResponse & { organizationIds?: string[] };
 
     try {
-      data = await fetchJsonOnce<WorkshopResponse & { organizationIds?: string[] }>(
-        url
-      );
+      if (options?.forceRefresh) {
+        const response = await fetch(url, { cache: "no-store" });
+        data = (await response.json()) as WorkshopResponse & {
+          organizationIds?: string[];
+        };
+      } else {
+        data = await fetchJsonOnce<
+          WorkshopResponse & { organizationIds?: string[] }
+        >(url);
+      }
     } catch {
       return {
         success: false,
@@ -533,6 +557,79 @@ export async function fetchParticipantWorkshops(
 
   inflightJson.set(inflightKey, promise);
   return promise;
+}
+
+/**
+ * Force-refresh workshop schedule dates and sync selected workshop storage
+ * so Pre-OD / module lock state updates as soon as an admin changes timing.
+ */
+export async function refreshParticipantWorkshopSchedule(options?: {
+  forceRefresh?: boolean;
+}) {
+  const participant = getParticipantFromStorage();
+  const participantId = String(participant?.id || "").trim();
+  if (!participantId) {
+    return null;
+  }
+
+  const organizationId = String(participant.organizationId || "");
+  const data = await fetchParticipantWorkshops(participantId, organizationId, {
+    forceRefresh: options?.forceRefresh !== false,
+  });
+
+  if (!data.success) {
+    return data;
+  }
+
+  const workshops = data.workshops || [];
+  if (workshops.length === 0) {
+    return data;
+  }
+
+  const preferredId = getSelectedWorkshop()?.id;
+  const ongoing = pickOngoingWorkshop(workshops, preferredId);
+  const chosen = ongoing || data.workshop || workshops[0];
+  if (!chosen?.id) {
+    return data;
+  }
+
+  const previous = getSelectedWorkshop();
+  const next: SelectedWorkshop = {
+    id: chosen.id,
+    workshopName: chosen.workshopName || previous?.workshopName || "Workshop",
+    organizationName:
+      chosen.organizationName || previous?.organizationName || "",
+    organizationId:
+      chosen.organizationId || previous?.organizationId || organizationId,
+    templateId: chosen.templateId || previous?.templateId,
+    templateName: chosen.templateName || previous?.templateName,
+    preOdStartDate: chosen.preOdStartDate ?? previous?.preOdStartDate,
+    startDate: chosen.startDate ?? previous?.startDate,
+    endDate: chosen.endDate ?? previous?.endDate,
+    preOdQuestionCount:
+      chosen.preOdQuestionCount ?? previous?.preOdQuestionCount,
+  };
+
+  const timingChanged =
+    !previous ||
+    previous.id !== next.id ||
+    previous.preOdStartDate !== next.preOdStartDate ||
+    previous.startDate !== next.startDate ||
+    previous.endDate !== next.endDate ||
+    previous.preOdQuestionCount !== next.preOdQuestionCount;
+
+  setSelectedWorkshop(next);
+
+  if (typeof window !== "undefined" && timingChanged) {
+    window.dispatchEvent(
+      new CustomEvent(WORKSHOP_SCHEDULE_UPDATED_EVENT, { detail: next })
+    );
+  }
+
+  return {
+    ...data,
+    workshop: chosen,
+  };
 }
 
 export async function fetchWorkshopByOrganization(organizationId: string) {

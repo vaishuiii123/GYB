@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import WorkshopEditBanner from "../../components/WorkshopEditBanner";
 import AddActionableModal, {
@@ -21,15 +21,22 @@ import {
 import "../../styles/ODChart.css";
 import { OD_CHART_NAV_KEY } from "./ODChart";
 import type { ODQuestionsNavState, Question } from "./ODChart";
+import { markReportsReturnFromQuestions } from "../../utils/reportsReturn";
 import {
-  ClipboardPlus,
+  AlertTriangle,
+  Eye,
   FileText,
+  Handshake,
+  Lightbulb,
+  MoreVertical,
   Paperclip,
-  Pencil,
-  StickyNote,
+  Plus,
+  Target,
   Trash2,
+  Users,
   X,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import AttachmentPreviewModal, {
   type AttachmentPreviewTarget,
 } from "../../components/AttachmentPreviewModal";
@@ -39,11 +46,77 @@ import {
   isAllowedAttachmentFile,
   normalizeAttachmentList,
 } from "../../utils/attachmentTypes";
+
+const QUESTIONS_PER_PAGE = 5;
+
 const STATUS_OPTIONS = [
   { value: "Red", label: "Red", className: "status-red" },
   { value: "Yellow", label: "Yellow", className: "status-yellow" },
   { value: "Green", label: "Green", className: "status-green" },
 ];
+
+type NoteEntry = {
+  id: string;
+  text: string;
+  theme: number;
+  author: string;
+  createdAt: string;
+};
+
+const NOTE_ICONS: LucideIcon[] = [
+  Lightbulb,
+  Target,
+  Users,
+  AlertTriangle,
+  Handshake,
+];
+
+function participantDisplayName(participant: {
+  firstName?: string;
+  First_Name?: string;
+  lastName?: string;
+  Last_Name?: string;
+}) {
+  const first = String(
+    participant.firstName || participant.First_Name || ""
+  ).trim();
+  if (first) {
+    return first;
+  }
+  const last = String(
+    participant.lastName || participant.Last_Name || ""
+  ).trim();
+  return last || "You";
+}
+
+function parseNoteEntries(raw: string, author: string): NoteEntry[] {
+  const text = String(raw || "").trim();
+  if (!text) {
+    return [];
+  }
+  return text
+    .split(/\n{2,}/)
+    .map((part, index) => part.trim())
+    .filter(Boolean)
+    .map((part, index) => ({
+      id: `note-${index}-${part.slice(0, 24)}`,
+      text: part,
+      theme: index % NOTE_ICONS.length,
+      author,
+      createdAt: new Date().toISOString(),
+    }));
+}
+
+function serializeNoteEntries(entries: NoteEntry[]): string {
+  return entries
+    .map((entry) => entry.text.trim())
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+function newNoteId() {
+  return `note-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
 
 function normalizeStatusValue(value: string): string {
   const lower = String(value || "")
@@ -59,6 +132,14 @@ function normalizeStatusValue(value: string): string {
     return "Green";
   }
   return String(value || "").trim();
+}
+
+function formatResponseText(value: string) {
+  const parts = String(value || "")
+    .split("|")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  return parts.length > 0 ? parts.join(", ") : "";
 }
 
 function statusPresetFor(value: string) {
@@ -133,6 +214,7 @@ export default function ODChartQuestions() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
+  const [noteLists, setNoteLists] = useState<Record<string, NoteEntry[]>>({});
   const [savedAttachments, setSavedAttachments] = useState<
     Record<string, AttachmentMeta[]>
   >({});
@@ -149,15 +231,18 @@ export default function ODChartQuestions() {
   const [actionableOpen, setActionableOpen] = useState(false);
   const [actionablePreset, setActionablePreset] =
     useState<AddActionablePreset | null>(null);
-  const [notesPanelQuestionId, setNotesPanelQuestionId] = useState<string | null>(
+  const [responseQuestionId, setResponseQuestionId] = useState<string | null>(
     null
   );
-  const [notesEditing, setNotesEditing] = useState(false);
+  const [noteComposerQuestionId, setNoteComposerQuestionId] = useState<
+    string | null
+  >(null);
+  const [noteDraft, setNoteDraft] = useState("");
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [noteMenuId, setNoteMenuId] = useState<string | null>(null);
   const [attachmentPreview, setAttachmentPreview] =
     useState<AttachmentPreviewTarget | null>(null);
-  const [noteUpdatedAt, setNoteUpdatedAt] = useState<Record<string, string>>(
-    {}
-  );
+  const [page, setPage] = useState(0);
   const answersDirtyRef = useRef(false);
   const loadRequestIdRef = useRef(0);
   const loadedLeafIdRef = useRef<string>("");
@@ -198,11 +283,14 @@ export default function ODChartQuestions() {
       loadedLeafIdRef.current = state.leaf.id;
       setAnswers({});
       setNotes({});
-      setNotesPanelQuestionId(null);
-      setNotesEditing(false);
-      setNoteUpdatedAt({});
+      setNoteLists({});
+      setNoteComposerQuestionId(null);
+      setNoteDraft("");
+      setEditingNoteId(null);
+      setNoteMenuId(null);
       setPendingFiles({});
       setSavedAttachments({});
+      setPage(0);
       setLoading(true);
     }
 
@@ -245,14 +333,14 @@ export default function ODChartQuestions() {
       // Never wipe in-progress edits if a late/duplicate fetch finishes.
       if (!answersDirtyRef.current) {
         setAnswers(data.answers || {});
-        setNotes(data.notes || {});
-        const initialUpdated: Record<string, string> = {};
-        Object.entries(data.notes || {}).forEach(([questionId, text]) => {
-          if (String(text || "").trim()) {
-            initialUpdated[questionId] = new Date().toISOString();
-          }
+        const author = participantDisplayName(participant || {});
+        const loadedNotes = data.notes || {};
+        setNotes(loadedNotes);
+        const nextLists: Record<string, NoteEntry[]> = {};
+        Object.entries(loadedNotes).forEach(([questionId, text]) => {
+          nextLists[questionId] = parseNoteEntries(String(text || ""), author);
         });
-        setNoteUpdatedAt(initialUpdated);
+        setNoteLists(nextLists);
         const nextAttachments: Record<string, AttachmentMeta[]> = {};
         Object.entries(data.attachments || {}).forEach(([questionId, value]) => {
           nextAttachments[questionId] = normalizeAttachmentList(value).map(
@@ -409,52 +497,215 @@ export default function ODChartQuestions() {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
   };
 
-  const setNote = (questionId: string, value: string) => {
-    if (!canEdit) {
-      return;
-    }
-
-    answersDirtyRef.current = true;
-    setIsDirty(true);
-    setNotes((prev) => ({ ...prev, [questionId]: value }));
-    setNoteUpdatedAt((prev) => ({
+  const syncNotesFromList = (
+    questionId: string,
+    entries: NoteEntry[],
+    lists: Record<string, NoteEntry[]>
+  ) => {
+    const nextLists = { ...lists, [questionId]: entries };
+    setNoteLists(nextLists);
+    setNotes((prev) => ({
       ...prev,
-      [questionId]: new Date().toISOString(),
+      [questionId]: serializeNoteEntries(entries),
     }));
   };
 
-  const openNotesPanel = (questionId: string, startEditing = false) => {
-    const hasNote = Boolean(String(notes[questionId] || "").trim());
-    setNotesPanelQuestionId(questionId);
-    setNotesEditing(startEditing || !hasNote);
-    if (startEditing || !hasNote) {
-      window.setTimeout(() => {
-        const el = document.getElementById(
-          `od-note-panel-${questionId}`
-        ) as HTMLTextAreaElement | null;
-        el?.focus();
-      }, 0);
-    }
-  };
-
-  const closeNotesPanel = () => {
-    setNotesPanelQuestionId(null);
-    setNotesEditing(false);
-  };
-
-  const deleteNoteForQuestion = (questionId: string) => {
+  const openNoteComposer = (questionId: string, note?: NoteEntry) => {
     if (!canEdit) {
       return;
     }
+    setNoteComposerQuestionId(questionId);
+    setEditingNoteId(note?.id || null);
+    setNoteDraft(note?.text || "");
+    setNoteMenuId(null);
+    window.setTimeout(() => {
+      document.getElementById(`od-note-composer-${questionId}`)?.focus();
+    }, 0);
+  };
+
+  const closeNoteComposer = () => {
+    setNoteComposerQuestionId(null);
+    setEditingNoteId(null);
+    setNoteDraft("");
+  };
+
+  const submitNoteForQuestion = (questionId: string) => {
+    if (!canEdit) {
+      return;
+    }
+    const text = noteDraft.trim();
+    if (!text) {
+      return;
+    }
+
+    const author = participantDisplayName(participant || {});
+    const existing = noteLists[questionId] || [];
+    let nextEntries: NoteEntry[];
+
+    if (editingNoteId) {
+      nextEntries = existing.map((entry) =>
+        entry.id === editingNoteId ? { ...entry, text } : entry
+      );
+    } else {
+      nextEntries = [
+        ...existing,
+        {
+          id: newNoteId(),
+          text,
+          theme: existing.length % NOTE_ICONS.length,
+          author,
+          createdAt: new Date().toISOString(),
+        },
+      ];
+    }
+
     answersDirtyRef.current = true;
     setIsDirty(true);
-    setNotes((prev) => ({ ...prev, [questionId]: "" }));
-    setNoteUpdatedAt((prev) => {
-      const next = { ...prev };
-      delete next[questionId];
-      return next;
-    });
-    setNotesEditing(true);
+    syncNotesFromList(questionId, nextEntries, noteLists);
+    closeNoteComposer();
+  };
+
+  const deleteNoteEntry = (questionId: string, noteId: string) => {
+    if (!canEdit) {
+      return;
+    }
+    const nextEntries = (noteLists[questionId] || []).filter(
+      (entry) => entry.id !== noteId
+    );
+    answersDirtyRef.current = true;
+    setIsDirty(true);
+    syncNotesFromList(questionId, nextEntries, noteLists);
+    setNoteMenuId(null);
+    if (editingNoteId === noteId) {
+      closeNoteComposer();
+    }
+  };
+
+  const renderNotesPanel = (question: Question) => {
+    const entries = noteLists[question.id] || [];
+    const composing = noteComposerQuestionId === question.id;
+    const count = entries.length;
+
+    return (
+      <div className="qr-notes-panel">
+        <div className="qr-notes-head">
+          <span className="qr-notes-title">
+            <FileText size={14} strokeWidth={2.2} aria-hidden />
+            Notes ({count})
+          </span>
+          {canEdit && !composing ? (
+            <button
+              type="button"
+              className="qr-notes-add"
+              onClick={() => openNoteComposer(question.id)}
+              disabled={saving || loading}
+            >
+              <Plus size={14} strokeWidth={2.4} aria-hidden />
+              Add Note
+            </button>
+          ) : null}
+        </div>
+
+        {composing ? (
+          <div className="qr-note-composer">
+            <textarea
+              id={`od-note-composer-${question.id}`}
+              className="qr-note-composer-input"
+              value={noteDraft}
+              onChange={(event) => setNoteDraft(event.target.value)}
+              placeholder="Write your note..."
+              rows={3}
+              disabled={saving}
+            />
+            <div className="qr-note-composer-actions">
+              <button
+                type="button"
+                className="user-btn-secondary"
+                onClick={closeNoteComposer}
+                disabled={saving}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="user-btn-primary"
+                onClick={() => submitNoteForQuestion(question.id)}
+                disabled={saving || !noteDraft.trim()}
+              >
+                Submit Note
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {!composing && count === 0 ? (
+          <div className="qr-notes-empty">
+            <FileText size={28} strokeWidth={1.6} aria-hidden />
+            <p>No notes yet. Add a note to capture your thoughts.</p>
+          </div>
+        ) : null}
+
+        {count > 0 ? (
+          <ul className="qr-note-list">
+            {entries.map((entry) => {
+              const Icon = NOTE_ICONS[entry.theme % NOTE_ICONS.length];
+              const menuOpen = noteMenuId === entry.id;
+              return (
+                <li
+                  key={entry.id}
+                  className={`qr-note-card theme-${entry.theme % NOTE_ICONS.length}`}
+                >
+                  <span className="qr-note-icon" aria-hidden>
+                    <Icon size={16} strokeWidth={2.2} />
+                  </span>
+                  <div className="qr-note-body">
+                    <p className="qr-note-text">{entry.text}</p>
+                    <span className="qr-note-author">- {entry.author}</span>
+                  </div>
+                  {canEdit ? (
+                    <div className="qr-note-menu-wrap">
+                      <button
+                        type="button"
+                        className="qr-note-menu-btn"
+                        aria-label="Note options"
+                        aria-expanded={menuOpen}
+                        onClick={() =>
+                          setNoteMenuId(menuOpen ? null : entry.id)
+                        }
+                        disabled={saving}
+                      >
+                        <MoreVertical size={16} strokeWidth={2.2} />
+                      </button>
+                      {menuOpen ? (
+                        <div className="qr-note-menu" role="menu">
+                          <button
+                            type="button"
+                            role="menuitem"
+                            onClick={() => openNoteComposer(question.id, entry)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            role="menuitem"
+                            className="is-danger"
+                            onClick={() =>
+                              deleteNoteEntry(question.id, entry.id)
+                            }
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+        ) : null}
+      </div>
+    );
   };
 
   const clearAttachmentForQuestion = (
@@ -500,24 +751,6 @@ export default function ODChartQuestions() {
         ...prev,
         [questionId]: nextList,
       };
-    });
-  };
-
-  const formatNoteTimestamp = (value?: string) => {
-    if (!value) {
-      return "";
-    }
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
-      return "";
-    }
-    return date.toLocaleString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
     });
   };
 
@@ -857,7 +1090,7 @@ export default function ODChartQuestions() {
         value={currentValue}
         onChange={(event) => setAnswer(question.id, event.target.value)}
         placeholder="Enter your response"
-        rows={4}
+        rows={3}
         disabled={disabled}
       />
     );
@@ -1000,36 +1233,48 @@ export default function ODChartQuestions() {
             })}
           </ul>
         ) : (
-          <p className="od-attach-empty">No attachments yet.</p>
+          <p className="od-attach-empty">
+            No attachments yet. {ATTACHMENT_HINT}
+          </p>
         )}
 
-        <p className="od-attach-hint">{ATTACHMENT_HINT}</p>
+        {items.length > 0 ? (
+          <p className="od-attach-hint">{ATTACHMENT_HINT}</p>
+        ) : null}
       </div>
     );
   };
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(questions.length / QUESTIONS_PER_PAGE)
+  );
+  const safePage = Math.min(page, totalPages - 1);
+  const pageQuestions = useMemo(() => {
+    const start = safePage * QUESTIONS_PER_PAGE;
+    return questions.slice(start, start + QUESTIONS_PER_PAGE);
+  }, [questions, safePage]);
+
+  useEffect(() => {
+    if (page > totalPages - 1) {
+      setPage(Math.max(0, totalPages - 1));
+    }
+  }, [page, totalPages]);
 
   if (!navState) {
     return null;
   }
 
-  const notesPanelQuestion = notesPanelQuestionId
-    ? questions.find((item) => item.id === notesPanelQuestionId) || null
+  const responseQuestion = responseQuestionId
+    ? questions.find((item) => item.id === responseQuestionId) || null
     : null;
-  const notesPanelIndex = notesPanelQuestion
-    ? questions.findIndex((item) => item.id === notesPanelQuestion.id)
+  const responseQuestionIndex = responseQuestion
+    ? questions.findIndex((item) => item.id === responseQuestion.id)
     : -1;
-  const notesPanelText = notesPanelQuestion
-    ? String(notes[notesPanelQuestion.id] || "")
-    : "";
-  const notesPanelHasText = Boolean(notesPanelText.trim());
 
   return (
     <ODChartShell>
-      <div
-        className={`od-questions-panel ${
-          notesPanelQuestion ? "has-notes-drawer" : ""
-        }`}
-      >
+      <div className="od-questions-panel">
         <div className="od-questions-top is-sticky">
           <h1 className="od-questions-title">{navState.leaf.name}</h1>
           <div className="od-chart-actions od-chart-actions-top">
@@ -1053,11 +1298,17 @@ export default function ODChartQuestions() {
             </button>
             <button
               type="button"
-              className="user-btn-primary"
+              className="user-btn-secondary"
               onClick={() => {
-                void tryNavigate("/reports");
+                markReportsReturnFromQuestions();
+                void tryNavigate("/reports", {
+                  state: {
+                    view: "questions",
+                    returnTo: "question",
+                  },
+                });
               }}
-              disabled={saving}
+              disabled={saving || loading}
             >
               View Response
             </button>
@@ -1074,69 +1325,102 @@ export default function ODChartQuestions() {
             template.
           </p>
         ) : (
-          questions.map((question, index) => {
-            const noteText = String(notes[question.id] || "").trim();
-            const hasNote = Boolean(noteText);
-            const isNotesOpen = notesPanelQuestionId === question.id;
+          <>
+          <div className="od-questions-list">
+            {pageQuestions.map((question, index) => {
+              const questionNumber = safePage * QUESTIONS_PER_PAGE + index + 1;
+              return (
+                <div
+                  key={question.id}
+                  id={`od-question-${question.id}`}
+                  className="question-block"
+                  style={{
+                    borderLeft: `3px solid ${question.tagColor || "#9b304a"}`,
+                  }}
+                >
+                  <div className="qr-col qr-question">
+                    <span className="qr-label">Question</span>
+                    <div className="question-block-header">
+                      <span className="question-number">Q{questionNumber}</span>
+                      <div className="question-block-heading">
+                        <div className="question-text">{question.question}</div>
+                        <div className="question-meta">
+                          {question.tagName ? (
+                            <span className="question-tag">{question.tagName}</span>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
 
-            return (
-              <div
-                key={question.id}
-                className={`question-block ${isNotesOpen ? "is-notes-open" : ""}`}
-                style={
-                  question.tagColor
-                    ? { borderLeft: `4px solid ${question.tagColor}` }
-                    : undefined
-                }
-              >
-                <div className="question-block-header">
-                  <span className="question-number">Q{index + 1}</span>
-                  <div className="question-block-heading">
-                    <div className="question-text">{question.question}</div>
-                    <div className="question-meta">
-                      {question.tagName ? (
-                        <span className="question-tag">{question.tagName}</span>
-                      ) : null}
+                  <div className="qr-col qr-response">
+                    <span className="qr-label">Response</span>
+                    {renderQuestionInput(question)}
+                  </div>
+
+                  <div className="qr-col qr-notes">
+                    {renderNotesPanel(question)}
+                  </div>
+
+                  <div className="qr-col qr-attachments">
+                    <span className="qr-label">Attachments</span>
+                    {renderAttachmentPanel(question)}
+                  </div>
+
+                  <div className="qr-col qr-actions">
+                    <span className="qr-label">Actions</span>
+                    <div className="question-card-actions">
+                      <button
+                        type="button"
+                        className="user-btn-secondary qr-action-btn"
+                        onClick={() => setResponseQuestionId(question.id)}
+                        disabled={saving || loading}
+                      >
+                        <Eye size={14} strokeWidth={2.2} aria-hidden />
+                        View Response
+                      </button>
+                      <button
+                        type="button"
+                        className="user-btn-secondary qr-action-btn"
+                        onClick={() => openActionableForQuestion(question)}
+                        disabled={saving || loading || !canEdit}
+                      >
+                        <Plus size={14} strokeWidth={2.2} aria-hidden />
+                        Add as Actionable
+                      </button>
                     </div>
                   </div>
                 </div>
+              );
+            })}
+          </div>
 
-                {renderQuestionInput(question)}
-
-                {renderAttachmentPanel(question)}
-
-                <div className="question-card-footer">
-                  <div className="question-card-actions">
-                    <button
-                      type="button"
-                      className={`user-btn-secondary ${
-                        isNotesOpen || hasNote ? "is-active" : ""
-                      }`}
-                      onClick={() =>
-                        isNotesOpen
-                          ? closeNotesPanel()
-                          : openNotesPanel(question.id, !hasNote)
-                      }
-                      disabled={saving || loading}
-                      aria-expanded={isNotesOpen}
-                    >
-                      <StickyNote size={14} strokeWidth={2.2} aria-hidden />
-                      {hasNote ? "Notes (1)" : "Add Note"}
-                    </button>
-                    <button
-                      type="button"
-                      className="user-btn-secondary"
-                      onClick={() => openActionableForQuestion(question)}
-                      disabled={saving || loading || !canEdit}
-                    >
-                      <ClipboardPlus size={14} strokeWidth={2.2} aria-hidden />
-                      Add as Actionable
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-          })
+          {questions.length > QUESTIONS_PER_PAGE ? (
+            <div className="od-questions-pagination">
+              <button
+                type="button"
+                className="user-btn-secondary"
+                onClick={() => setPage((prev) => Math.max(0, prev - 1))}
+                disabled={safePage === 0 || saving}
+              >
+                Previous
+              </button>
+              <span className="od-questions-page-indicator">
+                Page {safePage + 1} of {totalPages}
+              </span>
+              <button
+                type="button"
+                className="user-btn-secondary"
+                onClick={() =>
+                  setPage((prev) => Math.min(totalPages - 1, prev + 1))
+                }
+                disabled={safePage >= totalPages - 1 || saving}
+              >
+                Next
+              </button>
+            </div>
+          ) : null}
+          </>
         )}
 
         {errorMessage && <div className="od-chart-error">{errorMessage}</div>}
@@ -1146,98 +1430,108 @@ export default function ODChartQuestions() {
         )}
       </div>
 
-      {notesPanelQuestion ? (
-        <>
+      {responseQuestion ? (
+        <div className="od-response-modal" role="dialog" aria-modal="true" aria-labelledby="od-response-title">
           <button
             type="button"
-            className="od-notes-backdrop"
-            aria-label="Close notes panel"
-            onClick={closeNotesPanel}
+            className="od-response-backdrop"
+            aria-label="Back to question"
+            onClick={() => setResponseQuestionId(null)}
           />
-          <aside
-            className="od-notes-drawer"
-            aria-label="Notes for this question"
-          >
-            <div className="od-notes-drawer-header">
-              <div className="od-notes-ref">
-                <span className="question-number">
-                  Q{notesPanelIndex >= 0 ? notesPanelIndex + 1 : ""}
-                </span>
-                <p>{notesPanelQuestion.question}</p>
-              </div>
+          <div className="od-response-card">
+            <div className="od-response-header">
+              <h2 id="od-response-title">
+                Q{responseQuestionIndex >= 0 ? responseQuestionIndex + 1 : ""} Response
+              </h2>
               <button
                 type="button"
                 className="od-notes-close"
-                onClick={closeNotesPanel}
-                aria-label="Close notes"
+                onClick={() => setResponseQuestionId(null)}
+                aria-label="Close response"
               >
                 <X size={18} strokeWidth={2.4} />
               </button>
             </div>
 
-            <div className="od-notes-body">
-              <div className="od-notes-section-title">Your notes</div>
-              {notesEditing ? (
-                <textarea
-                  id={`od-note-panel-${notesPanelQuestion.id}`}
-                  className="od-notes-textarea"
-                  value={notesPanelText}
-                  onChange={(event) =>
-                    setNote(notesPanelQuestion.id, event.target.value)
-                  }
-                  placeholder="Add notes for this question..."
-                  rows={8}
-                  disabled={!canEdit || saving}
-                />
-              ) : notesPanelHasText ? (
-                <div className="od-notes-readonly">
-                  <p>{notesPanelText}</p>
-                </div>
-              ) : (
-                <p className="od-notes-empty">No notes added yet.</p>
-              )}
-
-              {noteUpdatedAt[notesPanelQuestion.id] ? (
-                <p className="od-notes-updated">
-                  Last updated:{" "}
-                  {formatNoteTimestamp(noteUpdatedAt[notesPanelQuestion.id])}
+            <div className="od-response-body">
+              <section>
+                <h3>Question</h3>
+                <p>{responseQuestion.question}</p>
+              </section>
+              <section>
+                <h3>Responses</h3>
+                <p>
+                  {formatResponseText(answers[responseQuestion.id] || "") ||
+                    "No response yet."}
                 </p>
-              ) : null}
+              </section>
+              <section>
+                <h3>Notes</h3>
+                <p>
+                  {String(notes[responseQuestion.id] || "").trim() ||
+                    "No notes yet."}
+                </p>
+              </section>
+              <section>
+                <h3>Attachments</h3>
+                {getQuestionAttachments(responseQuestion.id).length === 0 ? (
+                  <p>No attachments yet.</p>
+                ) : (
+                  <ul>
+                    {getQuestionAttachments(responseQuestion.id).map((item) => (
+                      <li key={item.id}>{item.fileName}</li>
+                    ))}
+                  </ul>
+                )}
+              </section>
             </div>
 
-            <div className="od-notes-drawer-footer">
+            <div className="od-response-footer">
               <button
                 type="button"
-                className="user-btn-secondary od-notes-delete"
-                onClick={() => deleteNoteForQuestion(notesPanelQuestion.id)}
-                disabled={!canEdit || saving || !notesPanelHasText}
+                className="user-btn-secondary"
+                onClick={() => {
+                  const targetId = responseQuestion.id;
+                  setResponseQuestionId(null);
+                  window.requestAnimationFrame(() => {
+                    document
+                      .getElementById(`od-question-${targetId}`)
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  });
+                }}
               >
-                <Trash2 size={14} strokeWidth={2.2} aria-hidden />
-                Delete Note
+                Back to question
               </button>
-              {notesEditing ? (
-                <button
-                  type="button"
-                  className="user-btn-primary"
-                  onClick={() => setNotesEditing(false)}
-                  disabled={saving}
-                >
-                  Done
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="user-btn-primary"
-                  onClick={() => openNotesPanel(notesPanelQuestion.id, true)}
-                  disabled={!canEdit || saving}
-                >
-                  <Pencil size={14} strokeWidth={2.2} aria-hidden />
-                  Edit Note
-                </button>
-              )}
+              <button
+                type="button"
+                className="user-btn-secondary"
+                onClick={() => {
+                  setResponseQuestionId(null);
+                  markReportsReturnFromQuestions();
+                  void tryNavigate("/reports", {
+                    state: {
+                      view: "questions",
+                      question: responseQuestion.question,
+                      returnTo: "question",
+                    },
+                  });
+                }}
+              >
+                Open in Reports
+              </button>
+              <button
+                type="button"
+                className="user-btn-primary"
+                onClick={() => {
+                  setResponseQuestionId(null);
+                  requestBackToChart();
+                }}
+              >
+                Back to Unlock Value
+              </button>
             </div>
-          </aside>
-        </>
+          </div>
+        </div>
       ) : null}
 
       <AddActionableModal

@@ -73,19 +73,31 @@
   flex-shrink: 0;
 }
 
+.act-hero-copy > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  min-width: 0;
+}
+
 .act-hero h1 {
-  margin: 0 0 8px;
+  margin: 0;
   color: #243447;
-  font-size: 30px;
+  font-size: 22px;
   font-weight: 700;
-  line-height: 1.15;
+  line-height: 1.2;
 }
 
 .act-hero p {
   margin: 0;
   color: var(--act-muted);
   font-size: 14px;
-  line-height: 1.55;
+  line-height: 1.4;
+}
+
+.act-hero-art {
+  display: none;
 }
 
 .act-hero-art {

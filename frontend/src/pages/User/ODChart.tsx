@@ -549,10 +549,12 @@ function collapseAllChartNodes(tops: Top[]) {
 
 /** Slot per cell = node box + modest gutter (avoid both congestion and huge gaps). */
 const SLOT_PX = 168;
-/** Fixed width for collapsed top tab buttons (matches --od-top-tab-w). */
-const TOP_TAB_PX = 200;
-/** Fork column width for collapsed tops — small gap between green tabs. */
-const TOP_COL_PX = 220;
+/** Minimum width of each top-level category tab button. */
+const TOP_TAB_PX = 240;
+/** Extra horizontal space between adjacent top-level category boxes. */
+const TOP_GAP_PX = 32;
+/** Fallback fork column width for collapsed tops (tab + gap). */
+const TOP_COL_PX = TOP_TAB_PX + TOP_GAP_PX;
 
 function parentBranchWidth(parent: Parent, parentOpen: boolean) {
   if (!parentOpen || parent.leaves.length === 0) {
@@ -587,6 +589,7 @@ function ColumnTree({
   expandAllOpen = true,
   onManualToggle,
   onPrefetchLeaf,
+  collapsedWidth = TOP_COL_PX,
 }: {
   top: Top;
   search: string;
@@ -602,42 +605,18 @@ function ColumnTree({
   expandAllOpen?: boolean;
   onManualToggle?: () => void;
   onPrefetchLeaf?: (leafId: string) => void;
+  collapsedWidth?: number;
 }) {
   const Icon = topIcon(top.name);
   const headerAssigned = topHasAssignedQuestions(top);
-  const middleIdSet = useMemo(
-    () => new Set(top.middles.map((item) => item.id)),
-    [top.middles]
-  );
-  const parentIdSet = useMemo(() => {
-    const ids = new Set<string>();
-    top.middles.forEach((middle) => {
-      middle.parents.forEach((parent) => ids.add(parent.id));
-    });
-    return ids;
-  }, [top.middles]);
 
-  const [topExpanded, setTopExpanded] = useState(
-    () => readTopExpandState(top.id).open
-  );
+  // Always mount collapsed: UNLOCK VALUE + top tabs only.
+  const [topExpanded, setTopExpanded] = useState(false);
   const [expandedMiddleIds, setExpandedMiddleIds] = useState<Set<string>>(
-    () => {
-      // Only restore deeper levels when returning to a focused leaf.
-      if (!focusLeafId) {
-        return new Set();
-      }
-      const saved = readTopExpandState(top.id);
-      return new Set(saved.middles.filter((id) => middleIdSet.has(id)));
-    }
+    () => new Set()
   );
   const [expandedParentIds, setExpandedParentIds] = useState<Set<string>>(
-    () => {
-      if (!focusLeafId) {
-        return new Set();
-      }
-      const saved = readTopExpandState(top.id);
-      return new Set(saved.parents.filter((id) => parentIdSet.has(id)));
-    }
+    () => new Set()
   );
   const keepInViewIdRef = useRef<string | null>(null);
 
@@ -790,14 +769,14 @@ function ColumnTree({
   const branchWidth =
     effectiveTopExpanded && top.middles.length > 0
       ? Math.max(
-          TOP_COL_PX,
+          collapsedWidth,
           middleColWidths.reduce((sum, width) => sum + width, 0)
         )
-      : TOP_COL_PX;
+      : collapsedWidth;
 
   useEffect(() => {
     onBranchWidthChange?.(top.id, branchWidth);
-  }, [top.id, branchWidth, onBranchWidthChange]);
+  }, [top.id, branchWidth, onBranchWidthChange, collapsedWidth]);
 
   useLayoutEffect(() => {
     if (!keepInViewIdRef.current) {
@@ -1051,18 +1030,20 @@ function DashboardChart({
   const restoreDoneRef = useRef(false);
   const [zoom, setZoom] = useState(DEFAULT_ZOOM);
   const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
+  // Never restore expand/focus — arriving from anywhere shows 2 levels only.
   const [focusLeafId, setFocusLeafId] = useState<string | null>(() => {
-    const focus = readChartFocus();
-    if (!focus) {
-      return null;
+    try {
+      localStorage.removeItem(OD_CHART_EXPAND_KEY);
+    } catch {
+      // ignore
     }
-    // Must run before ColumnTree mounts so expand state is already saved.
-    ensureFocusExpanded(focus);
-    return focus.leafId;
+    clearChartFocus();
+    return null;
   });
   const [topBranchWidths, setTopBranchWidths] = useState<
     Record<string, number>
   >({});
+  const [topTabPx, setTopTabPx] = useState(TOP_TAB_PX);
   const [expandSyncNonce, setExpandSyncNonce] = useState(0);
   const [allNodesOpen, setAllNodesOpen] = useState(false);
 
@@ -1103,8 +1084,13 @@ function DashboardChart({
   }, []);
 
   const topColWidths = useMemo(
-    () => tops.map((top) => topBranchWidths[top.id] ?? TOP_COL_PX),
-    [tops, topBranchWidths]
+    () =>
+      tops.map((top) => {
+        const branch = topBranchWidths[top.id] ?? topTabPx + TOP_GAP_PX;
+        // Keep at least tab width + gap so adjacent top boxes never touch.
+        return Math.max(branch, topTabPx + TOP_GAP_PX);
+      }),
+    [tops, topBranchWidths, topTabPx]
   );
 
   const topWidthsKey = topColWidths.join(",");
@@ -1169,6 +1155,38 @@ function DashboardChart({
     });
     return () => window.cancelAnimationFrame(frame);
   }, [measureNaturalSize, tops.length, topWidthsKey, zoom, expandSyncNonce]);
+
+  useLayoutEffect(() => {
+    const root = contentRef.current;
+    if (!root) {
+      return;
+    }
+
+    const labels = Array.from(
+      root.querySelectorAll<HTMLElement>(".od-dash-column-header h2")
+    );
+    if (labels.length === 0) {
+      return;
+    }
+
+    let maxLabel = 0;
+    labels.forEach((label) => {
+      const previousWidth = label.style.width;
+      const previousWhiteSpace = label.style.whiteSpace;
+      label.style.width = "max-content";
+      label.style.whiteSpace = "nowrap";
+      maxLabel = Math.max(maxLabel, label.scrollWidth);
+      label.style.width = previousWidth;
+      label.style.whiteSpace = previousWhiteSpace;
+    });
+
+    const next = Math.max(TOP_TAB_PX, Math.ceil(maxLabel + 84));
+    setTopTabPx((prev) => (prev === next ? prev : next));
+    const nextCss = `${next}px`;
+    if (root.style.getPropertyValue("--od-top-tab-w") !== nextCss) {
+      root.style.setProperty("--od-top-tab-w", nextCss);
+    }
+  }, [tops]);
 
   // Keep stage size in sync if content grows after paint (expanded branches).
   useEffect(() => {
@@ -1283,7 +1301,7 @@ function DashboardChart({
             <TreeFork
               className="od-fork-root"
               count={columnCount}
-              colWidth={TOP_COL_PX}
+              colWidth={topTabPx + TOP_GAP_PX}
               colWidths={topColWidths}
             >
               {tops.map((top) => (
@@ -1298,6 +1316,7 @@ function DashboardChart({
                   expandAllOpen={allNodesOpen}
                   onManualToggle={clearAllNodesOpenFlag}
                   onPrefetchLeaf={prefetchLeaf}
+                  collapsedWidth={topTabPx + TOP_GAP_PX}
                 />
               ))}
             </TreeFork>
@@ -1548,18 +1567,12 @@ export default function ODChart() {
       workshop,
     };
 
-    writeChartFocus({
-      leafId: leaf.id,
-      topId: top.id,
-      middleId: middle.id,
-      parentId: parent.id,
-    });
-    ensureFocusExpanded({
-      leafId: leaf.id,
-      topId: top.id,
-      middleId: middle.id,
-      parentId: parent.id,
-    });
+    clearChartFocus();
+    try {
+      localStorage.removeItem(OD_CHART_EXPAND_KEY);
+    } catch {
+      // ignore
+    }
 
     sessionStorage.setItem(OD_CHART_NAV_KEY, JSON.stringify(navState));
     navigate("/od-chart/questions", { state: navState });

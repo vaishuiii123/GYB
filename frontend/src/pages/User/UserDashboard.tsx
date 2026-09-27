@@ -2,19 +2,21 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
+  BarChart3,
+  ClipboardCheck,
   ClipboardList,
-  FileSpreadsheet,
-  FileText,
-  LayoutDashboard,
+  LayoutGrid,
+  Sparkles,
   Target,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import UserHeader from "./UserHeader";
 import {
-  fetchParticipantWorkshops,
   getPreOdAccessStatus,
   getWorkshopModuleAccessStatus,
   prefetchOdChart,
+  refreshParticipantWorkshopSchedule,
+  WORKSHOP_SCHEDULE_UPDATED_EVENT,
   workshopFromSelected,
 } from "../../utils/workshopCache";
 import { getWorkshopLifecycleStatus, pickOngoingWorkshop } from "../../utils/workshopLifecycle";
@@ -26,6 +28,7 @@ import {
   setSelectedWorkshop,
   type SelectedWorkshop,
 } from "../../utils/selectedWorkshop";
+import { clearReportsReturn } from "../../utils/reportsReturn";
 import "../../styles/UserHeader.css";
 import "../../styles/UserDashboard.css";
 
@@ -34,7 +37,7 @@ type ModuleCard = {
   title: string;
   description: string;
   path: string;
-  theme: "pink" | "blue" | "green" | "yellow" | "slate";
+  theme: "pink" | "blue" | "green" | "yellow" | "purple";
   icon: LucideIcon;
   access: "preOd" | "open";
 };
@@ -67,7 +70,7 @@ const MODULE_CARDS: ModuleCard[] = [
       "Foundational insights on the business model, operational efficiency and strategic outlook.",
     path: "/od-chart",
     theme: "green",
-    icon: LayoutDashboard,
+    icon: LayoutGrid,
     access: "open",
   },
   {
@@ -77,7 +80,7 @@ const MODULE_CARDS: ModuleCard[] = [
       "Track key priorities & takeaways from the Organization Development Workshop.",
     path: "/actionables",
     theme: "yellow",
-    icon: FileText,
+    icon: ClipboardCheck,
     access: "open",
   },
   {
@@ -86,8 +89,8 @@ const MODULE_CARDS: ModuleCard[] = [
     description:
       "Summary of key insights, participant reflections & actionables for this workshop.",
     path: "/reports",
-    theme: "slate",
-    icon: FileSpreadsheet,
+    theme: "purple",
+    icon: BarChart3,
     access: "open",
   },
 ];
@@ -179,18 +182,20 @@ export default function UserDashboard() {
     }
 
     let cancelled = false;
+    let hasLoadedOnce = false;
 
-    (async () => {
-      setLoading(true);
+    const loadWorkshops = async (showLoader = false) => {
+      if (showLoader) {
+        setLoading(true);
+      }
       setErrorMessage("");
 
       try {
-        const data = await fetchParticipantWorkshops(
-          String(participant.id),
-          participant.organizationId || ""
-        );
+        const data = await refreshParticipantWorkshopSchedule({
+          forceRefresh: true,
+        });
 
-        if (cancelled) {
+        if (cancelled || !data) {
           return;
         }
 
@@ -215,8 +220,6 @@ export default function UserDashboard() {
           return;
         }
 
-        // Prefer a currently relevant workshop (in progress / Pre OD open).
-        // Do not stick to an old completed selection when a newer one is active.
         const preferredId = getSelectedWorkshop()?.id;
         const preferredStillRelevant =
           preferredId &&
@@ -245,6 +248,7 @@ export default function UserDashboard() {
         );
         setWorkshop(next);
         prefetchOdChart(next.templateId, next.id);
+        hasLoadedOnce = true;
       } catch (error) {
         console.error(error);
         if (!cancelled) {
@@ -257,10 +261,43 @@ export default function UserDashboard() {
           setLoading(false);
         }
       }
-    })();
+    };
+
+    void loadWorkshops(true);
+
+    const onScheduleUpdated = () => {
+      const selected = getSelectedWorkshop();
+      if (selected) {
+        setWorkshop(selected);
+      }
+    };
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible" && hasLoadedOnce) {
+        void loadWorkshops(false);
+      }
+    };
+
+    window.addEventListener(
+      WORKSHOP_SCHEDULE_UPDATED_EVENT,
+      onScheduleUpdated
+    );
+    document.addEventListener("visibilitychange", onVisible);
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === "hidden") {
+        return;
+      }
+      void loadWorkshops(false);
+    }, 15000);
 
     return () => {
       cancelled = true;
+      window.removeEventListener(
+        WORKSHOP_SCHEDULE_UPDATED_EVENT,
+        onScheduleUpdated
+      );
+      document.removeEventListener("visibilitychange", onVisible);
+      window.clearInterval(intervalId);
     };
   }, [navigate, participant?.id, participant?.organizationId]);
 
@@ -296,113 +333,90 @@ export default function UserDashboard() {
     moduleStatus.message,
   ]);
 
+  const welcomeMessage = loading
+    ? "Loading your workshop..."
+    : errorMessage
+      ? errorMessage
+      : !workshop
+        ? "No workshops has started."
+        : `Continue with ${workshopName} — choose a module below to proceed.`;
+
   return (
     <div className="ws-dash">
       <UserHeader />
 
       <main className="ws-dash-main">
-        {loading ? (
-          <section className="ws-dash-welcome">
-            <div className="ws-dash-welcome-copy">
-              <span className="ws-dash-welcome-icon" aria-hidden>
-                <LayoutDashboard size={20} strokeWidth={2.2} />
-              </span>
-              <div>
-                <h2>Welcome back, {firstName}!</h2>
-                <p>Loading your workshop...</p>
-              </div>
+        <section className="ws-dash-welcome">
+          <div className="ws-dash-welcome-copy">
+            <span className="ws-dash-welcome-icon" aria-hidden>
+              <Sparkles size={18} strokeWidth={2.2} />
+            </span>
+            <div>
+              <h2>Welcome back, {firstName}!</h2>
+              <p className={!workshop && !loading ? "ws-dash-empty-note" : undefined}>
+                {welcomeMessage}
+              </p>
             </div>
+          </div>
+          <p className="ws-dash-welcome-tagline">
+            Insights today. A stronger tomorrow.
+          </p>
+        </section>
+
+        {!loading && workshop ? (
+          <section className="ws-dash-modules">
+            {cards.map((card) => {
+              const Icon = card.icon;
+              const disabled = !card.enabled;
+              const statusLabel = card.note
+                ? card.note
+                : disabled
+                  ? "Locked"
+                  : "Open module";
+
+              return (
+                <button
+                  key={card.key}
+                  type="button"
+                  className={`ws-dash-module theme-${card.theme} ${
+                    disabled ? "is-disabled" : ""
+                  }`}
+                  disabled={disabled}
+                  onClick={() => {
+                    if (disabled) {
+                      return;
+                    }
+                    if (card.path === "/reports") {
+                      clearReportsReturn();
+                    }
+                    navigate(card.path);
+                  }}
+                  title={disabled ? card.note : card.description}
+                >
+                  <span className="ws-dash-module-watermark" aria-hidden>
+                    <Icon size={110} strokeWidth={1.2} />
+                  </span>
+
+                  <span className="ws-dash-module-icon" aria-hidden>
+                    <Icon size={22} strokeWidth={2.1} />
+                  </span>
+
+                  <div className="ws-dash-module-body">
+                    <h3>{card.title}</h3>
+                    <p>{card.description}</p>
+                  </div>
+
+                  <span className="ws-dash-module-cta">
+                    {statusLabel}
+                    {!disabled && !card.note ? (
+                      <ArrowRight size={14} strokeWidth={2.4} aria-hidden />
+                    ) : null}
+                  </span>
+                </button>
+              );
+            })}
           </section>
-        ) : errorMessage ? (
-          <section className="ws-dash-welcome">
-            <div className="ws-dash-welcome-copy">
-              <span className="ws-dash-welcome-icon" aria-hidden>
-                <LayoutDashboard size={20} strokeWidth={2.2} />
-              </span>
-              <div>
-                <h2>Welcome back, {firstName}!</h2>
-                <p className="ws-dash-empty-note">{errorMessage}</p>
-              </div>
-            </div>
-          </section>
-        ) : !workshop ? (
-          <section className="ws-dash-welcome">
-            <div className="ws-dash-welcome-copy">
-              <span className="ws-dash-welcome-icon" aria-hidden>
-                <LayoutDashboard size={20} strokeWidth={2.2} />
-              </span>
-              <div>
-                <h2>Welcome back, {firstName}!</h2>
-                <p className="ws-dash-empty-note">
-                  No workshops has started.
-                </p>
-              </div>
-            </div>
-          </section>
-        ) : (
-          <>
-            <section className="ws-dash-welcome">
-              <div className="ws-dash-welcome-copy">
-                <span className="ws-dash-welcome-icon" aria-hidden>
-                  <LayoutDashboard size={20} strokeWidth={2.2} />
-                </span>
-                <div>
-                  <h2>Welcome back, {firstName}!</h2>
-                  <p>
-                    Continue with <strong>{workshopName}</strong> — choose a
-                    module below to proceed.
-                  </p>
-                </div>
-              </div>
-            </section>
-
-            <section className="ws-dash-modules">
-              {cards.map((card) => {
-                const Icon = card.icon;
-                const disabled = !card.enabled;
-
-                return (
-                  <button
-                    key={card.key}
-                    type="button"
-                    className={`ws-dash-module theme-${card.theme} ${
-                      disabled ? "is-disabled" : ""
-                    }`}
-                    disabled={disabled}
-                    onClick={() => !disabled && navigate(card.path)}
-                    title={disabled ? card.note : undefined}
-                  >
-                    <div className="ws-dash-module-rail">
-                      <span className="ws-dash-module-icon" aria-hidden>
-                        <Icon size={22} strokeWidth={2.1} />
-                      </span>
-                    </div>
-
-                    <div className="ws-dash-module-body">
-                      <h3>{card.title}</h3>
-                      <p>{card.description}</p>
-
-                      <div className="ws-dash-module-footer">
-                        <div className="ws-dash-module-status">
-                          <span>
-                            {card.note
-                              ? card.note
-                              : disabled
-                                ? "Locked"
-                                : "Open module"}
-                          </span>
-                        </div>
-                        <span className="ws-dash-module-arrow" aria-hidden>
-                          <ArrowRight size={16} strokeWidth={2.4} />
-                        </span>
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </section>
-          </>
-        )}
+        ) : null}
       </main>
     </div>
   );

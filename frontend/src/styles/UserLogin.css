@@ -33,7 +33,7 @@
 .user-login-brand-copy {
   position: relative;
   z-index: 1;
-  margin-top: 72px;
+  margin-top: 36px;
   max-width: none;
 }
 
@@ -86,14 +86,22 @@
   display: block;
 }
 
+.user-login-features li > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  min-width: 0;
+}
+
 .user-login-features strong {
-  display: block;
+  display: inline;
   font-size: 15px;
-  margin-bottom: 2px;
+  margin-bottom: 0;
 }
 
 .user-login-features li > div span {
-  display: block;
+  display: inline;
   color: rgba(255, 255, 255, 0.78);
   font-size: 13px;
   line-height: 1.4;
@@ -163,7 +171,7 @@
   border-radius: 18px;
   border: 1px solid #eceff3;
   box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
-  padding: 28px 26px 24px;
+  padding: 22px 22px 18px;
   box-sizing: border-box;
 }
 

@@ -3,13 +3,13 @@ import WorkshopEditBanner from "../../components/WorkshopEditBanner";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Crosshair,
+  ChevronDown,
   Eye,
   Plus,
   Save,
+  Search,
   Sparkles,
   Target,
-  TrendingUp,
   X,
 } from "lucide-react";
 import {
@@ -82,6 +82,10 @@ export default function VisionMission() {
   const [missionKeywords, setMissionKeywords] = useState<string[]>([]);
   const [visionInput, setVisionInput] = useState("");
   const [missionInput, setMissionInput] = useState("");
+  const [keywordSearch, setKeywordSearch] = useState("");
+  const [customKeyword, setCustomKeyword] = useState("");
+  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [zoneMenuOpen, setZoneMenuOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -99,6 +103,7 @@ export default function VisionMission() {
   } | null>(null);
   const [editingValue, setEditingValue] = useState("");
   const savedSnapshotRef = useRef(snapshotKeywords([], []));
+  const zoneMenuRef = useRef<HTMLDivElement | null>(null);
 
   const {
     participant,
@@ -181,6 +186,29 @@ export default function VisionMission() {
   };
 
   useRegisterUnsavedGuard(isDirty, handleSave);
+
+  const filteredKeywords = useMemo(() => {
+    const query = keywordSearch.trim().toLowerCase();
+    if (!query) {
+      return keywords;
+    }
+    return keywords.filter((keyword) =>
+      keyword.toLowerCase().includes(query)
+    );
+  }, [keywords, keywordSearch]);
+
+  useEffect(() => {
+    const onClickOutside = (event: MouseEvent) => {
+      if (
+        zoneMenuRef.current &&
+        !zoneMenuRef.current.contains(event.target as Node)
+      ) {
+        setZoneMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, []);
 
   useEffect(() => {
     if (!getWorkshopModuleAccessStatus(selectedWorkshop).enabled) {
@@ -436,6 +464,21 @@ export default function VisionMission() {
     addKeywordToZone(zone, value);
   };
 
+  const addCustomKeyword = () => {
+    const trimmed = customKeyword.trim();
+    if (!trimmed) {
+      return;
+    }
+    setKeywords((prev) =>
+      prev.some((item) => item.toLowerCase() === trimmed.toLowerCase())
+        ? prev
+        : [...prev, trimmed]
+    );
+    addKeywordToZone(activeZone, trimmed);
+    setCustomKeyword("");
+    setShowCustomInput(false);
+  };
+
   const renderDropZone = (
     zone: DropZone,
     title: string,
@@ -576,15 +619,23 @@ export default function VisionMission() {
       <div className="vm-page">
         <section className="vm-hero">
           <div className="vm-hero-copy">
-            <h1>Vision & Mission Statement</h1>
-            <p>
-              Select keywords that best represent your organization&apos;s
-              vision and mission. Click a Vision or Mission box, then click
-              keywords to add them — or drag them in, or type your own and press
-              Enter.
-            </p>
+            <span className="vm-hero-icon" aria-hidden>
+              <Target size={18} strokeWidth={2.2} />
+            </span>
+            <div>
+              <h1>Vision & Mission Statement</h1>
+              <p>
+                Select keywords that best represent your organization&apos;s
+                vision and mission. Click a Vision or Mission box, then click
+                keywords to add them — or drag them in, or type your own and
+                press Enter.
+              </p>
+            </div>
           </div>
-          
+          <div className="vm-hero-aside">
+            <div className="vm-hero-art" aria-hidden />
+            <p className="vm-hero-tagline">Define today. Build tomorrow.</p>
+          </div>
         </section>
 
         {loading ? (
@@ -594,40 +645,69 @@ export default function VisionMission() {
             {!canEdit && <WorkshopEditBanner message={editMessage} />}
 
             <div className={canEdit ? "vm-content" : "vm-content vm-readonly"}>
-              <div className="vm-statements">
-                {renderDropZone(
-                  "vision",
-                  "Vision Statement",
-                  visionKeywords,
-                  visionInput,
-                  setVisionInput
-                )}
-
-                {renderDropZone(
-                  "mission",
-                  "Mission Statement",
-                  missionKeywords,
-                  missionInput,
-                  setMissionInput
-                )}
-              </div>
-
               <section className="vm-keyword-bank">
                 <div className="vm-keyword-bank-header">
                   <h3>
-                    <Sparkles size={18} strokeWidth={2.2} />
+                    <Sparkles size={16} strokeWidth={2.2} />
                     Suggested Keywords
                   </h3>
-                  <p className="vm-active-target">
-                    Adding to:{" "}
-                    <strong>
-                      {activeZone === "vision" ? "Vision" : "Mission"}
-                    </strong>
-                  </p>
                 </div>
 
+                <div className="vm-zone-select" ref={zoneMenuRef}>
+                  <button
+                    type="button"
+                    className="vm-zone-select-btn"
+                    onClick={() => setZoneMenuOpen((open) => !open)}
+                    aria-expanded={zoneMenuOpen}
+                  >
+                    <span>
+                      Adding to:{" "}
+                      <strong>
+                        {activeZone === "vision" ? "Vision" : "Mission"}
+                      </strong>
+                    </span>
+                    <ChevronDown size={14} strokeWidth={2.4} />
+                  </button>
+                  {zoneMenuOpen ? (
+                    <div className="vm-zone-select-menu" role="menu">
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className={activeZone === "vision" ? "is-active" : ""}
+                        onClick={() => {
+                          setActiveZone("vision");
+                          setZoneMenuOpen(false);
+                        }}
+                      >
+                        Vision
+                      </button>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className={activeZone === "mission" ? "is-active" : ""}
+                        onClick={() => {
+                          setActiveZone("mission");
+                          setZoneMenuOpen(false);
+                        }}
+                      >
+                        Mission
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+
+                <label className="vm-keyword-search">
+                  <Search size={14} strokeWidth={2.2} aria-hidden />
+                  <input
+                    type="search"
+                    value={keywordSearch}
+                    onChange={(event) => setKeywordSearch(event.target.value)}
+                    placeholder="Search keywords..."
+                  />
+                </label>
+
                 <div className="vm-keyword-grid">
-                  {keywords.map((keyword) => (
+                  {filteredKeywords.map((keyword) => (
                     <button
                       key={keyword}
                       type="button"
@@ -648,18 +728,76 @@ export default function VisionMission() {
                         activeZone === "vision" ? "Vision" : "Mission"
                       }. Drag to drop into a section.`}
                     >
-                      <Sparkles size={13} strokeWidth={2} />
                       <span>{keyword}</span>
                       <Plus size={14} strokeWidth={2.4} />
                     </button>
                   ))}
+                  {filteredKeywords.length === 0 ? (
+                    <p className="vm-keyword-empty">No keywords match your search.</p>
+                  ) : null}
                 </div>
 
-                <p className="vm-keyword-tip">
-                  Click a Vision or Mission box to select it, then click a
-                  keyword to add it there. You can also drag and drop.
-                </p>
+                <div className="vm-custom-keyword">
+                  {showCustomInput ? (
+                    <div className="vm-custom-keyword-row">
+                      <input
+                        type="text"
+                        value={customKeyword}
+                        onChange={(event) => setCustomKeyword(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            addCustomKeyword();
+                          }
+                          if (event.key === "Escape") {
+                            setShowCustomInput(false);
+                            setCustomKeyword("");
+                          }
+                        }}
+                        placeholder="Type a custom keyword"
+                        autoFocus
+                        disabled={!canEdit}
+                      />
+                      <button
+                        type="button"
+                        className="vm-custom-add-btn"
+                        onClick={addCustomKeyword}
+                        disabled={!canEdit}
+                      >
+                        Add
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="vm-custom-keyword-btn"
+                      onClick={() => setShowCustomInput(true)}
+                      disabled={!canEdit}
+                    >
+                      <Plus size={14} strokeWidth={2.4} />
+                      Add custom keyword
+                    </button>
+                  )}
+                </div>
               </section>
+
+              <div className="vm-statements">
+                {renderDropZone(
+                  "vision",
+                  "Vision Statement",
+                  visionKeywords,
+                  visionInput,
+                  setVisionInput
+                )}
+
+                {renderDropZone(
+                  "mission",
+                  "Mission Statement",
+                  missionKeywords,
+                  missionInput,
+                  setMissionInput
+                )}
+              </div>
             </div>
 
             {errorMessage ? (

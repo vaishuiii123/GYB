@@ -1,12 +1,15 @@
-import { useNavigate, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { workshopNavItems } from "./userMenuItems";
 import {
   getPreOdAccessStatus,
   getWorkshopModuleAccessStatus,
+  WORKSHOP_SCHEDULE_UPDATED_EVENT,
   workshopFromSelected,
 } from "../../utils/workshopCache";
 import { getSelectedWorkshop } from "../../utils/selectedWorkshop";
 import { useUnsavedChanges } from "../../utils/unsavedChanges";
+import { clearReportsReturn } from "../../utils/reportsReturn";
 import "../../styles/UserNavDrawer.css";
 
 type UserNavDrawerProps = {
@@ -17,15 +20,38 @@ type UserNavDrawerProps = {
 export default function UserNavDrawer({ open, onClose }: UserNavDrawerProps) {
   const location = useLocation();
   const { tryNavigate } = useUnsavedChanges();
+  const [scheduleTick, setScheduleTick] = useState(0);
+
+  useEffect(() => {
+    const onScheduleUpdated = () => {
+      setScheduleTick((value) => value + 1);
+    };
+
+    window.addEventListener(
+      WORKSHOP_SCHEDULE_UPDATED_EVENT,
+      onScheduleUpdated
+    );
+    return () => {
+      window.removeEventListener(
+        WORKSHOP_SCHEDULE_UPDATED_EVENT,
+        onScheduleUpdated
+      );
+    };
+  }, []);
+
   const selectedWorkshop = getSelectedWorkshop();
   const workshopRecord = selectedWorkshop
     ? workshopFromSelected(selectedWorkshop)
     : null;
   const preOdStatus = getPreOdAccessStatus(selectedWorkshop);
   const moduleStatus = getWorkshopModuleAccessStatus(workshopRecord);
+  void scheduleTick;
 
   const handleNavigate = (path: string | null) => {
     if (!path) return;
+    if (path === "/reports") {
+      clearReportsReturn();
+    }
     onClose();
     void tryNavigate(path);
   };

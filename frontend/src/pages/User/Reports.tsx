@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Eye,
   FileSpreadsheet,
   LineChart,
   List,
   Search,
-  StickyNote,
   Zap,
 } from "lucide-react";
 import {
@@ -17,6 +16,10 @@ import AttachmentPreviewModal, {
   type AttachmentPreviewTarget,
 } from "../../components/AttachmentPreviewModal";
 import UserLayout from "./UserLayout";
+import {
+  markReportsReturnFromQuestions,
+  readReportsReturn,
+} from "../../utils/reportsReturn";
 import "../../styles/Export.css";
 import "../../styles/UserReports.css";
 
@@ -324,8 +327,22 @@ function SummaryPieChart({
   );
 }
 
+type ReportView = "summary" | "questions" | "vision" | "actionable";
+
+type ReportsLocationState = {
+  view?: ReportView;
+  question?: string;
+  returnTo?: "question";
+};
+
 export default function Reports() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const reportState = (location.state || {}) as ReportsLocationState;
+  const [fromQuestion, setFromQuestion] = useState(
+    () =>
+      reportState.returnTo === "question" || readReportsReturn() === "question"
+  );
   const {
     participant,
     workshop: selectedWorkshop,
@@ -345,10 +362,22 @@ export default function Reports() {
   );
   const [actionableRows, setActionableRows] = useState<ActionableRow[]>([]);
   const [search, setSearch] = useState("");
-  const [activeView, setActiveView] = useState<
-    "all" | "summary" | "vision" | "notes" | "actionable"
-  >("all");
+  const [questionFilter, setQuestionFilter] = useState(
+    reportState.question || ""
+  );
+  const [activeView, setActiveView] = useState<ReportView>(
+    reportState.view || "questions"
+  );
   const loadedWorkshopRef = useRef("");
+
+  useEffect(() => {
+    if (reportState.returnTo === "question") {
+      markReportsReturnFromQuestions();
+      setFromQuestion(true);
+      return;
+    }
+    setFromQuestion(readReportsReturn() === "question");
+  }, [reportState.returnTo, location.key]);
 
   const questionMetaById = useMemo(() => {
     const map = new Map<
@@ -608,13 +637,23 @@ export default function Reports() {
     );
   }, [responses, search]);
 
-  const filteredNotes = useMemo(
-    () =>
-      filteredResponses.filter((item) =>
-        Boolean(String(item.note || "").trim())
-      ),
-    [filteredResponses]
-  );
+  const questionOptions = useMemo(() => {
+    const names = new Set<string>();
+    responses.forEach((item) => {
+      const question = String(item.question || "").trim();
+      if (question) {
+        names.add(question);
+      }
+    });
+    return Array.from(names).sort((a, b) => a.localeCompare(b));
+  }, [responses]);
+
+  const questionScopedResponses = useMemo(() => {
+    if (!questionFilter) {
+      return filteredResponses;
+    }
+    return filteredResponses.filter((item) => item.question === questionFilter);
+  }, [filteredResponses, questionFilter]);
 
   const filteredVisionMission = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -691,16 +730,21 @@ export default function Reports() {
   const itemCount =
     activeView === "vision"
       ? filteredVisionMission.length
-      : activeView === "notes"
-        ? filteredNotes.length
-        : activeView === "actionable"
-          ? filteredActionables.length
-          : activeView === "summary"
-            ? answerPieCharts.length
-            : filteredResponses.length;
+      : activeView === "actionable"
+        ? filteredActionables.length
+        : activeView === "summary"
+          ? answerPieCharts.length
+          : questionScopedResponses.length;
 
   return (
-    <UserLayout contentClassName="user-layout-main-reports">
+    <UserLayout
+      contentClassName="user-layout-main-reports"
+      showBackButton
+      backTo={fromQuestion ? "/od-chart/questions" : "/userdashboard"}
+      backLabel={
+        fromQuestion ? "← Back to questions" : "← Back to Dashboard"
+      }
+    >
       <div className="user-reports-page user-reports-like-export">
         <div className="user-reports-header">
           <span className="user-reports-header-icon" aria-hidden>
@@ -720,19 +764,19 @@ export default function Reports() {
           <div className="export-tabs">
             <button
               type="button"
-              className={activeView === "all" ? "active" : ""}
-              onClick={() => setActiveView("all")}
-            >
-              <List size={16} strokeWidth={2.2} />
-              All Responses
-            </button>
-            <button
-              type="button"
               className={activeView === "summary" ? "active" : ""}
               onClick={() => setActiveView("summary")}
             >
               <LineChart size={16} strokeWidth={2.2} />
-              Summary View
+              Workshop Summary
+            </button>
+            <button
+              type="button"
+              className={activeView === "questions" ? "active" : ""}
+              onClick={() => setActiveView("questions")}
+            >
+              <List size={16} strokeWidth={2.2} />
+              Question-Wise
             </button>
             <button
               type="button"
@@ -741,14 +785,6 @@ export default function Reports() {
             >
               <Eye size={16} strokeWidth={2.2} />
               Vision & Mission
-            </button>
-            <button
-              type="button"
-              className={activeView === "notes" ? "active" : ""}
-              onClick={() => setActiveView("notes")}
-            >
-              <StickyNote size={16} strokeWidth={2.2} />
-              Notes
             </button>
             <button
               type="button"
@@ -761,6 +797,22 @@ export default function Reports() {
           </div>
 
           <div className="export-actions">
+            {activeView === "questions" ? (
+              <label className="user-reports-question-filter">
+                <span>Question</span>
+                <select
+                  value={questionFilter}
+                  onChange={(event) => setQuestionFilter(event.target.value)}
+                >
+                  <option value="">All questions</option>
+                  {questionOptions.map((question) => (
+                    <option key={question} value={question}>
+                      {question}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
             <div className="export-search-wrapper">
               <span className="export-search-icon" aria-hidden>
                 <Search size={16} strokeWidth={2.2} />
@@ -839,45 +891,6 @@ export default function Reports() {
               </table>
             </div>
           </section>
-        ) : activeView === "notes" ? (
-          <section className="export-table-card">
-            <div className="export-table-scroll">
-              <table className="export-table">
-                <thead>
-                  <tr>
-                    <th>Participant</th>
-                    <th>Category</th>
-                    <th>Question</th>
-                    <th>Notes</th>
-                    <th>Response</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredNotes.length === 0 ? (
-                    <tr>
-                      <td colSpan={5}>No notes found.</td>
-                    </tr>
-                  ) : (
-                    filteredNotes.map((item, index) => (
-                      <tr key={`${item.participant}-note-${index}`}>
-                        <td>{item.participant}</td>
-                        <td>
-                          {item.category?.split(">").pop()?.trim() || "-"}
-                        </td>
-                        <td>{item.question}</td>
-                        <td className="export-text-cell">
-                          {item.note || "-"}
-                        </td>
-                        <td className="export-text-cell">
-                          {item.response || "-"}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
         ) : activeView === "actionable" ? (
           <section className="export-table-card">
             <div className="export-table-scroll">
@@ -936,12 +949,12 @@ export default function Reports() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredResponses.length === 0 ? (
+                  {questionScopedResponses.length === 0 ? (
                     <tr>
                       <td colSpan={6}>No responses found.</td>
                     </tr>
                   ) : (
-                    filteredResponses.map((item, index) => (
+                    questionScopedResponses.map((item, index) => (
                       <tr
                         key={`${item.participant}-${item.question}-${index}`}
                       >
@@ -950,11 +963,30 @@ export default function Reports() {
                           {item.category?.split(">").pop()?.trim() || "-"}
                         </td>
                         <td>{item.question}</td>
-                        <td className="export-text-cell">
-                          {item.response ? item.response : "-"}
+                        <td>
+                          {item.response ? (
+                            <span
+                              className={`user-reports-response-pill is-${String(
+                                item.response
+                              )
+                                .trim()
+                                .toLowerCase()
+                                .replace(/[^a-z]/g, "")}`}
+                            >
+                              {item.response}
+                            </span>
+                          ) : (
+                            "-"
+                          )}
                         </td>
-                        <td className="export-text-cell">
-                          {item.note ? item.note : "-"}
+                        <td>
+                          {item.note ? (
+                            <div className="user-reports-notes-scroll">
+                              {item.note}
+                            </div>
+                          ) : (
+                            "-"
+                          )}
                         </td>
                         <td>
                           {item.attachment && item.attachment !== "-" ? (
