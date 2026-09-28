@@ -42,7 +42,6 @@ import AttachmentPreviewModal, {
 } from "../../components/AttachmentPreviewModal";
 import {
   ATTACHMENT_ACCEPT,
-  ATTACHMENT_HINT,
   isAllowedAttachmentFile,
   normalizeAttachmentList,
 } from "../../utils/attachmentTypes";
@@ -142,6 +141,236 @@ function formatResponseText(value: string) {
   return parts.length > 0 ? parts.join(", ") : "";
 }
 
+type PieParticipant = {
+  name: string;
+  note: string;
+};
+
+type PieSlice = {
+  label: string;
+  value: number;
+  participants: PieParticipant[];
+};
+
+function normalizeAnswerToken(value: string) {
+  const trimmed = String(value || "").trim();
+  if (!trimmed) return "";
+  const lower = trimmed.toLowerCase();
+  if (lower === "red" || lower === "r") return "Red";
+  if (lower === "yellow" || lower === "ye" || lower === "gold" || lower === "y") {
+    return "Yellow";
+  }
+  if (lower === "green" || lower === "g") return "Green";
+  if (lower === "yes") return "Yes";
+  if (lower === "no" || lower === "n") return "No";
+  return trimmed;
+}
+
+function expandAnswerTokens(response: string) {
+  return String(response || "")
+    .split("|")
+    .map((part) => normalizeAnswerToken(part))
+    .filter(Boolean);
+}
+
+function colorForPieSlice(label: string, index: number, total: number) {
+  const lower = String(label || "")
+    .trim()
+    .toLowerCase();
+  if (lower === "yellow" || lower === "ye" || lower === "gold") return "#F7C948";
+  if (lower === "green" || lower === "g") return "#00A651";
+  if (lower === "red" || lower === "r") return "#ED1C24";
+  if (lower === "yes" || lower === "y" || lower === "true" || lower === "agree") {
+    return "#00A651";
+  }
+  if (
+    lower === "no" ||
+    lower === "n" ||
+    lower === "false" ||
+    lower === "disagree"
+  ) {
+    return "#ED1C24";
+  }
+  const steps = Math.max(total, 1);
+  const t = steps === 1 ? 0.45 : index / Math.max(steps - 1, 1);
+  const lightness = Math.round(32 + t * 46);
+  return `hsl(210, 78%, ${lightness}%)`;
+}
+
+function buildAnswerSlices(
+  rows: Array<{ response: string; participant?: string; note?: string }>
+): PieSlice[] {
+  const counts = new Map<string, number>();
+  const people = new Map<string, PieParticipant[]>();
+
+  rows.forEach((row) => {
+    const name = String(row.participant || "").trim() || "Unknown";
+    const note = String(row.note || "").trim();
+    expandAnswerTokens(row.response).forEach((token) => {
+      counts.set(token, (counts.get(token) || 0) + 1);
+      const list = people.get(token) || [];
+      if (!list.some((entry) => entry.name === name)) {
+        list.push({ name, note });
+      }
+      people.set(token, list);
+    });
+  });
+
+  return Array.from(counts.entries())
+    .map(([label, value]) => ({
+      label,
+      value,
+      participants: (people.get(label) || []).sort((a, b) =>
+        a.name.localeCompare(b.name)
+      ),
+    }))
+    .sort((a, b) => b.value - a.value);
+}
+
+function polarToCartesian(cx: number, cy: number, radius: number, angleDeg: number) {
+  const angleRad = ((angleDeg - 90) * Math.PI) / 180;
+  return {
+    x: cx + radius * Math.cos(angleRad),
+    y: cy + radius * Math.sin(angleRad),
+  };
+}
+
+function describeSlice(
+  cx: number,
+  cy: number,
+  radius: number,
+  startAngle: number,
+  endAngle: number
+) {
+  const start = polarToCartesian(cx, cy, radius, endAngle);
+  const end = polarToCartesian(cx, cy, radius, startAngle);
+  const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+  return [
+    `M ${cx} ${cy}`,
+    `L ${start.x} ${start.y}`,
+    `A ${radius} ${radius} 0 ${largeArc} 0 ${end.x} ${end.y}`,
+    "Z",
+  ].join(" ");
+}
+
+function ResponsePieChart({
+  title,
+  slices,
+}: {
+  title: string;
+  slices: PieSlice[];
+}) {
+  const [hoveredLabel, setHoveredLabel] = useState<string | null>(null);
+  const total = slices.reduce((sum, item) => sum + item.value, 0);
+  if (total <= 0 || slices.length < 1) return null;
+
+  const size = 220;
+  const cx = size / 2;
+  const cy = size / 2;
+  const radius = 96;
+  let angle = 0;
+
+  const arcs = slices.map((slice, index) => {
+    const sweep = (slice.value / total) * 360;
+    const startAngle = angle;
+    const endAngle = angle + sweep;
+    angle = endAngle;
+    return {
+      ...slice,
+      path:
+        sweep >= 359.999
+          ? undefined
+          : describeSlice(cx, cy, radius, startAngle, endAngle),
+      fullCircle: sweep >= 359.999,
+      color: colorForPieSlice(slice.label, index, slices.length),
+      percent: Math.round((slice.value / total) * 100),
+    };
+  });
+
+  const hovered = arcs.find((arc) => arc.label === hoveredLabel) || null;
+
+  return (
+    <div className="od-response-pie">
+      <div className="od-response-pie-chart-wrap">
+        <svg
+          className="od-response-pie-svg"
+          width={size}
+          height={size}
+          viewBox={`0 0 ${size} ${size}`}
+          role="img"
+          aria-label={title}
+        >
+          {arcs.map((arc) =>
+            arc.fullCircle ? (
+              <circle
+                key={arc.label}
+                cx={cx}
+                cy={cy}
+                r={radius}
+                fill={arc.color}
+                className="od-response-pie-slice"
+                onMouseEnter={() => setHoveredLabel(arc.label)}
+                onMouseLeave={() => setHoveredLabel(null)}
+              />
+            ) : (
+              <path
+                key={arc.label}
+                d={arc.path}
+                fill={arc.color}
+                stroke="#ffffff"
+                strokeWidth={1.5}
+                className="od-response-pie-slice"
+                onMouseEnter={() => setHoveredLabel(arc.label)}
+                onMouseLeave={() => setHoveredLabel(null)}
+              />
+            )
+          )}
+        </svg>
+        {hovered ? (
+          <div className="od-response-pie-tooltip" role="status">
+            <p>
+              {hovered.label}{" "}
+              <span>
+                {hovered.value} ({hovered.percent}%)
+              </span>
+            </p>
+            {hovered.participants.length > 0 ? (
+              <ul>
+                {hovered.participants.map((entry) => (
+                  <li key={entry.name}>
+                    <strong>{entry.name}</strong>
+                    {entry.note ? (
+                      <span className="od-response-pie-note">{entry.note}</span>
+                    ) : (
+                      <span className="od-response-pie-note is-empty">
+                        No notes
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+      <ul className="od-response-pie-legend">
+        {arcs.map((arc) => (
+          <li key={arc.label} title={arc.label}>
+            <span
+              className="od-response-pie-swatch"
+              style={{ background: arc.color }}
+              aria-label={arc.label}
+            />
+            <span>
+              {arc.value} ({arc.percent}%)
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function statusPresetFor(value: string) {
   const normalized = normalizeStatusValue(value);
   return (
@@ -234,6 +463,16 @@ export default function ODChartQuestions() {
   const [responseQuestionId, setResponseQuestionId] = useState<string | null>(
     null
   );
+  const [workshopResponseRows, setWorkshopResponseRows] = useState<
+    Array<{
+      questionId: string;
+      participantId: string;
+      participant: string;
+      response: string;
+      note: string;
+    }>
+  >([]);
+  const workshopResponsesLoadedRef = useRef("");
   const [noteComposerQuestionId, setNoteComposerQuestionId] = useState<
     string | null
   >(null);
@@ -635,10 +874,6 @@ export default function ODChartQuestions() {
     return (
       <div className="qr-notes-panel">
         <div className="qr-notes-head">
-          <span className="qr-notes-title">
-            <FileText size={14} strokeWidth={2.2} aria-hidden />
-            Notes ({count})
-          </span>
           {canEdit && !composing ? (
             <button
               type="button"
@@ -649,7 +884,9 @@ export default function ODChartQuestions() {
               <Plus size={14} strokeWidth={2.4} aria-hidden />
               Add Note
             </button>
-          ) : null}
+          ) : (
+            <span className="qr-label">Notes</span>
+          )}
         </div>
 
         {composing ? (
@@ -678,16 +915,9 @@ export default function ODChartQuestions() {
                 onClick={() => submitNoteForQuestion(question.id)}
                 disabled={saving || !noteDraft.trim()}
               >
-                Submit Note
+                Submit
               </button>
             </div>
-          </div>
-        ) : null}
-
-        {!composing && count === 0 ? (
-          <div className="qr-notes-empty">
-            <FileText size={28} strokeWidth={1.6} aria-hidden />
-            <p>No notes yet. Add a note to capture your thoughts.</p>
           </div>
         ) : null}
 
@@ -1276,14 +1506,6 @@ export default function ODChartQuestions() {
               );
             })}
           </ul>
-        ) : (
-          <p className="od-attach-empty">
-            No attachments yet. {ATTACHMENT_HINT}
-          </p>
-        )}
-
-        {items.length > 0 ? (
-          <p className="od-attach-hint">{ATTACHMENT_HINT}</p>
         ) : null}
       </div>
     );
@@ -1304,6 +1526,134 @@ export default function ODChartQuestions() {
       setPage(Math.max(0, totalPages - 1));
     }
   }, [page, totalPages]);
+
+  useEffect(() => {
+    const workshopId = String(navState?.workshop?.id || "").trim();
+    if (!workshopId) {
+      setWorkshopResponseRows([]);
+      workshopResponsesLoadedRef.current = "";
+      return;
+    }
+
+    let cancelled = false;
+    const loadWorkshopResponses = async () => {
+      try {
+        const response = await fetch(
+          `/api/get-workshop-responses?workshopId=${encodeURIComponent(
+            workshopId
+          )}`
+        );
+        const data = await response.json().catch(() => null);
+        if (cancelled) return;
+
+        const rows: Array<{
+          questionId: string;
+          participantId: string;
+          participant: string;
+          response: string;
+          note: string;
+        }> = [];
+
+        (data?.participants || []).forEach(
+          (entry: {
+            participantId?: string;
+            participantName?: string;
+            odChart?: {
+              answers?: Record<string, string>;
+              notes?: Record<string, string>;
+            };
+          }) => {
+            const participantId = String(entry.participantId || "");
+            const name =
+              String(entry.participantName || "").trim() || "Unknown";
+            const answersMap = entry.odChart?.answers || {};
+            const notesMap = entry.odChart?.notes || {};
+            Object.keys(answersMap).forEach((questionId) => {
+              const answer = String(answersMap[questionId] || "").trim();
+              if (!answer) return;
+              rows.push({
+                questionId: String(questionId),
+                participantId,
+                participant: name,
+                response: answer,
+                note: String(notesMap[questionId] || "").trim(),
+              });
+            });
+          }
+        );
+
+        setWorkshopResponseRows(rows);
+        workshopResponsesLoadedRef.current = workshopId;
+      } catch (error) {
+        console.error(error);
+        if (!cancelled && workshopResponsesLoadedRef.current !== workshopId) {
+          setWorkshopResponseRows([]);
+        }
+      }
+    };
+
+    void loadWorkshopResponses();
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === "hidden") return;
+      void loadWorkshopResponses();
+    }, 15000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [navState?.workshop?.id]);
+
+  const responsePieSlices = useMemo(() => {
+    if (!responseQuestionId) return [];
+
+    const questionId = String(responseQuestionId);
+    const selfId = String(participant?.id || "");
+    const selfName = participantDisplayName(participant || {});
+    const localAnswer = String(answers[questionId] || "").trim();
+    const localNote = String(notes[questionId] || "").trim();
+
+    const rows: Array<{
+      response: string;
+      participant: string;
+      note: string;
+    }> = [];
+    let selfFound = false;
+
+    workshopResponseRows.forEach((row) => {
+      if (row.questionId !== questionId) return;
+      if (row.participantId && row.participantId === selfId) {
+        selfFound = true;
+        rows.push({
+          response: localAnswer || row.response,
+          participant: row.participant || selfName,
+          note: localNote || row.note,
+        });
+        return;
+      }
+      rows.push({
+        response: row.response,
+        participant: row.participant,
+        note: row.note,
+      });
+    });
+
+    if (!selfFound && localAnswer) {
+      rows.push({
+        response: localAnswer,
+        participant: selfName,
+        note: localNote,
+      });
+    }
+
+    return buildAnswerSlices(rows);
+  }, [
+    responseQuestionId,
+    workshopResponseRows,
+    participant?.id,
+    answers,
+    notes,
+  ]);
 
   if (!navState) {
     return null;
@@ -1498,34 +1848,17 @@ export default function ODChartQuestions() {
             </div>
 
             <div className="od-response-body">
-              <section>
-                <h3>Question</h3>
-                <p>{responseQuestion.question}</p>
-              </section>
-              <section>
-                <h3>Responses</h3>
-                <p>
-                  {formatResponseText(answers[responseQuestion.id] || "") ||
-                    "No response yet."}
-                </p>
-              </section>
-              <section>
-                <h3>Notes</h3>
-                <p>
-                  {String(notes[responseQuestion.id] || "").trim() ||
-                    "No notes yet."}
-                </p>
-              </section>
-              <section>
-                <h3>Attachments</h3>
-                {getQuestionAttachments(responseQuestion.id).length === 0 ? (
-                  <p>No attachments yet.</p>
+              <section className="od-response-pie-section">
+                {responsePieSlices.length > 0 ? (
+                  <ResponsePieChart
+                    title={responseQuestion.question}
+                    slices={responsePieSlices}
+                  />
                 ) : (
-                  <ul>
-                    {getQuestionAttachments(responseQuestion.id).map((item) => (
-                      <li key={item.id}>{item.fileName}</li>
-                    ))}
-                  </ul>
+                  <p>
+                    {formatResponseText(answers[responseQuestion.id] || "") ||
+                      "No response yet."}
+                  </p>
                 )}
               </section>
             </div>

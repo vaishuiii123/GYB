@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
+  ChevronDown,
   Eye,
   FileSpreadsheet,
+  Filter,
   LineChart,
   List,
   Search,
@@ -27,6 +29,7 @@ type ReportRow = {
   participant: string;
   participantId?: string;
   category: string;
+  tag?: string;
   question: string;
   questionId?: string;
   questionType?: string;
@@ -54,14 +57,22 @@ type ActionableRow = {
   comments: string;
 };
 
+type TagOption = {
+  id: string;
+  tagName: string;
+  tagColor?: string;
+};
+
 type Category = {
   id: string;
   categoryName: string;
   fullPath?: string;
+  tagId?: string;
   questions?: Array<{
     id: string;
     question: string;
     answerType?: string;
+    tagId?: string;
   }>;
 };
 
@@ -213,21 +224,76 @@ function describeSlice(
   ].join(" ");
 }
 
+function resolveQuestionTagId(
+  question: { tagId?: string },
+  category: { tagId?: string }
+) {
+  return String(question.tagId || category.tagId || "").trim();
+}
+
+function categoryLeafName(category: string) {
+  const parts = String(category || "")
+    .split(">")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  return parts[parts.length - 1] || category || "-";
+}
+
+function responseTone(response: string) {
+  return String(response || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z]/g, "");
+}
+
+function isColorRatingResponse(tone: string) {
+  return (
+    tone === "red" ||
+    tone === "r" ||
+    tone === "yellow" ||
+    tone === "ye" ||
+    tone === "gold" ||
+    tone === "amber" ||
+    tone === "green" ||
+    tone === "g"
+  );
+}
+
+function ResponseValue({ response }: { response: string }) {
+  const tone = responseTone(response);
+  if (isColorRatingResponse(tone)) {
+    return (
+      <span
+        className={`user-reports-response-dot is-${tone}`}
+        title={response}
+        aria-label={response}
+      />
+    );
+  }
+  return (
+    <span className={`user-reports-response-pill is-${tone}`}>{response}</span>
+  );
+}
+
 function SummaryPieChart({
   title,
+  category,
+  tag,
   slices,
 }: {
   title: string;
+  category?: string;
+  tag?: string;
   slices: PieSlice[];
 }) {
   const [hoveredLabel, setHoveredLabel] = useState<string | null>(null);
   const total = slices.reduce((sum, item) => sum + item.value, 0);
   if (total <= 0 || slices.length < 1) return null;
 
-  const size = 220;
+  const size = 280;
   const cx = size / 2;
   const cy = size / 2;
-  const radius = 96;
+  const radius = 124;
   let angle = 0;
 
   const arcs = slices.map((slice, index) => {
@@ -252,6 +318,18 @@ function SummaryPieChart({
   return (
     <div className="export-pie-panel">
       <h3 className="export-pie-title">{title}</h3>
+      <div className="export-pie-columns">
+        <div className="export-pie-column">
+          <span className="export-pie-column-label">Category</span>
+          <span className="export-pie-column-value">
+            {categoryLeafName(category || "")}
+          </span>
+        </div>
+        <div className="export-pie-column">
+          <span className="export-pie-column-label">Tag</span>
+          <span className="export-pie-column-value">{tag || "-"}</span>
+        </div>
+      </div>
       <div className="export-pie-layout">
         <div className="export-pie-chart-wrap">
           <svg
@@ -310,12 +388,12 @@ function SummaryPieChart({
         </div>
         <ul className="export-pie-legend">
           {arcs.map((arc) => (
-            <li key={arc.label}>
+            <li key={arc.label} title={arc.label}>
               <span
                 className="export-pie-swatch"
                 style={{ background: arc.color }}
+                aria-label={arc.label}
               />
-              <span className="export-pie-label">{arc.label}</span>
               <span className="export-pie-meta">
                 {arc.value} ({arc.percent}%)
               </span>
@@ -334,6 +412,367 @@ type ReportsLocationState = {
   question?: string;
   returnTo?: "question";
 };
+
+type QuestionColumnKey =
+  | "participant"
+  | "category"
+  | "tag"
+  | "question"
+  | "response"
+  | "notes"
+  | "attachment";
+
+const QUESTION_COLUMN_KEYS: QuestionColumnKey[] = [
+  "participant",
+  "category",
+  "tag",
+  "question",
+  "response",
+  "notes",
+  "attachment",
+];
+
+function questionRowValue(
+  item: ReportRow,
+  key: QuestionColumnKey
+): string {
+  switch (key) {
+    case "participant":
+      return String(item.participant || "");
+    case "category":
+      return categoryLeafName(item.category || "");
+    case "tag":
+      return String(item.tag || "");
+    case "question":
+      return String(item.question || "");
+    case "response":
+      return String(item.response || "");
+    case "notes":
+      return String(item.note || "");
+    case "attachment":
+      return item.attachment && item.attachment !== "-"
+        ? item.attachmentFileName || "attachment"
+        : "-";
+    default:
+      return "";
+  }
+}
+
+type VisionColumnKey = "participant" | "vision" | "mission";
+
+const VISION_COLUMN_KEYS: VisionColumnKey[] = [
+  "participant",
+  "vision",
+  "mission",
+];
+
+function visionRowValue(item: VisionMissionRow, key: VisionColumnKey): string {
+  switch (key) {
+    case "participant":
+      return String(item.participant || "").trim() || "-";
+    case "vision":
+      return (
+        (item.visionKeywords.length > 0
+          ? item.visionKeywords.join(", ")
+          : item.visionText) || "-"
+      ).trim() || "-";
+    case "mission":
+      return (
+        (item.missionKeywords.length > 0
+          ? item.missionKeywords.join(", ")
+          : item.missionText) || "-"
+      ).trim() || "-";
+    default:
+      return "-";
+  }
+}
+
+type ActionableColumnKey =
+  | "participant"
+  | "category"
+  | "description"
+  | "timeline"
+  | "responsible"
+  | "comments";
+
+const ACTIONABLE_COLUMN_KEYS: ActionableColumnKey[] = [
+  "participant",
+  "category",
+  "description",
+  "timeline",
+  "responsible",
+  "comments",
+];
+
+function actionableRowValue(
+  item: ActionableRow,
+  key: ActionableColumnKey
+): string {
+  switch (key) {
+    case "participant":
+      return String(item.participant || "").trim() || "-";
+    case "category":
+      return (
+        String(item.categoryName || "").trim() ||
+        categoryLeafName(item.categoryPath || "") ||
+        "-"
+      );
+    case "description":
+      return String(item.description || "").trim() || "-";
+    case "timeline":
+      return String(item.timeline || "").trim() || "-";
+    case "responsible":
+      return String(item.responsiblePersons || "").trim() || "-";
+    case "comments":
+      return String(item.comments || "").trim() || "-";
+    default:
+      return "-";
+  }
+}
+
+function ExcelHeaderFilter({
+  label,
+  columnKey,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  columnKey: string;
+  value: string[];
+  options: string[];
+  onChange: (next: string[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const searchRef = useRef<HTMLInputElement | null>(null);
+  const isActive = value.length > 0;
+
+  const filteredOptions = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return options;
+    return options.filter((option) => option.toLowerCase().includes(needle));
+  }, [options, query]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("mousedown", onPointerDown);
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("mousedown", onPointerDown);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (open) {
+      setQuery("");
+      window.requestAnimationFrame(() => searchRef.current?.focus());
+    }
+  }, [open]);
+
+  const selected = new Set(value);
+  const allVisibleSelected =
+    filteredOptions.length > 0 &&
+    filteredOptions.every((option) => selected.has(option));
+
+  return (
+    <div className="excel-header-filter" ref={rootRef}>
+      <span>{label}</span>
+      <button
+        type="button"
+        className={`excel-header-filter-btn${isActive ? " is-active" : ""}${
+          open ? " is-open" : ""
+        }`}
+        aria-label={`Filter ${label}`}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        onClick={() => setOpen((prev) => !prev)}
+      >
+        <Filter size={13} strokeWidth={2.4} />
+      </button>
+      {open ? (
+        <div className="excel-header-filter-menu" role="dialog">
+          <div className="excel-header-filter-search">
+            <Search size={14} strokeWidth={2.2} aria-hidden />
+            <input
+              ref={searchRef}
+              type="text"
+              value={query}
+              placeholder={`Search ${label.toLowerCase()}...`}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </div>
+          <div className="excel-header-filter-actions">
+            <button
+              type="button"
+              onClick={() => {
+                const next = new Set(selected);
+                if (allVisibleSelected) {
+                  filteredOptions.forEach((option) => next.delete(option));
+                } else {
+                  filteredOptions.forEach((option) => next.add(option));
+                }
+                onChange(Array.from(next));
+              }}
+            >
+              {allVisibleSelected ? "Clear visible" : "Select visible"}
+            </button>
+            <button type="button" onClick={() => onChange([])}>
+              Clear filter
+            </button>
+          </div>
+          <div className="excel-header-filter-options">
+            {filteredOptions.length === 0 ? (
+              <p className="excel-header-filter-empty">No values found</p>
+            ) : (
+              filteredOptions.map((option) => {
+                const checked = selected.has(option);
+                const optionId = `excel-filter-${columnKey}-${option}`;
+                return (
+                  <label key={option} htmlFor={optionId}>
+                    <input
+                      id={optionId}
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => {
+                        const next = new Set(selected);
+                        if (checked) next.delete(option);
+                        else next.add(option);
+                        onChange(Array.from(next));
+                      }}
+                    />
+                    <span title={option}>{option || "-"}</span>
+                  </label>
+                );
+              })
+            )}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function CategorySearchDropdown({
+  value,
+  options,
+  onChange,
+}: {
+  value: string;
+  options: string[];
+  onChange: (next: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const searchRef = useRef<HTMLInputElement | null>(null);
+
+  const filteredOptions = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return options;
+    return options.filter((option) => option.toLowerCase().includes(needle));
+  }, [options, query]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    };
+    window.addEventListener("mousedown", onPointerDown);
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("mousedown", onPointerDown);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (open) {
+      setQuery("");
+      window.requestAnimationFrame(() => searchRef.current?.focus());
+    }
+  }, [open]);
+
+  const label = value || "All categories";
+
+  return (
+    <div className="user-reports-category-dropdown" ref={rootRef}>
+      <span className="user-reports-category-dropdown-label">Category</span>
+      <button
+        type="button"
+        className={`user-reports-category-trigger${open ? " is-open" : ""}`}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen((prev) => !prev)}
+      >
+        <span>{label}</span>
+        <ChevronDown size={16} strokeWidth={2.2} aria-hidden />
+      </button>
+      {open ? (
+        <div className="user-reports-category-menu" role="listbox">
+          <div className="user-reports-category-search">
+            <Search size={14} strokeWidth={2.2} aria-hidden />
+            <input
+              ref={searchRef}
+              type="text"
+              value={query}
+              placeholder="Search category..."
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </div>
+          <button
+            type="button"
+            role="option"
+            aria-selected={!value}
+            className={!value ? "is-selected" : ""}
+            onClick={() => {
+              onChange("");
+              setOpen(false);
+            }}
+          >
+            All categories
+          </button>
+          {filteredOptions.length === 0 ? (
+            <p className="user-reports-category-empty">No categories found</p>
+          ) : (
+            filteredOptions.map((option) => (
+              <button
+                key={option}
+                type="button"
+                role="option"
+                aria-selected={value === option}
+                className={value === option ? "is-selected" : ""}
+                onClick={() => {
+                  onChange(option);
+                  setOpen(false);
+                }}
+              >
+                {option}
+              </button>
+            ))
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 export default function Reports() {
   const navigate = useNavigate();
@@ -356,15 +795,42 @@ export default function Reports() {
     selectedWorkshop?.workshopName || ""
   );
   const [categories, setCategories] = useState<Category[]>([]);
+  const [tags, setTags] = useState<TagOption[]>([]);
   const [responses, setResponses] = useState<ReportRow[]>([]);
   const [visionMissionRows, setVisionMissionRows] = useState<VisionMissionRow[]>(
     []
   );
   const [actionableRows, setActionableRows] = useState<ActionableRow[]>([]);
   const [search, setSearch] = useState("");
-  const [questionFilter, setQuestionFilter] = useState(
-    reportState.question || ""
-  );
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [headerFilters, setHeaderFilters] = useState<
+    Record<QuestionColumnKey, string[]>
+  >({
+    participant: [],
+    category: [],
+    tag: [],
+    question: [],
+    response: [],
+    notes: [],
+    attachment: [],
+  });
+  const [visionHeaderFilters, setVisionHeaderFilters] = useState<
+    Record<VisionColumnKey, string[]>
+  >({
+    participant: [],
+    vision: [],
+    mission: [],
+  });
+  const [actionableHeaderFilters, setActionableHeaderFilters] = useState<
+    Record<ActionableColumnKey, string[]>
+  >({
+    participant: [],
+    category: [],
+    description: [],
+    timeline: [],
+    responsible: [],
+    comments: [],
+  });
   const [activeView, setActiveView] = useState<ReportView>(
     reportState.view || "questions"
   );
@@ -379,21 +845,51 @@ export default function Reports() {
     setFromQuestion(readReportsReturn() === "question");
   }, [reportState.returnTo, location.key]);
 
+  const tagNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    tags.forEach((tag) => {
+      const id = String(tag.id || "").trim();
+      const name = String(tag.tagName || "").trim();
+      if (!id || !name) return;
+      map.set(id, name);
+      map.set(id.toLowerCase(), name);
+    });
+    return map;
+  }, [tags]);
+
+  const resolveTagName = (tagId?: string) => {
+    const id = String(tagId || "").trim();
+    if (!id) {
+      return "";
+    }
+    return tagNameById.get(id) || tagNameById.get(id.toLowerCase()) || "";
+  };
+
   const questionMetaById = useMemo(() => {
     const map = new Map<
       string,
-      { path: string; answerType: string }
+      { path: string; answerType: string; tagId: string; tagName: string }
     >();
     for (const category of categories) {
       for (const question of category.questions || []) {
-        map.set(String(question.id), {
+        const questionId = String(question.id || "").trim();
+        if (!questionId) continue;
+        const tagId = resolveQuestionTagId(question, category);
+        const existing = map.get(questionId);
+        // Keep a previously resolved tag if this category has none.
+        if (existing?.tagId && !tagId) {
+          continue;
+        }
+        map.set(questionId, {
           path: category.fullPath || category.categoryName || "Category",
           answerType: String(question.answerType || ""),
+          tagId,
+          tagName: resolveTagName(tagId) || existing?.tagName || "",
         });
       }
     }
     return map;
-  }, [categories]);
+  }, [categories, tagNameById]);
 
   useEffect(() => {
     if (!participant?.id) {
@@ -413,10 +909,29 @@ export default function Reports() {
     let cancelled = false;
     (async () => {
       try {
-        const response = await fetch("/api/get-all-categories");
-        const data = await response.json();
-        if (cancelled || !response.ok || !data.success) return;
-        setCategories(data.categories || []);
+        const [categoriesResponse, tagsResponse] = await Promise.all([
+          fetch("/api/get-all-categories"),
+          fetch("/api/get-tags"),
+        ]);
+        const categoriesData = await categoriesResponse.json();
+        const tagsData = await tagsResponse.json().catch(() => null);
+        if (cancelled) return;
+        if (categoriesResponse.ok && categoriesData.success) {
+          setCategories(categoriesData.categories || []);
+        }
+        if (tagsResponse.ok && tagsData?.success) {
+          setTags(
+            (tagsData.data || tagsData.tags || [])
+              .map(
+                (tag: { id?: string; tagName?: string; tagColor?: string }) => ({
+                  id: String(tag.id || ""),
+                  tagName: String(tag.tagName || ""),
+                  tagColor: tag.tagColor,
+                })
+              )
+              .filter((tag: TagOption) => tag.id && tag.tagName)
+          );
+        }
       } catch (error) {
         console.error(error);
       }
@@ -497,11 +1012,14 @@ export default function Reports() {
               }
 
               const meta = questionMetaById.get(String(questionId));
+              const tagName =
+                meta?.tagName || resolveTagName(meta?.tagId) || "";
               if (!hasAttachment) {
                 rows.push({
                   participant: participantName,
                   participantId,
                   category: meta?.path || "OD Chart",
+                  tag: tagName,
                   question:
                     data.questionLabels?.[questionId] || String(questionId),
                   questionId,
@@ -521,6 +1039,7 @@ export default function Reports() {
                   participant: participantName,
                   participantId,
                   category: meta?.path || "OD Chart",
+                  tag: tagName,
                   question:
                     data.questionLabels?.[questionId] || String(questionId),
                   questionId,
@@ -618,15 +1137,36 @@ export default function Reports() {
     selectedWorkshop?.id,
     selectedWorkshop?.workshopName,
     questionMetaById,
+    tagNameById,
   ]);
+
+  const responsesWithTags = useMemo(() => {
+    if (questionMetaById.size === 0 && tagNameById.size === 0) {
+      return responses;
+    }
+    return responses.map((item) => {
+      const meta = questionMetaById.get(String(item.questionId || ""));
+      const tag =
+        meta?.tagName ||
+        resolveTagName(meta?.tagId) ||
+        item.tag ||
+        "";
+      const category = meta?.path || item.category || "";
+      if (tag === item.tag && category === item.category) {
+        return item;
+      }
+      return { ...item, tag, category };
+    });
+  }, [responses, questionMetaById, tagNameById]);
 
   const filteredResponses = useMemo(() => {
     const query = search.trim().toLowerCase();
-    if (!query) return responses;
-    return responses.filter((item) =>
+    if (!query) return responsesWithTags;
+    return responsesWithTags.filter((item) =>
       [
         item.participant,
         item.category,
+        item.tag,
         item.question,
         item.response,
         item.note,
@@ -635,27 +1175,65 @@ export default function Reports() {
         .toLowerCase()
         .includes(query)
     );
-  }, [responses, search]);
+  }, [responsesWithTags, search]);
 
-  const questionOptions = useMemo(() => {
+  const categoryOptions = useMemo(() => {
     const names = new Set<string>();
-    responses.forEach((item) => {
-      const question = String(item.question || "").trim();
-      if (question) {
-        names.add(question);
+    responsesWithTags.forEach((item) => {
+      const category = categoryLeafName(item.category || "");
+      if (category && category !== "-") {
+        names.add(category);
       }
     });
     return Array.from(names).sort((a, b) => a.localeCompare(b));
-  }, [responses]);
+  }, [responsesWithTags]);
 
-  const questionScopedResponses = useMemo(() => {
-    if (!questionFilter) {
+  const categoryScopedResponses = useMemo(() => {
+    if (!categoryFilter) {
       return filteredResponses;
     }
-    return filteredResponses.filter((item) => item.question === questionFilter);
-  }, [filteredResponses, questionFilter]);
+    return filteredResponses.filter(
+      (item) => categoryLeafName(item.category || "") === categoryFilter
+    );
+  }, [filteredResponses, categoryFilter]);
 
-  const filteredVisionMission = useMemo(() => {
+  const headerFilterOptions = useMemo(() => {
+    const maps: Record<QuestionColumnKey, Set<string>> = {
+      participant: new Set(),
+      category: new Set(),
+      tag: new Set(),
+      question: new Set(),
+      response: new Set(),
+      notes: new Set(),
+      attachment: new Set(),
+    };
+    categoryScopedResponses.forEach((item) => {
+      QUESTION_COLUMN_KEYS.forEach((key) => {
+        const value = questionRowValue(item, key).trim() || "-";
+        maps[key].add(value);
+      });
+    });
+    return QUESTION_COLUMN_KEYS.reduce(
+      (acc, key) => {
+        acc[key] = Array.from(maps[key]).sort((a, b) => a.localeCompare(b));
+        return acc;
+      },
+      {} as Record<QuestionColumnKey, string[]>
+    );
+  }, [categoryScopedResponses]);
+
+  const questionTableResponses = useMemo(() => {
+    return categoryScopedResponses.filter((item) =>
+      QUESTION_COLUMN_KEYS.every((key) => {
+        const selected = headerFilters[key];
+        if (!selected || selected.length === 0) return true;
+        const value = questionRowValue(item, key).trim() || "-";
+        return selected.includes(value);
+      })
+    );
+  }, [categoryScopedResponses, headerFilters]);
+
+  const searchedVisionMission = useMemo(() => {
     const query = search.trim().toLowerCase();
     if (!query) return visionMissionRows;
     return visionMissionRows.filter((item) =>
@@ -672,7 +1250,37 @@ export default function Reports() {
     );
   }, [visionMissionRows, search]);
 
-  const filteredActionables = useMemo(() => {
+  const visionHeaderFilterOptions = useMemo(() => {
+    const maps: Record<VisionColumnKey, Set<string>> = {
+      participant: new Set(),
+      vision: new Set(),
+      mission: new Set(),
+    };
+    searchedVisionMission.forEach((item) => {
+      VISION_COLUMN_KEYS.forEach((key) => {
+        maps[key].add(visionRowValue(item, key));
+      });
+    });
+    return VISION_COLUMN_KEYS.reduce(
+      (acc, key) => {
+        acc[key] = Array.from(maps[key]).sort((a, b) => a.localeCompare(b));
+        return acc;
+      },
+      {} as Record<VisionColumnKey, string[]>
+    );
+  }, [searchedVisionMission]);
+
+  const filteredVisionMission = useMemo(() => {
+    return searchedVisionMission.filter((item) =>
+      VISION_COLUMN_KEYS.every((key) => {
+        const selected = visionHeaderFilters[key];
+        if (!selected || selected.length === 0) return true;
+        return selected.includes(visionRowValue(item, key));
+      })
+    );
+  }, [searchedVisionMission, visionHeaderFilters]);
+
+  const searchedActionables = useMemo(() => {
     const query = search.trim().toLowerCase();
     if (!query) return actionableRows;
     return actionableRows.filter((item) =>
@@ -691,24 +1299,67 @@ export default function Reports() {
     );
   }, [actionableRows, search]);
 
+  const actionableHeaderFilterOptions = useMemo(() => {
+    const maps: Record<ActionableColumnKey, Set<string>> = {
+      participant: new Set(),
+      category: new Set(),
+      description: new Set(),
+      timeline: new Set(),
+      responsible: new Set(),
+      comments: new Set(),
+    };
+    searchedActionables.forEach((item) => {
+      ACTIONABLE_COLUMN_KEYS.forEach((key) => {
+        maps[key].add(actionableRowValue(item, key));
+      });
+    });
+    return ACTIONABLE_COLUMN_KEYS.reduce(
+      (acc, key) => {
+        acc[key] = Array.from(maps[key]).sort((a, b) => a.localeCompare(b));
+        return acc;
+      },
+      {} as Record<ActionableColumnKey, string[]>
+    );
+  }, [searchedActionables]);
+
+  const filteredActionables = useMemo(() => {
+    return searchedActionables.filter((item) =>
+      ACTIONABLE_COLUMN_KEYS.every((key) => {
+        const selected = actionableHeaderFilters[key];
+        if (!selected || selected.length === 0) return true;
+        return selected.includes(actionableRowValue(item, key));
+      })
+    );
+  }, [searchedActionables, actionableHeaderFilters]);
+
   const answerPieCharts = useMemo(() => {
     const byQuestion = new Map<
       string,
       {
         questionType: string;
+        category: string;
+        tag: string;
         rows: Array<{ response: string; participant: string }>;
       }
     >();
 
-    filteredResponses.forEach((item) => {
+    categoryScopedResponses.forEach((item) => {
       const question = String(item.question || "").trim();
       if (!question || !String(item.response || "").trim()) return;
       const existing = byQuestion.get(question) || {
         questionType: item.questionType || "",
+        category: item.category || "",
+        tag: item.tag || "",
         rows: [],
       };
       if (!existing.questionType && item.questionType) {
         existing.questionType = item.questionType;
+      }
+      if (!existing.category && item.category) {
+        existing.category = item.category;
+      }
+      if (!existing.tag && item.tag) {
+        existing.tag = item.tag;
       }
       existing.rows.push({
         response: String(item.response || ""),
@@ -717,15 +1368,25 @@ export default function Reports() {
       byQuestion.set(question, existing);
     });
 
-    const charts: Array<{ title: string; slices: PieSlice[] }> = [];
+    const charts: Array<{
+      title: string;
+      category: string;
+      tag: string;
+      slices: PieSlice[];
+    }> = [];
     byQuestion.forEach((entry, question) => {
       if (!isChoiceQuestionType(entry.questionType)) return;
       const slices = buildAnswerSlices(entry.rows);
       if (!slices || slices.length < 1) return;
-      charts.push({ title: question, slices });
+      charts.push({
+        title: question,
+        category: entry.category,
+        tag: entry.tag,
+        slices,
+      });
     });
     return charts;
-  }, [filteredResponses]);
+  }, [categoryScopedResponses]);
 
   const itemCount =
     activeView === "vision"
@@ -734,7 +1395,7 @@ export default function Reports() {
         ? filteredActionables.length
         : activeView === "summary"
           ? answerPieCharts.length
-          : questionScopedResponses.length;
+          : questionTableResponses.length;
 
   return (
     <UserLayout
@@ -797,21 +1458,12 @@ export default function Reports() {
           </div>
 
           <div className="export-actions">
-            {activeView === "questions" ? (
-              <label className="user-reports-question-filter">
-                <span>Question</span>
-                <select
-                  value={questionFilter}
-                  onChange={(event) => setQuestionFilter(event.target.value)}
-                >
-                  <option value="">All questions</option>
-                  {questionOptions.map((question) => (
-                    <option key={question} value={question}>
-                      {question}
-                    </option>
-                  ))}
-                </select>
-              </label>
+            {activeView === "summary" || activeView === "questions" ? (
+              <CategorySearchDropdown
+                value={categoryFilter}
+                options={categoryOptions}
+                onChange={setCategoryFilter}
+              />
             ) : null}
             <div className="export-search-wrapper">
               <span className="export-search-icon" aria-hidden>
@@ -844,6 +1496,8 @@ export default function Reports() {
                   <SummaryPieChart
                     key={chart.title}
                     title={chart.title}
+                    category={chart.category}
+                    tag={chart.tag}
                     slices={chart.slices}
                   />
                 ))}
@@ -858,22 +1512,39 @@ export default function Reports() {
               <table className="export-table">
                 <thead>
                   <tr>
-                    <th>Participant</th>
-                    <th>Category</th>
-                    <th>Vision</th>
-                    <th>Mission</th>
+                    {(
+                      [
+                        ["participant", "Participant"],
+                        ["vision", "Vision"],
+                        ["mission", "Mission"],
+                      ] as Array<[VisionColumnKey, string]>
+                    ).map(([key, label]) => (
+                      <th key={key}>
+                        <ExcelHeaderFilter
+                          label={label}
+                          columnKey={key}
+                          value={visionHeaderFilters[key]}
+                          options={visionHeaderFilterOptions[key]}
+                          onChange={(next) =>
+                            setVisionHeaderFilters((prev) => ({
+                              ...prev,
+                              [key]: next,
+                            }))
+                          }
+                        />
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
                   {filteredVisionMission.length === 0 ? (
                     <tr>
-                      <td colSpan={4}>No Vision & Mission responses found.</td>
+                      <td colSpan={3}>No Vision & Mission responses found.</td>
                     </tr>
                   ) : (
                     filteredVisionMission.map((item, index) => (
                       <tr key={`${item.participant}-vm-${index}`}>
                         <td>{item.participant}</td>
-                        <td>Vision & Mission</td>
                         <td className="export-text-cell">
                           {item.visionKeywords.length > 0
                             ? item.visionKeywords.join(", ")
@@ -897,12 +1568,31 @@ export default function Reports() {
               <table className="export-table export-table-wide">
                 <thead>
                   <tr>
-                    <th>Participant</th>
-                    <th>Category</th>
-                    <th>Description</th>
-                    <th>Timeline</th>
-                    <th>Responsible</th>
-                    <th>Comments</th>
+                    {(
+                      [
+                        ["participant", "Participant"],
+                        ["category", "Category"],
+                        ["description", "Description"],
+                        ["timeline", "Timeline"],
+                        ["responsible", "Responsible"],
+                        ["comments", "Comments"],
+                      ] as Array<[ActionableColumnKey, string]>
+                    ).map(([key, label]) => (
+                      <th key={key}>
+                        <ExcelHeaderFilter
+                          label={label}
+                          columnKey={key}
+                          value={actionableHeaderFilters[key]}
+                          options={actionableHeaderFilterOptions[key]}
+                          onChange={(next) =>
+                            setActionableHeaderFilters((prev) => ({
+                              ...prev,
+                              [key]: next,
+                            }))
+                          }
+                        />
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
@@ -940,21 +1630,41 @@ export default function Reports() {
               <table className="export-table">
                 <thead>
                   <tr>
-                    <th>Participant</th>
-                    <th>Category</th>
-                    <th>Question</th>
-                    <th>Response</th>
-                    <th>Notes</th>
-                    <th>Attachment</th>
+                    {(
+                      [
+                        ["participant", "Participant"],
+                        ["category", "Category"],
+                        ["tag", "Tag"],
+                        ["question", "Question"],
+                        ["response", "Response"],
+                        ["notes", "Notes"],
+                        ["attachment", "Attachment"],
+                      ] as Array<[QuestionColumnKey, string]>
+                    ).map(([key, label]) => (
+                      <th key={key}>
+                        <ExcelHeaderFilter
+                          label={label}
+                          columnKey={key}
+                          value={headerFilters[key]}
+                          options={headerFilterOptions[key]}
+                          onChange={(next) =>
+                            setHeaderFilters((prev) => ({
+                              ...prev,
+                              [key]: next,
+                            }))
+                          }
+                        />
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {questionScopedResponses.length === 0 ? (
+                  {questionTableResponses.length === 0 ? (
                     <tr>
-                      <td colSpan={6}>No responses found.</td>
+                      <td colSpan={7}>No responses found.</td>
                     </tr>
                   ) : (
-                    questionScopedResponses.map((item, index) => (
+                    questionTableResponses.map((item, index) => (
                       <tr
                         key={`${item.participant}-${item.question}-${index}`}
                       >
@@ -962,19 +1672,11 @@ export default function Reports() {
                         <td>
                           {item.category?.split(">").pop()?.trim() || "-"}
                         </td>
+                        <td>{item.tag || "-"}</td>
                         <td>{item.question}</td>
                         <td>
                           {item.response ? (
-                            <span
-                              className={`user-reports-response-pill is-${String(
-                                item.response
-                              )
-                                .trim()
-                                .toLowerCase()
-                                .replace(/[^a-z]/g, "")}`}
-                            >
-                              {item.response}
-                            </span>
+                            <ResponseValue response={item.response} />
                           ) : (
                             "-"
                           )}

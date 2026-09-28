@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
-import { CalendarDays, MessageSquare, UserRound, X } from "lucide-react";
+import {
+  AlignLeft,
+  CalendarDays,
+  MessageSquare,
+  UserRound,
+  X,
+} from "lucide-react";
 import { appAlert } from "../utils/appDialog";
 import "./AddActionableModal.css";
 
@@ -193,15 +199,19 @@ export default function AddActionableModal({
                 {description.length}/{DESCRIPTION_MAX}
               </span>
             </div>
-            <textarea
-              id="add-act-description"
-              value={description}
-              maxLength={DESCRIPTION_MAX}
-              rows={3}
-              disabled={!canEdit || saving}
-              placeholder="Describe the actionable item"
-              onChange={(event) => setDescription(event.target.value)}
-            />
+            <div className="add-act-input-wrap add-act-input-wrap-top">
+              <AlignLeft size={16} strokeWidth={2.1} aria-hidden />
+              <textarea
+                id="add-act-description"
+                className="add-act-description-input"
+                value={description}
+                maxLength={DESCRIPTION_MAX}
+                rows={2}
+                disabled={!canEdit || saving}
+                placeholder="Optional description"
+                onChange={(event) => setDescription(event.target.value)}
+              />
+            </div>
           </div>
 
           <div className="add-act-grid">

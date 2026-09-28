@@ -2279,13 +2279,14 @@ a.od-notes-file-name:hover {
   padding: 12px 8px 12px 14px;
   margin-bottom: 0;
   display: grid;
+  /* Question + Response = 70%; Notes + Attachments + Actions = 30% */
   grid-template-columns:
-    minmax(180px, 1.15fr)
-    minmax(130px, 0.75fr)
-    minmax(180px, 1fr)
-    minmax(150px, 0.9fr)
-    minmax(140px, 0.65fr);
-  gap: 10px 16px;
+    minmax(220px, 4.5fr)
+    minmax(140px, 2.5fr)
+    minmax(110px, 1.1fr)
+    minmax(100px, 1fr)
+    minmax(110px, 0.9fr);
+  gap: 10px 14px;
   align-items: start;
   box-sizing: border-box;
   flex: 0 0 auto;
@@ -2314,8 +2315,12 @@ a.od-notes-file-name:hover {
 .qr-notes-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 8px;
+}
+
+.qr-notes-head .qr-label {
+  margin-bottom: 0;
 }
 
 .qr-notes-title {
@@ -2619,8 +2624,26 @@ a.od-notes-file-name:hover {
 
 .qr-action-btn {
   width: 100%;
+  max-width: 100%;
   justify-content: flex-start;
+  align-items: flex-start;
   min-width: 0 !important;
+  height: auto !important;
+  min-height: 34px;
+  padding: 8px 10px !important;
+  white-space: normal !important;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  box-sizing: border-box;
+}
+
+.qr-actions {
+  overflow: hidden;
+}
+
+.qr-actions .question-card-actions {
+  width: 100%;
+  max-width: 100%;
 }
 
 .qr-attachments .od-attach-card {
@@ -2693,7 +2716,7 @@ a.od-notes-file-name:hover {
 .od-response-card {
   position: relative;
   z-index: 1;
-  width: min(720px, 100%);
+  width: min(820px, 100%);
   max-height: min(80dvh, 760px);
   display: flex;
   flex-direction: column;
@@ -2756,6 +2779,131 @@ a.od-notes-file-name:hover {
   border-top: 1px solid #eef0f3;
   justify-content: flex-end;
   flex-wrap: wrap;
+}
+
+.od-response-pie-section {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0 4px;
+}
+
+.od-response-pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+}
+
+.od-response-pie-chart-wrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.od-response-pie-svg {
+  display: block;
+}
+
+.od-response-pie-slice {
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.od-response-pie-slice:hover {
+  opacity: 0.88;
+}
+
+.od-response-pie-tooltip {
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  min-width: 140px;
+  max-width: 220px;
+  padding: 10px 12px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 10px 28px rgba(28, 28, 30, 0.14);
+}
+
+.od-response-pie-tooltip p {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1c1c1e;
+  white-space: normal;
+}
+
+.od-response-pie-tooltip span {
+  font-weight: 500;
+  color: #8a8f98;
+}
+
+.od-response-pie-tooltip ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.od-response-pie-tooltip li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: #1c1c1e;
+  white-space: normal;
+}
+
+.od-response-pie-tooltip li:last-child {
+  margin-bottom: 0;
+}
+
+.od-response-pie-tooltip li strong {
+  font-size: 12px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.od-response-pie-note {
+  font-size: 12px;
+  font-weight: 400;
+  color: #4b5563;
+  line-height: 1.35;
+  white-space: pre-wrap;
+}
+
+.od-response-pie-note.is-empty {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.od-response-pie-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.od-response-pie-legend li {
+  display: grid;
+  grid-template-columns: 22px auto;
+  gap: 12px;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.od-response-pie-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
 }
 
 @media (max-width: 1100px) {

@@ -130,6 +130,15 @@
   box-shadow: 0 0 0 3px rgba(106, 14, 36, 0.08);
 }
 
+.add-act-description-input,
+.add-act-description-input::placeholder {
+  color: #9ca3af;
+}
+
+.add-act-description-input:focus {
+  color: #1f2937;
+}
+
 .add-act-input-wrap {
   display: flex;
   align-items: center;
