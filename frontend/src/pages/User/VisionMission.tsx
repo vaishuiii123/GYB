@@ -102,7 +102,7 @@ export default function VisionMission() {
     index: number;
   } | null>(null);
   const [editingValue, setEditingValue] = useState("");
-  const savedSnapshotRef = useRef(snapshotKeywords([], []));
+  const [savedSnapshot, setSavedSnapshot] = useState(snapshotKeywords([], []));
   const zoneMenuRef = useRef<HTMLDivElement | null>(null);
 
   const {
@@ -117,10 +117,9 @@ export default function VisionMission() {
       return false;
     }
     return (
-      snapshotKeywords(visionKeywords, missionKeywords) !==
-      savedSnapshotRef.current
+      snapshotKeywords(visionKeywords, missionKeywords) !== savedSnapshot
     );
-  }, [canEdit, loading, visionKeywords, missionKeywords]);
+  }, [canEdit, loading, visionKeywords, missionKeywords, savedSnapshot]);
 
   const handleSave = async () => {
     if (!canEdit) {
@@ -170,10 +169,7 @@ export default function VisionMission() {
       clearCachedPageData(
         `vision-mission:${participant?.id || ""}:${selectedWorkshop?.id || ""}`
       );
-      savedSnapshotRef.current = snapshotKeywords(
-        visionKeywords,
-        missionKeywords
-      );
+      setSavedSnapshot(snapshotKeywords(visionKeywords, missionKeywords));
       setMessage("Vision & Mission saved successfully.");
       return true;
     } catch (error) {
@@ -304,7 +300,7 @@ export default function VisionMission() {
 
         setVisionKeywords(nextVision);
         setMissionKeywords(nextMission);
-        savedSnapshotRef.current = snapshotKeywords(nextVision, nextMission);
+        setSavedSnapshot(snapshotKeywords(nextVision, nextMission));
 
         setCachedPageData(pageCacheKey, {
           participantId,
@@ -317,7 +313,7 @@ export default function VisionMission() {
         console.error("Error fetching vision/mission:", error);
         setVisionKeywords([]);
         setMissionKeywords([]);
-        savedSnapshotRef.current = snapshotKeywords([], []);
+        setSavedSnapshot(snapshotKeywords([], []));
         setErrorMessage("Unable to load Vision & Mission data.");
       } finally {
         setLoading(false);

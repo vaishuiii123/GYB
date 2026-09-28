@@ -7,6 +7,7 @@ import {
   Filter,
   LineChart,
   List,
+  RefreshCw,
   Search,
   Zap,
 } from "lucide-react";
@@ -258,6 +259,15 @@ function isColorRatingResponse(tone: string) {
     tone === "g"
   );
 }
+
+function hasRatingResponse(response: string) {
+  return String(response || "")
+    .split("|")
+    .map((part) => responseTone(part))
+    .some((tone) => isColorRatingResponse(tone));
+}
+
+type ResponseKindFilter = "all" | "rating" | "non-rating";
 
 function ResponseValue({ response }: { response: string }) {
   const tone = responseTone(response);
@@ -788,6 +798,7 @@ export default function Reports() {
   } = getActiveWorkshopContext();
 
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [attachmentPreview, setAttachmentPreview] =
     useState<AttachmentPreviewTarget | null>(null);
@@ -803,6 +814,8 @@ export default function Reports() {
   const [actionableRows, setActionableRows] = useState<ActionableRow[]>([]);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [responseKindFilter, setResponseKindFilter] =
+    useState<ResponseKindFilter>("all");
   const [headerFilters, setHeaderFilters] = useState<
     Record<QuestionColumnKey, string[]>
   >({
@@ -835,6 +848,9 @@ export default function Reports() {
     reportState.view || "questions"
   );
   const loadedWorkshopRef = useRef("");
+  const loadReportRef = useRef<(options?: { manual?: boolean }) => Promise<void>>(
+    async () => undefined
+  );
 
   useEffect(() => {
     if (reportState.returnTo === "question") {
@@ -950,11 +966,14 @@ export default function Reports() {
 
     let cancelled = false;
 
-    const loadReport = async () => {
+    const loadReport = async (options?: { manual?: boolean }) => {
       const isFirstLoad = loadedWorkshopRef.current !== selectedWorkshop.id;
       try {
         if (isFirstLoad) {
           setLoading(true);
+          setErrorMessage("");
+        } else if (options?.manual) {
+          setRefreshing(true);
           setErrorMessage("");
         }
 
@@ -1075,13 +1094,20 @@ export default function Reports() {
             const missionKeywords = Array.isArray(vm.missionKeywords)
               ? vm.missionKeywords.map(String)
               : [];
-            if (visionText || missionText) {
+            if (
+              visionText ||
+              missionText ||
+              visionKeywords.length > 0 ||
+              missionKeywords.length > 0
+            ) {
               visionRows.push({
                 participant: participantName,
                 visionText,
                 missionText,
-                visionKeywords,
-                missionKeywords,
+                visionKeywords: visionKeywords.map((k) => k.trim()).filter(Boolean),
+                missionKeywords: missionKeywords
+                  .map((k) => k.trim())
+                  .filter(Boolean),
               });
             }
           }
@@ -1107,21 +1133,30 @@ export default function Reports() {
       } catch (error) {
         console.error(error);
         if (cancelled) return;
-        if (loadedWorkshopRef.current !== selectedWorkshop.id) {
+        if (
+          loadedWorkshopRef.current !== selectedWorkshop.id ||
+          options?.manual
+        ) {
           setErrorMessage(
             error instanceof Error
               ? error.message
               : "Something went wrong while loading the report."
           );
-          setResponses([]);
-          setVisionMissionRows([]);
-          setActionableRows([]);
+          if (loadedWorkshopRef.current !== selectedWorkshop.id) {
+            setResponses([]);
+            setVisionMissionRows([]);
+            setActionableRows([]);
+          }
         }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setRefreshing(false);
+        }
       }
     };
 
+    loadReportRef.current = loadReport;
     void loadReport();
     const intervalId = window.setInterval(() => {
       if (document.visibilityState === "hidden") return;
@@ -1223,15 +1258,18 @@ export default function Reports() {
   }, [categoryScopedResponses]);
 
   const questionTableResponses = useMemo(() => {
-    return categoryScopedResponses.filter((item) =>
-      QUESTION_COLUMN_KEYS.every((key) => {
+    return categoryScopedResponses.filter((item) => {
+      const isRating = hasRatingResponse(item.response || "");
+      if (responseKindFilter === "rating" && !isRating) return false;
+      if (responseKindFilter === "non-rating" && isRating) return false;
+      return QUESTION_COLUMN_KEYS.every((key) => {
         const selected = headerFilters[key];
         if (!selected || selected.length === 0) return true;
         const value = questionRowValue(item, key).trim() || "-";
         return selected.includes(value);
-      })
-    );
-  }, [categoryScopedResponses, headerFilters]);
+      });
+    });
+  }, [categoryScopedResponses, headerFilters, responseKindFilter]);
 
   const searchedVisionMission = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -1465,6 +1503,33 @@ export default function Reports() {
                 onChange={setCategoryFilter}
               />
             ) : null}
+            {activeView === "questions" ? (
+              <div
+                className="user-reports-response-kind-toggle"
+                role="group"
+                aria-label="Response type"
+              >
+                {(
+                  [
+                    ["all", "All"],
+                    ["rating", "Rating"],
+                    ["non-rating", "Non-rating"],
+                  ] as Array<[ResponseKindFilter, string]>
+                ).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={
+                      responseKindFilter === value ? "is-active" : undefined
+                    }
+                    aria-pressed={responseKindFilter === value}
+                    onClick={() => setResponseKindFilter(value)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
             <div className="export-search-wrapper">
               <span className="export-search-icon" aria-hidden>
                 <Search size={16} strokeWidth={2.2} />
@@ -1476,6 +1541,24 @@ export default function Reports() {
                 onChange={(event) => setSearch(event.target.value)}
               />
             </div>
+            <button
+              type="button"
+              className="user-reports-refresh-btn"
+              title="Refresh report"
+              aria-label="Refresh report"
+              disabled={loading || refreshing || !selectedWorkshop?.id}
+              onClick={() => {
+                void loadReportRef.current({ manual: true });
+              }}
+            >
+              <RefreshCw
+                size={16}
+                strokeWidth={2.2}
+                className={refreshing ? "is-spinning" : undefined}
+                aria-hidden
+              />
+              {refreshing ? "Refreshing..." : "Refresh"}
+            </button>
             <p className="user-reports-count">
               {itemCount} item{itemCount === 1 ? "" : "s"}
             </p>
@@ -1509,7 +1592,7 @@ export default function Reports() {
         ) : activeView === "vision" ? (
           <section className="export-table-card">
             <div className="export-table-scroll">
-              <table className="export-table">
+              <table className="export-table export-table-vision">
                 <thead>
                   <tr>
                     {(
@@ -1548,12 +1631,12 @@ export default function Reports() {
                         <td className="export-text-cell">
                           {item.visionKeywords.length > 0
                             ? item.visionKeywords.join(", ")
-                            : item.visionText || "-"}
+                            : item.visionText.trim() || "-"}
                         </td>
                         <td className="export-text-cell">
                           {item.missionKeywords.length > 0
                             ? item.missionKeywords.join(", ")
-                            : item.missionText || "-"}
+                            : item.missionText.trim() || "-"}
                         </td>
                       </tr>
                     ))
@@ -1565,7 +1648,7 @@ export default function Reports() {
         ) : activeView === "actionable" ? (
           <section className="export-table-card">
             <div className="export-table-scroll">
-              <table className="export-table export-table-wide">
+              <table className="export-table export-table-wide export-table-actionables">
                 <thead>
                   <tr>
                     {(
@@ -1627,7 +1710,7 @@ export default function Reports() {
         ) : (
           <section className="export-table-card">
             <div className="export-table-scroll">
-              <table className="export-table">
+              <table className="export-table export-table-questions">
                 <thead>
                   <tr>
                     {(

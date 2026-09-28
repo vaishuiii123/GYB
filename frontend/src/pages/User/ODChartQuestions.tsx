@@ -133,6 +133,21 @@ function normalizeStatusValue(value: string): string {
   return String(value || "").trim();
 }
 
+function isRatingQuestion(question: Question): boolean {
+  const type = String(question.answerType || "Text").trim().toLowerCase();
+  const options = (question.options || [])
+    .map((option) => String(option || "").trim())
+    .filter(Boolean);
+  const looksLikeTrafficLight =
+    options.length > 0 &&
+    options.every((option) =>
+      ["red", "yellow", "green", "amber", "r", "y", "g"].includes(
+        option.toLowerCase()
+      )
+    );
+  return type.includes("rating") || looksLikeTrafficLight;
+}
+
 function formatResponseText(value: string) {
   const parts = String(value || "")
     .split("|")
@@ -1521,6 +1536,11 @@ export default function ODChartQuestions() {
     return questions.slice(start, start + QUESTIONS_PER_PAGE);
   }, [questions, safePage]);
 
+  const hasNonRatingQuestion = useMemo(
+    () => questions.some((question) => !isRatingQuestion(question)),
+    [questions]
+  );
+
   useEffect(() => {
     if (page > totalPages - 1) {
       setPage(Math.max(0, totalPages - 1));
@@ -1720,7 +1740,11 @@ export default function ODChartQuestions() {
           </p>
         ) : (
           <>
-          <div className="od-questions-list">
+          <div
+            className={`od-questions-list${
+              hasNonRatingQuestion ? " has-non-rating" : " is-rating-only"
+            }`}
+          >
             {pageQuestions.map((question, index) => {
               const questionNumber = safePage * QUESTIONS_PER_PAGE + index + 1;
               return (

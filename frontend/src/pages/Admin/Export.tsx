@@ -163,6 +163,40 @@ function resolveQuestionTagId(
   return String(question.tagId || category.tagId || "").trim();
 }
 
+function responseTone(response: string) {
+  return String(response || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z]/g, "");
+}
+
+function isColorRatingResponse(tone: string) {
+  return (
+    tone === "red" ||
+    tone === "r" ||
+    tone === "yellow" ||
+    tone === "ye" ||
+    tone === "gold" ||
+    tone === "amber" ||
+    tone === "green" ||
+    tone === "g"
+  );
+}
+
+function ResponseValue({ response }: { response: string }) {
+  const tone = responseTone(response);
+  if (isColorRatingResponse(tone)) {
+    return (
+      <span
+        className={`export-response-dot is-${tone}`}
+        title={response}
+        aria-label={response}
+      />
+    );
+  }
+  return <span className="export-text-cell">{response}</span>;
+}
+
 /** Single-hue blue family — darker → lighter by slice index. */
 function shadeOfBase(index: number, total: number) {
   const steps = Math.max(total, 1);
@@ -2510,8 +2544,12 @@ const availableQuestions = useMemo(() => {
 
 
                         {/* RESPONSE */}
-                        <td className="export-text-cell">
-                          {item.response ? item.response : "-"}
+                        <td>
+                          {item.response ? (
+                            <ResponseValue response={item.response} />
+                          ) : (
+                            "-"
+                          )}
                         </td>
 
 

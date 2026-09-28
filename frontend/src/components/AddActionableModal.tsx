@@ -51,7 +51,9 @@ export default function AddActionableModal({
     if (!open) {
       return;
     }
-    setDescription(String(preset?.initialDescription || "").trim());
+    // Keep description empty so the question text shows as placeholder
+    // (same pattern as Comments → "Optional comments").
+    setDescription("");
     setTimeline("");
     setResponsiblePersons("");
     setComments("");
@@ -80,6 +82,10 @@ export default function AddActionableModal({
     preset.categoryName ||
     preset.categoryPath.split(">").pop()?.trim() ||
     "Category";
+  const descriptionPlaceholder =
+    String(preset.initialDescription || "").trim() || "Optional description";
+  const descriptionToSave =
+    description.trim() || descriptionPlaceholder;
 
   const handleSave = async () => {
     if (!canEdit) {
@@ -87,7 +93,7 @@ export default function AddActionableModal({
       return;
     }
 
-    if (!description.trim()) {
+    if (!descriptionToSave) {
       setErrorMessage("Description is required.");
       return;
     }
@@ -114,7 +120,7 @@ export default function AddActionableModal({
           categoryId: preset.categoryId,
           categoryName: preset.categoryName || categoryLabel,
           categoryPath: preset.categoryPath || categoryLabel,
-          description: description.trim(),
+          description: descriptionToSave,
           timeline: timeline.trim(),
           responsiblePersons: responsiblePersons.trim(),
           comments: comments.trim(),
@@ -203,12 +209,11 @@ export default function AddActionableModal({
               <AlignLeft size={16} strokeWidth={2.1} aria-hidden />
               <textarea
                 id="add-act-description"
-                className="add-act-description-input"
                 value={description}
                 maxLength={DESCRIPTION_MAX}
                 rows={2}
                 disabled={!canEdit || saving}
-                placeholder="Optional description"
+                placeholder={descriptionPlaceholder}
                 onChange={(event) => setDescription(event.target.value)}
               />
             </div>

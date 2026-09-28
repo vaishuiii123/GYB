@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   CalendarDays,
@@ -83,7 +83,9 @@ export default function ActionableForm() {
   const [forms, setForms] = useState<FormEntry[]>([createEmptyForm()]);
   const [canEdit, setCanEdit] = useState(true);
   const [editMessage, setEditMessage] = useState("");
-  const savedSnapshotRef = useRef(snapshotForms([createEmptyForm()]));
+  const [savedSnapshot, setSavedSnapshot] = useState(
+    snapshotForms([createEmptyForm()])
+  );
 
   const {
     participant,
@@ -96,8 +98,8 @@ export default function ActionableForm() {
     if (!canEdit || loading) {
       return false;
     }
-    return snapshotForms(forms) !== savedSnapshotRef.current;
-  }, [canEdit, loading, forms]);
+    return snapshotForms(forms) !== savedSnapshot;
+  }, [canEdit, loading, forms, savedSnapshot]);
 
   useEffect(() => {
     if (!getWorkshopModuleAccessStatus(selectedWorkshop).enabled) {
@@ -168,11 +170,11 @@ export default function ActionableForm() {
           );
 
           setForms(loadedForms);
-          savedSnapshotRef.current = snapshotForms(loadedForms);
+          setSavedSnapshot(snapshotForms(loadedForms));
         } else {
           const empty = [createEmptyForm()];
           setForms(empty);
-          savedSnapshotRef.current = snapshotForms(empty);
+          setSavedSnapshot(snapshotForms(empty));
         }
 
         const editStatus = getWorkshopEditStatus(selectedWorkshop);
@@ -359,9 +361,9 @@ export default function ActionableForm() {
           })
         );
         setForms(refreshed);
-        savedSnapshotRef.current = snapshotForms(refreshed);
+        setSavedSnapshot(snapshotForms(refreshed));
       } else {
-        savedSnapshotRef.current = snapshotForms(formsToSave);
+        setSavedSnapshot(snapshotForms(formsToSave));
       }
 
       setSuccessMessage("Actionables saved successfully.");

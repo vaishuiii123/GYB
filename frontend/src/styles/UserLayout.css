@@ -36,13 +36,27 @@
   box-sizing: border-box;
 }
 
-.user-layout:has(.user-layout-main-vision) {
+.user-layout-main.user-layout-main-reports {
+  padding: 10px clamp(16px, 3vw, 28px) 12px !important;
+  background: #f4f5f7;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: calc(100vh - var(--user-header-height, 56px));
+  height: calc(100dvh - var(--user-header-height, 56px));
+  overflow: hidden !important;
+  box-sizing: border-box;
+}
+
+.user-layout:has(.user-layout-main-vision),
+.user-layout:has(.user-layout-main-reports) {
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
 }
 
-.user-layout-main-vision .user-layout-back-row {
+.user-layout-main-vision .user-layout-back-row,
+.user-layout-main-reports .user-layout-back-row {
   margin-bottom: 8px;
 }
 
@@ -81,6 +95,7 @@
 @media (max-width: 768px) {
   .user-layout-main,
   .user-layout-main-vision,
+  .user-layout-main-reports,
   .user-layout-main-actionables {
     padding-left: 16px;
     padding-right: 16px;
