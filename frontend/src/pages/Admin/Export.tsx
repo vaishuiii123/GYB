@@ -8,13 +8,13 @@ import AttachmentPreviewModal, {
 import {
   Building2,
   CalendarDays,
+  Download,
   Eye,
   Folder,
   HelpCircle,
   LineChart,
   List,
   Search,
-  SlidersHorizontal,
   StickyNote,
   Tags,
   Zap,
@@ -1369,40 +1369,40 @@ const availableQuestions = useMemo(() => {
       (item) => item.source === exportType
     );
 
-   if (selectedCategory) {
-  if (exportType === "preod") {
-    data = data.filter(
-      (item) => item.category === selectedCategory
-    );
-  } else {
-  const selectedCategoryData =
-    categories.find(
-      (category) =>
-        category.id ===
-        selectedCategory
-    );
+    if (selectedCategory) {
+      if (exportType === "preod") {
+        data = data.filter(
+          (item) => item.category === selectedCategory
+        );
+      } else {
+        const selectedCategoryData =
+          categories.find(
+            (category) =>
+              category.id ===
+              selectedCategory
+          );
 
-  const selectedCategoryName =
-    selectedCategoryData?.categoryName ||
-    availableCategories.find(
-      (item) => item.id === selectedCategory
-    )?.name ||
-    "";
+        const selectedCategoryName =
+          selectedCategoryData?.categoryName ||
+          availableCategories.find(
+            (item) => item.id === selectedCategory
+          )?.name ||
+          "";
 
-  data = data.filter((item) => {
-    const lastCategory =
-      (item.category || "")
-        .split(">")
-        .pop()
-        ?.trim() || "";
+        data = data.filter((item) => {
+          const lastCategory =
+            (item.category || "")
+              .split(">")
+              .pop()
+              ?.trim() || "";
 
-    return (
-      lastCategory ===
-      selectedCategoryName
-    );
-  });
-  }
-}
+          return (
+            lastCategory ===
+            selectedCategoryName
+          );
+        });
+      }
+    }
 
     if (selectedTag && exportType === "od") {
       data = data.filter((item) => {
@@ -1805,33 +1805,50 @@ const availableQuestions = useMemo(() => {
       });
 
       const worksheet = XLSX.utils.json_to_sheet(
-        filteredResponses.map((item, index) => ({
-          Participant: item.participant,
-          Organization: item.organization,
-          Workshop: item.workshop,
-          Category: item.category,
-          Question: item.question,
-          Response: item.response,
-          Notes: item.note || "",
-          "Attachment File":
+        filteredResponses.map((item, index) => {
+          const row: Record<string, string> = {
+            Participant: item.participant,
+            Organization: item.organization,
+            Workshop: item.workshop,
+            Category: item.category,
+            Question: item.question,
+            Response: item.response,
+          };
+          if (exportType === "od") {
+            row.Notes = item.note || "";
+          }
+          row["Attachment File"] =
             plannedFileNameByIndex.get(index) ||
             item.attachmentFileName ||
-            "-",
-          "ZIP Path": zipPathByIndex.get(index) || "-",
-        }))
+            "-";
+          row["ZIP Path"] = zipPathByIndex.get(index) || "-";
+          return row;
+        })
       );
 
-      worksheet["!cols"] = [
-        { wch: 20 },
-        { wch: 20 },
-        { wch: 25 },
-        { wch: 35 },
-        { wch: 50 },
-        { wch: 40 },
-        { wch: 40 },
-        { wch: 28 },
-        { wch: 70 },
-      ];
+      worksheet["!cols"] =
+        exportType === "od"
+          ? [
+              { wch: 20 },
+              { wch: 20 },
+              { wch: 25 },
+              { wch: 35 },
+              { wch: 50 },
+              { wch: 40 },
+              { wch: 40 },
+              { wch: 28 },
+              { wch: 70 },
+            ]
+          : [
+              { wch: 20 },
+              { wch: 20 },
+              { wch: 25 },
+              { wch: 35 },
+              { wch: 50 },
+              { wch: 40 },
+              { wch: 28 },
+              { wch: 70 },
+            ];
 
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "All Responses");
@@ -2122,26 +2139,28 @@ const availableQuestions = useMemo(() => {
           />
         </div>
 
-        <div className="export-filter-card">
-          <div className="export-filter-card-top">
-            <span className="export-filter-badge is-tag" aria-hidden>
-              <Tags size={16} strokeWidth={2.2} />
-            </span>
-            <label htmlFor="export-tag">Select Tag</label>
+        {exportType === "od" ? (
+          <div className="export-filter-card">
+            <div className="export-filter-card-top">
+              <span className="export-filter-badge is-tag" aria-hidden>
+                <Tags size={16} strokeWidth={2.2} />
+              </span>
+              <label htmlFor="export-tag">Select Tag</label>
+            </div>
+            <SearchableSelect
+              id="export-tag"
+              value={selectedTag}
+              placeholder="Select Tag"
+              searchPlaceholder="Search tag..."
+              disabled={!selectedWorkshop}
+              onChange={handleTagChange}
+              options={availableTags.map((tag) => ({
+                value: tag.id,
+                label: tag.tagName,
+              }))}
+            />
           </div>
-          <SearchableSelect
-            id="export-tag"
-            value={selectedTag}
-            placeholder="Select Tag"
-            searchPlaceholder="Search tag..."
-            disabled={!selectedWorkshop}
-            onChange={handleTagChange}
-            options={availableTags.map((tag) => ({
-              value: tag.id,
-              label: tag.tagName,
-            }))}
-          />
-        </div>
+        ) : null}
 
         <div className="export-filter-card">
           <div className="export-filter-card-top">
@@ -2246,7 +2265,7 @@ const availableQuestions = useMemo(() => {
             {exportingZip ? (
               "…"
             ) : (
-              <SlidersHorizontal size={18} strokeWidth={2.2} />
+              <Download size={18} strokeWidth={2.2} />
             )}
           </button>
         </div>
@@ -2442,7 +2461,7 @@ const availableQuestions = useMemo(() => {
                   <th>Category</th>
                   <th>Question</th>
                   <th>Response</th>
-                  <th>Notes</th>
+                  {exportType === "od" ? <th>Notes</th> : null}
                   <th>Attachment</th>
                 </tr>
               </thead>
@@ -2454,7 +2473,7 @@ const availableQuestions = useMemo(() => {
 
                   <tr>
 
-                    <td colSpan={6}>
+                    <td colSpan={exportType === "od" ? 6 : 5}>
                       No responses found.
                     </td>
 
@@ -2496,10 +2515,11 @@ const availableQuestions = useMemo(() => {
                         </td>
 
 
-                        {/* NOTES */}
-                        <td className="export-text-cell">
-                          {item.note ? item.note : "-"}
-                        </td>
+                        {exportType === "od" ? (
+                          <td className="export-text-cell">
+                            {item.note ? item.note : "-"}
+                          </td>
+                        ) : null}
 
 
                         {/* ATTACHMENT */}

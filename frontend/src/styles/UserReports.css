@@ -271,6 +271,12 @@
   overflow: hidden;
 }
 
+.user-reports-page .export-table-scroll {
+  max-height: none;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
 @media (max-width: 860px) {
   .user-reports-page {
     padding: 20px 16px;

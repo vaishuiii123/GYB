@@ -2299,6 +2299,16 @@ a.od-notes-file-name:hover {
   flex-direction: column;
   gap: 8px;
   min-width: 0;
+  overflow: visible;
+}
+
+.qr-col.qr-notes {
+  overflow: visible;
+}
+
+.question-block:has(.qr-note-menu) {
+  position: relative;
+  z-index: 6;
 }
 
 .qr-notes-head {
@@ -2424,6 +2434,12 @@ a.od-notes-file-name:hover {
   scrollbar-color: #c4a0ab transparent;
 }
 
+/* Keep Edit/Delete menu from being clipped by the notes scroller */
+.qr-note-list:has(.qr-note-menu) {
+  overflow: visible;
+  max-height: none;
+}
+
 .qr-note-list::-webkit-scrollbar {
   width: 4px;
 }
@@ -2516,6 +2532,11 @@ a.od-notes-file-name:hover {
 .qr-note-menu-wrap {
   position: relative;
   flex-shrink: 0;
+  z-index: 2;
+}
+
+.qr-note-menu-wrap:has(.qr-note-menu) {
+  z-index: 30;
 }
 
 .qr-note-menu-btn {
@@ -2539,17 +2560,27 @@ a.od-notes-file-name:hover {
 
 .qr-note-menu {
   position: absolute;
-  top: 100%;
+  top: auto;
+  bottom: calc(100% + 4px);
   right: 0;
-  z-index: 5;
-  min-width: 110px;
+  z-index: 40;
+  min-width: 128px;
   padding: 4px;
   border: 1px solid #e5e7eb;
   border-radius: 10px;
   background: #ffffff;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.14);
   display: flex;
   flex-direction: column;
+}
+
+.qr-note-menu.is-portal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: auto;
+  right: auto;
+  z-index: 10050;
 }
 
 .qr-note-menu button {

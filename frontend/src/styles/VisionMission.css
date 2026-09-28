@@ -172,7 +172,7 @@
 .vm-hero {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 12px;
   flex-shrink: 0;
   padding: 8px 14px;
@@ -190,6 +190,7 @@
   align-items: center;
   gap: 10px;
   min-width: 0;
+  flex: 1;
   position: relative;
   z-index: 1;
 }
@@ -221,50 +222,6 @@
   color: #5b6472;
   font-size: 12.5px;
   line-height: 1.35;
-  max-width: 72ch;
-}
-
-.vm-hero-aside {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-shrink: 0;
-  position: relative;
-  z-index: 1;
-}
-
-.vm-hero-art {
-  width: 64px;
-  height: 40px;
-  border-radius: 8px;
-  background:
-    linear-gradient(160deg, transparent 42%, #c98a9c 42% 58%, transparent 58%),
-    linear-gradient(140deg, transparent 50%, #9b304a 50% 68%, transparent 68%),
-    linear-gradient(180deg, #f8e7ec, #efd0da);
-  border: 1px solid #efd0da;
-  position: relative;
-  overflow: hidden;
-}
-
-.vm-hero-art::after {
-  content: "";
-  position: absolute;
-  top: 6px;
-  right: 14px;
-  width: 7px;
-  height: 12px;
-  background: var(--vm-maroon);
-  clip-path: polygon(0 0, 100% 20%, 0 40%, 0 100%);
-}
-
-.vm-hero-tagline {
-  margin: 0;
-  color: var(--vm-maroon);
-  font-size: 12px;
-  font-weight: 600;
-  font-style: italic;
-  padding-bottom: 2px;
-  border-bottom: 2px solid rgba(123, 15, 44, 0.35);
   white-space: nowrap;
 }
 
@@ -482,6 +439,11 @@
   margin: 0;
   cursor: text;
   text-align: left;
+  white-space: nowrap;
+  flex-shrink: 0;
+  width: auto;
+  height: auto;
+  min-width: 0;
 }
 
 .vm-chip.is-selected .vm-chip-label:disabled {
@@ -505,10 +467,11 @@
   font-size: 13px;
 }
 
-.vm-chip.is-selected > button {
+.vm-chip.is-selected > .vm-chip-remove {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   border: none;
   background: rgba(255, 255, 255, 0.16);
   color: inherit;
@@ -519,7 +482,7 @@
   padding: 0;
 }
 
-.vm-chip.is-selected > button:disabled {
+.vm-chip.is-selected > .vm-chip-remove:disabled {
   cursor: default;
   opacity: 0.7;
 }
@@ -741,10 +704,6 @@
 
   .vm-page {
     overflow: visible;
-  }
-
-  .vm-hero-aside {
-    display: none;
   }
 
   .vm-content {

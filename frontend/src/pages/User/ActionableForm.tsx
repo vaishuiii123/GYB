@@ -396,11 +396,7 @@ export default function ActionableForm() {
                   </p>
                 </div>
               </div>
-              <div className="act-hero-art" aria-hidden />
-            </section>
-
-            {!loading && categories.length > 0 ? (
-              <div className="act-sticky-toolbar">
+              {!loading && categories.length > 0 ? (
                 <button
                   type="button"
                   className="act-add-btn"
@@ -410,8 +406,8 @@ export default function ActionableForm() {
                   <Plus size={18} strokeWidth={2.2} />
                   Add Actionable Item
                 </button>
-              </div>
-            ) : null}
+              ) : null}
+            </section>
           </div>
 
           {loading ? (

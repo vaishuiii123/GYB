@@ -577,6 +577,7 @@ export default function VisionMission() {
               )}
               <button
                 type="button"
+                className="vm-chip-remove"
                 onClick={(event) => {
                   event.stopPropagation();
                   if (isEditing) {
@@ -631,10 +632,6 @@ export default function VisionMission() {
                 press Enter.
               </p>
             </div>
-          </div>
-          <div className="vm-hero-aside">
-            <div className="vm-hero-art" aria-hidden />
-            <p className="vm-hero-tagline">Define today. Build tomorrow.</p>
           </div>
         </section>
 

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
 import WorkshopEditBanner from "../../components/WorkshopEditBanner";
 import AddActionableModal, {
@@ -29,7 +30,6 @@ import {
   Handshake,
   Lightbulb,
   MoreVertical,
-  Paperclip,
   Plus,
   Target,
   Trash2,
@@ -240,6 +240,14 @@ export default function ODChartQuestions() {
   const [noteDraft, setNoteDraft] = useState("");
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteMenuId, setNoteMenuId] = useState<string | null>(null);
+  const [noteMenuQuestionId, setNoteMenuQuestionId] = useState<string | null>(
+    null
+  );
+  const [noteMenuPos, setNoteMenuPos] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
+  const noteMenuRef = useRef<HTMLDivElement | null>(null);
   const [attachmentPreview, setAttachmentPreview] =
     useState<AttachmentPreviewTarget | null>(null);
   const [page, setPage] = useState(0);
@@ -288,6 +296,8 @@ export default function ODChartQuestions() {
       setNoteDraft("");
       setEditingNoteId(null);
       setNoteMenuId(null);
+      setNoteMenuQuestionId(null);
+      setNoteMenuPos(null);
       setPendingFiles({});
       setSavedAttachments({});
       setPage(0);
@@ -510,6 +520,42 @@ export default function ODChartQuestions() {
     }));
   };
 
+  const closeNoteMenu = () => {
+    setNoteMenuId(null);
+    setNoteMenuQuestionId(null);
+    setNoteMenuPos(null);
+  };
+
+  useEffect(() => {
+    if (!noteMenuId) {
+      return;
+    }
+
+    const onPointerDown = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (noteMenuRef.current?.contains(target)) {
+        return;
+      }
+      if (target instanceof Element && target.closest(".qr-note-menu-btn")) {
+        return;
+      }
+      closeNoteMenu();
+    };
+
+    const onViewportChange = () => {
+      closeNoteMenu();
+    };
+
+    window.addEventListener("mousedown", onPointerDown);
+    window.addEventListener("resize", onViewportChange);
+    window.addEventListener("scroll", onViewportChange, true);
+    return () => {
+      window.removeEventListener("mousedown", onPointerDown);
+      window.removeEventListener("resize", onViewportChange);
+      window.removeEventListener("scroll", onViewportChange, true);
+    };
+  }, [noteMenuId]);
+
   const openNoteComposer = (questionId: string, note?: NoteEntry) => {
     if (!canEdit) {
       return;
@@ -517,7 +563,7 @@ export default function ODChartQuestions() {
     setNoteComposerQuestionId(questionId);
     setEditingNoteId(note?.id || null);
     setNoteDraft(note?.text || "");
-    setNoteMenuId(null);
+    closeNoteMenu();
     window.setTimeout(() => {
       document.getElementById(`od-note-composer-${questionId}`)?.focus();
     }, 0);
@@ -575,7 +621,7 @@ export default function ODChartQuestions() {
     answersDirtyRef.current = true;
     setIsDirty(true);
     syncNotesFromList(questionId, nextEntries, noteLists);
-    setNoteMenuId(null);
+    closeNoteMenu();
     if (editingNoteId === noteId) {
       closeNoteComposer();
     }
@@ -669,34 +715,37 @@ export default function ODChartQuestions() {
                         className="qr-note-menu-btn"
                         aria-label="Note options"
                         aria-expanded={menuOpen}
-                        onClick={() =>
-                          setNoteMenuId(menuOpen ? null : entry.id)
-                        }
+                        onClick={(event) => {
+                          if (menuOpen) {
+                            closeNoteMenu();
+                            return;
+                          }
+                          const rect =
+                            event.currentTarget.getBoundingClientRect();
+                          const menuWidth = 128;
+                          const menuHeight = 84;
+                          const gap = 6;
+                          const left = Math.max(
+                            8,
+                            Math.min(
+                              rect.right - menuWidth,
+                              window.innerWidth - menuWidth - 8
+                            )
+                          );
+                          const openBelow =
+                            rect.bottom + gap + menuHeight <=
+                            window.innerHeight - 8;
+                          const top = openBelow
+                            ? rect.bottom + gap
+                            : Math.max(8, rect.top - menuHeight - gap);
+                          setNoteMenuId(entry.id);
+                          setNoteMenuQuestionId(question.id);
+                          setNoteMenuPos({ top, left });
+                        }}
                         disabled={saving}
                       >
                         <MoreVertical size={16} strokeWidth={2.2} />
                       </button>
-                      {menuOpen ? (
-                        <div className="qr-note-menu" role="menu">
-                          <button
-                            type="button"
-                            role="menuitem"
-                            onClick={() => openNoteComposer(question.id, entry)}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            role="menuitem"
-                            className="is-danger"
-                            onClick={() =>
-                              deleteNoteEntry(question.id, entry.id)
-                            }
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      ) : null}
                     </div>
                   ) : null}
                 </li>
@@ -1151,13 +1200,8 @@ export default function ODChartQuestions() {
 
     return (
       <div className="od-attach-card">
-        <div className="od-attach-card-head">
-          <span className="od-attach-card-title">
-            <Paperclip size={14} strokeWidth={2.2} aria-hidden />
-            Attachments
-            {items.length > 0 ? ` (${items.length})` : ""}
-          </span>
-          {canEdit ? (
+        {canEdit ? (
+          <div className="od-attach-card-head">
             <label className="od-attach-upload-btn">
               <input
                 id={`od-attach-${question.id}`}
@@ -1171,8 +1215,8 @@ export default function ODChartQuestions() {
               />
               Choose files
             </label>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
 
         {items.length ? (
           <ul className="od-attach-list">
@@ -1533,6 +1577,48 @@ export default function ODChartQuestions() {
           </div>
         </div>
       ) : null}
+
+      {noteMenuId &&
+      noteMenuQuestionId &&
+      noteMenuPos &&
+      typeof document !== "undefined"
+        ? createPortal(
+            <div
+              ref={noteMenuRef}
+              className="qr-note-menu is-portal"
+              role="menu"
+              style={{ top: noteMenuPos.top, left: noteMenuPos.left }}
+            >
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  const note = (noteLists[noteMenuQuestionId] || []).find(
+                    (entry) => entry.id === noteMenuId
+                  );
+                  if (note) {
+                    openNoteComposer(noteMenuQuestionId, note);
+                  } else {
+                    closeNoteMenu();
+                  }
+                }}
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                className="is-danger"
+                onClick={() =>
+                  deleteNoteEntry(noteMenuQuestionId, noteMenuId)
+                }
+              >
+                Delete
+              </button>
+            </div>,
+            document.body
+          )
+        : null}
 
       <AddActionableModal
         open={actionableOpen}

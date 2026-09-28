@@ -27,11 +27,11 @@
 
 .act-hero {
   display: flex;
-  align-items: stretch;
+  align-items: center;
   justify-content: space-between;
-  gap: 18px;
+  gap: 16px;
   margin-bottom: 0;
-  padding-bottom: 16px;
+  padding-bottom: 4px;
   border-bottom: none;
 }
 
@@ -39,26 +39,23 @@
   position: sticky;
   top: 44px;
   z-index: 40;
-  margin: -28px -32px 16px;
-  padding: 28px 32px 12px;
+  margin: -16px -32px 12px;
+  padding: 16px 32px 8px;
   background: #ffffff;
   border-bottom: 1px solid #eef0f3;
   box-shadow: 0 10px 18px -14px rgba(15, 23, 42, 0.45);
 }
 
 .act-sticky-toolbar {
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
-  gap: 12px;
-  padding: 4px 0 4px;
+  display: none;
 }
 
 .act-hero-copy {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 14px;
-  max-width: 640px;
+  min-width: 0;
+  flex: 1;
 }
 
 .act-hero-icon {
@@ -75,9 +72,8 @@
 
 .act-hero-copy > div {
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 10px;
+  flex-direction: column;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -93,35 +89,17 @@
   margin: 0;
   color: var(--act-muted);
   font-size: 14px;
-  line-height: 1.4;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.act-hero .act-add-btn {
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .act-hero-art {
   display: none;
-}
-
-.act-hero-art {
-  width: min(220px, 28%);
-  min-height: 96px;
-  border-radius: 16px;
-  background:
-    radial-gradient(circle at 70% 40%, #ffffff 0 12%, transparent 13%),
-    linear-gradient(150deg, #efe8f8 0%, #f4e4ef 50%, #f8e7ec 100%);
-  border: 1px solid #ead8e6;
-  position: relative;
-  overflow: hidden;
-}
-
-.act-hero-art::before {
-  content: "";
-  position: absolute;
-  inset: 18px 22px;
-  border-radius: 10px;
-  border: 2px solid rgba(123, 15, 44, 0.18);
-  background:
-    linear-gradient(180deg, transparent 28%, rgba(123, 15, 44, 0.12) 28% 36%, transparent 36%),
-    linear-gradient(180deg, transparent 48%, rgba(123, 15, 44, 0.12) 48% 56%, transparent 56%),
-    linear-gradient(180deg, transparent 68%, rgba(123, 15, 44, 0.12) 68% 76%, transparent 76%);
 }
 
 .act-empty {
@@ -447,15 +425,21 @@
   }
 
   .act-sticky-chrome {
-    margin: -20px -16px 14px;
-    padding: 20px 16px 10px;
+    margin: -12px -16px 10px;
+    padding: 12px 16px 8px;
   }
 
   .act-hero {
     flex-direction: column;
+    align-items: stretch;
   }
 
-  .act-hero-art {
+  .act-hero p {
+    white-space: normal;
+  }
+
+  .act-hero .act-add-btn {
+    margin-left: 0;
     width: 100%;
   }
 
@@ -473,11 +457,6 @@
     align-items: stretch;
   }
 
-  .act-sticky-toolbar {
-    justify-content: stretch;
-  }
-
-  .act-sticky-toolbar .act-add-btn,
   .act-save-btn {
     width: 100%;
   }

@@ -20,6 +20,14 @@ import {
   ATTACHMENT_HINT,
   isAllowedAttachmentFile,
 } from "../../utils/attachmentTypes";
+import { useRegisterUnsavedGuard } from "../../utils/unsavedChanges";
+import {
+  ClipboardList,
+  Eye,
+  FileText,
+  Trash2,
+} from "lucide-react";
+import "../../styles/UserButtons.css";
 import "../../styles/PreODForm.css";
 
 type AttachmentMeta = {
@@ -87,12 +95,20 @@ export default function PreODForm() {
     useState<AttachmentPreviewTarget | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [isDirty, setIsDirty] = useState(false);
   const requestIdRef = useRef(0);
 
   const PAGE_SIZE = 5;
   const [page, setPage] = useState(0);
 
   const canFill = formData?.canFill ?? false;
+
+  const markDirty = () => {
+    if (!canFill) {
+      return;
+    }
+    setIsDirty(true);
+  };
 
   const groupedQuestions = useMemo(() => {
     const groups = new Map<string, PreOdQuestion[]>();
@@ -221,6 +237,7 @@ export default function PreODForm() {
   }, [navigate, participantId, organizationId, workshopId]);
 
   const handleAnswerChange = (srNo: number, value: string) => {
+    markDirty();
     setAnswers((current) => ({
       ...current,
       [String(srNo)]: value,
@@ -234,6 +251,7 @@ export default function PreODForm() {
     const file = event.target.files?.[0];
     const key = String(srNo);
     if (!file) {
+      markDirty();
       setPendingFiles((current) => {
         const next = { ...current };
         delete next[key];
@@ -256,6 +274,7 @@ export default function PreODForm() {
       return;
     }
 
+    markDirty();
     setPendingFiles((current) => ({
       ...current,
       [key]: {
@@ -333,6 +352,7 @@ export default function PreODForm() {
       data.data?.attachments || uploadedAttachments
     );
     setPendingFiles({});
+    setIsDirty(false);
     setFormData((current) =>
       current
         ? {
@@ -347,20 +367,24 @@ export default function PreODForm() {
     return data;
   };
 
-  const handleSave = async () => {
+  const handleSave = async (): Promise<boolean> => {
     try {
       setSaving(true);
       setErrorMessage("");
       setSuccessMessage("");
       await saveAnswers(true);
       setSuccessMessage("Draft saved successfully.");
+      return true;
     } catch (error: any) {
       console.error(error);
       setErrorMessage(error.message || "Failed to save your responses.");
+      return false;
     } finally {
       setSaving(false);
     }
   };
+
+  useRegisterUnsavedGuard(isDirty && canFill, handleSave);
 
   const handleNext = async () => {
     try {
@@ -386,6 +410,7 @@ export default function PreODForm() {
       setErrorMessage("");
       setSuccessMessage("");
       await saveAnswers(false);
+      setIsDirty(false);
       clearCachedPageData(`pre-od:${participantId}:${formData!.workshop.id}`);
       setSuccessMessage("Questionnaire submitted successfully.");
       navigate("/userdashboard", { replace: true });
@@ -400,11 +425,75 @@ export default function PreODForm() {
   return (
     <UserLayout contentClassName="pre-od-form-layout">
       <div className="pre-od-form-page">
-        <div className="pre-od-form-header">
-          <div>
-            <h1>Pre-Organizational Development Questionnaire</h1>
+        <section className="pre-od-hero">
+          <div className="pre-od-hero-copy">
+            <span className="pre-od-hero-icon" aria-hidden>
+              <ClipboardList size={15} strokeWidth={2.2} />
+            </span>
+            <div>
+              <h1>Pre-Organizational Development Questionnaire</h1>
+              <p>
+                Complete these questions before the workshop begins. Attach
+                supporting files where helpful.
+              </p>
+            </div>
           </div>
-        </div>
+          <div className="pre-od-hero-aside">
+            <div className="pre-od-hero-art" aria-hidden />
+            <p className="pre-od-hero-tagline">Prepare today. Grow tomorrow.</p>
+          </div>
+        </section>
+
+        {formData?.available ? (
+          <div className="pre-od-top is-sticky">
+            <p className="pre-od-top-page">
+              Page {page + 1} of {totalPages}
+            </p>
+            <div className="pre-od-top-actions">
+              {canFill ? (
+                <>
+                  <button
+                    type="button"
+                    className="user-btn-secondary"
+                    onClick={handlePrevious}
+                    disabled={page === 0 || saving}
+                  >
+                    Previous
+                  </button>
+                  <button
+                    type="button"
+                    className="user-btn-primary"
+                    onClick={handleSave}
+                    disabled={saving}
+                  >
+                    {saving ? "Saving..." : "Save Responses"}
+                  </button>
+                  {!isLastPage ? (
+                    <button
+                      type="button"
+                      className="user-btn-secondary"
+                      onClick={handleNext}
+                      disabled={saving}
+                    >
+                      Next
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="user-btn-primary"
+                      onClick={handleSubmit}
+                      disabled={saving}
+                    >
+                      {saving ? "Submitting..." : "Submit"}
+                    </button>
+                  )}
+                </>
+              ) : (
+                <span className="pre-od-readonly-chip">Read-only</span>
+              )}
+            </div>
+          </div>
+        ) : null}
 
         {!canFill && formData?.message ? (
           <WorkshopEditBanner message={formData.message} />
@@ -440,101 +529,77 @@ export default function PreODForm() {
                 event.preventDefault();
               }}
             >
-              <div className="pre-od-toolbar">
-                <p className="pre-od-form-page-indicator">
-                  Page {page + 1} of {totalPages}
-                </p>
-
-                {canFill ? (
-                  <div className="pre-od-form-actions">
-                    <button
-                      type="button"
-                      className="pre-od-btn pre-od-btn-outline"
-                      onClick={handlePrevious}
-                      disabled={page === 0 || saving}
-                    >
-                      ← Previous
-                    </button>
-
-                    <button
-                      type="button"
-                      className="pre-od-btn pre-od-btn-outline"
-                      onClick={handleSave}
-                      disabled={saving}
-                    >
-                      {saving ? "Saving..." : "Save"}
-                    </button>
-
-                    {!isLastPage ? (
-                      <button
-                        type="button"
-                        className="pre-od-btn pre-od-btn-solid"
-                        onClick={handleNext}
-                        disabled={saving}
-                      >
-                        Next →
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        className="pre-od-btn pre-od-btn-solid"
-                        onClick={handleSubmit}
-                        disabled={saving}
-                      >
-                        {saving ? "Submitting..." : "Submit"}
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <p className="pre-od-form-readonly-note">Read-only</p>
-                )}
-              </div>
-
               <div className="pre-od-question-list">
                 {pageQuestions.map((item) => {
                   const key = String(item.srNo);
                   const pending = pendingFiles[key];
                   const saved = savedAttachments[key];
                   const displayName = pending?.fileName || saved?.fileName || "";
+                  const allowAttachment =
+                    String(item.attachmentsApplicable || "Y").toUpperCase() !==
+                    "N";
 
                   return (
-                    <div key={item.srNo} className="pre-od-question-card">
-                      <div className="pre-od-question-title">
-                        <span className="pre-od-question-number">
-                          {item.displayNo}
-                        </span>
-                        <span className="pre-od-question-text">
-                          {item.question}
-                        </span>
+                    <div
+                      key={item.srNo}
+                      className="pre-od-question-block"
+                      id={`pre-od-question-${item.srNo}`}
+                    >
+                      <div className="pre-od-col pre-od-col-question">
+                        <span className="pre-od-label">Question</span>
+                        <div className="pre-od-question-heading">
+                          <span className="pre-od-question-number">
+                            Q{item.displayNo}
+                          </span>
+                          <div className="pre-od-question-copy">
+                            <div className="pre-od-question-text">
+                              {item.question}
+                            </div>
+                            {item.category ? (
+                              <span className="pre-od-question-tag">
+                                {item.category}
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
                       </div>
-                      <textarea
-                        value={answers[key] || ""}
-                        onChange={(event) =>
-                          handleAnswerChange(item.srNo, event.target.value)
-                        }
-                        rows={4}
-                        disabled={!canFill || saving}
-                        placeholder="Enter your response"
-                      />
-                      <div className="pre-od-attachment">
-                        <label className="pre-od-attachment-label">
-                          Attachment
-                        </label>
-                        <input
-                          type="file"
-                          accept={ATTACHMENT_ACCEPT}
-                          disabled={!canFill || saving}
+
+                      <div className="pre-od-col pre-od-col-response">
+                        <span className="pre-od-label">Response</span>
+                        <textarea
+                          value={answers[key] || ""}
                           onChange={(event) =>
-                            handleAttachmentChange(item.srNo, event)
+                            handleAnswerChange(item.srNo, event.target.value)
                           }
+                          rows={3}
+                          disabled={!canFill || saving}
+                          placeholder="Enter your response"
                         />
-                        <p className="pre-od-attachment-hint">
-                          {ATTACHMENT_HINT}
-                        </p>
-                        {displayName ? (
-                          <div className="pre-od-attachment-file">
-                            <span>{displayName}</span>
-                            <div className="pre-od-attachment-actions">
+                      </div>
+
+                      <div className="pre-od-col pre-od-col-attachments">
+                        <span className="pre-od-label">Attachments</span>
+                        <div className="pre-od-attach-card">
+                          {canFill && allowAttachment ? (
+                            <div className="pre-od-attach-head">
+                              <label className="pre-od-attach-upload">
+                                Choose files
+                                <input
+                                  type="file"
+                                  accept={ATTACHMENT_ACCEPT}
+                                  disabled={saving}
+                                  onChange={(event) =>
+                                    handleAttachmentChange(item.srNo, event)
+                                  }
+                                />
+                              </label>
+                            </div>
+                          ) : null}
+
+                          {displayName ? (
+                            <div className="pre-od-attach-file">
+                              <FileText size={14} strokeWidth={2.1} aria-hidden />
+                              <span title={displayName}>{displayName}</span>
                               <button
                                 type="button"
                                 className="pre-od-attachment-link"
@@ -559,32 +624,68 @@ export default function PreODForm() {
                                   })
                                 }
                               >
+                                <Eye size={13} strokeWidth={2.2} aria-hidden />
                                 Preview
                               </button>
-                              {saved?.blobPath && !pending ? (
-                                <a
-                                  className="pre-od-attachment-link"
-                                  href={`/api/get-pre-od-attachment?participantId=${encodeURIComponent(
-                                    participantId
-                                  )}&workshopId=${encodeURIComponent(
-                                    formData.workshop.id
-                                  )}&questionSrNo=${encodeURIComponent(
-                                    key
-                                  )}&inline=0`}
-                                  target="_blank"
-                                  rel="noreferrer"
+                              {canFill ? (
+                                <button
+                                  type="button"
+                                  className="pre-od-attach-remove"
+                                  aria-label={`Remove ${displayName}`}
+                                  disabled={saving}
+                                  onClick={() => {
+                                    markDirty();
+                                    setPendingFiles((prev) => {
+                                      const next = { ...prev };
+                                      delete next[key];
+                                      return next;
+                                    });
+                                    setSavedAttachments((prev) => {
+                                      const next = { ...prev };
+                                      delete next[key];
+                                      return next;
+                                    });
+                                  }}
                                 >
-                                  Download
-                                </a>
+                                  <Trash2 size={12} strokeWidth={2} />
+                                </button>
                               ) : null}
                             </div>
-                          </div>
-                        ) : null}
+                          ) : (
+                            <p className="pre-od-attach-empty">
+                              No attachments yet. {ATTACHMENT_HINT}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );
                 })}
               </div>
+
+              {flatQuestions.length > PAGE_SIZE ? (
+                <div className="pre-od-pagination">
+                  <button
+                    type="button"
+                    className="user-btn-secondary"
+                    onClick={handlePrevious}
+                    disabled={page === 0 || saving}
+                  >
+                    Previous
+                  </button>
+                  <span className="pre-od-page-indicator">
+                    Page {page + 1} of {totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    className="user-btn-secondary"
+                    onClick={handleNext}
+                    disabled={isLastPage || saving}
+                  >
+                    Next
+                  </button>
+                </div>
+              ) : null}
             </form>
           </>
         )}
