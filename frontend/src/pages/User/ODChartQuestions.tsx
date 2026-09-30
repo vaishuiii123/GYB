@@ -888,21 +888,17 @@ export default function ODChartQuestions() {
 
     return (
       <div className="qr-notes-panel">
-        <div className="qr-notes-head">
-          {canEdit && !composing ? (
-            <button
-              type="button"
-              className="qr-notes-add"
-              onClick={() => openNoteComposer(question.id)}
-              disabled={saving || loading}
-            >
-              <Plus size={14} strokeWidth={2.4} aria-hidden />
-              Add Note
-            </button>
-          ) : (
-            <span className="qr-label">Notes</span>
-          )}
-        </div>
+        {canEdit && !composing ? (
+          <button
+            type="button"
+            className="qr-notes-add"
+            onClick={() => openNoteComposer(question.id)}
+            disabled={saving || loading}
+          >
+            <Plus size={14} strokeWidth={2.4} aria-hidden />
+            Add Note
+          </button>
+        ) : null}
 
         {composing ? (
           <div className="qr-note-composer">
@@ -1777,6 +1773,7 @@ export default function ODChartQuestions() {
                   </div>
 
                   <div className="qr-col qr-notes">
+                    <span className="qr-label">Notes</span>
                     {renderNotesPanel(question)}
                   </div>
 
