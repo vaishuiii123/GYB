@@ -9,9 +9,9 @@ export const getUserRedirectUri = () => `${window.location.origin}/`;
 
 export const msalConfig = {
   auth: {
-    clientId: "e14af128-d6f9-463f-9275-e1cdfea7728a",
+    clientId: "b33bab61-433f-4077-97e5-8197ae8777da",
     authority:
-      "https://login.microsoftonline.com/8e108e06-7848-48cf-8623-e6b06c27f2db",
+      "https://login.microsoftonline.com/fe7d772d-3adf-41ce-937b-a6096a00bc07",
     redirectUri: getRedirectUri(),
     navigateToLoginRequestUrl: false,
   },
