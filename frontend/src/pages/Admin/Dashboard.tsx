@@ -14,7 +14,6 @@ import {
 } from "../../utils/workshopLifecycle";
 import {
   ADMIN_CACHE_KEYS,
-  prefetchAdminLists,
   readAdminListCache,
   writeAdminListCache,
   fetchOnce,
@@ -137,10 +136,6 @@ export default function Dashboard({ user }: PageProps) {
 
     void loadWorkshops(false);
   }, [loadWorkshops]);
-
-  useEffect(() => {
-    prefetchAdminLists();
-  }, []);
 
   const { upcoming, inProgress, completed } = useMemo(() => {
     const buckets = {

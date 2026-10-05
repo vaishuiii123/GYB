@@ -20,6 +20,12 @@ import {
   Zap,
 } from "lucide-react";
 import "../../styles/Export.css";
+import {
+  ADMIN_CACHE_KEYS,
+  isAdminListCacheFresh,
+  loadAdminList,
+  readAdminListCache,
+} from "../../utils/adminListCache";
 
 type PageProps = {
   user?: any;
@@ -628,82 +634,115 @@ export default function Export({ user }: PageProps) {
    */
 
   useEffect(() => {
+    let cancelled = false;
+
+    const cachedOrganizations = readAdminListCache<Organization[]>(
+      ADMIN_CACHE_KEYS.organizations
+    );
+    const cachedWorkshops = readAdminListCache<Workshop[]>(
+      ADMIN_CACHE_KEYS.workshops
+    );
+    const cachedCategories = readAdminListCache<Category[]>(
+      ADMIN_CACHE_KEYS.allCategories
+    );
+    const cachedTags = readAdminListCache<TagOption[]>(ADMIN_CACHE_KEYS.tags);
+
+    if (cachedOrganizations) {
+      setOrganizations(cachedOrganizations);
+    }
+    if (cachedWorkshops) {
+      setWorkshops(cachedWorkshops);
+    }
+    if (cachedCategories) {
+      setCategories(cachedCategories);
+    }
+    if (cachedTags) {
+      setTags(cachedTags);
+    }
+    if (cachedOrganizations && cachedWorkshops) {
+      setLoadingInitial(false);
+    }
+
+    const mapTags = (data: {
+      data?: Array<{ id?: string; tagName?: string; tagColor?: string }>;
+      tags?: Array<{ id?: string; tagName?: string; tagColor?: string }>;
+    }) =>
+      (data.data || data.tags || [])
+        .map((tag) => ({
+          id: String(tag.id || ""),
+          tagName: String(tag.tagName || ""),
+          tagColor: String(tag.tagColor || ""),
+        }))
+        .filter((tag) => tag.id && tag.tagName);
+
     const loadInitialData = async () => {
       try {
-        setLoadingInitial(true);
-
-        const [
-          organizationsResponse,
-          workshopsResponse,
-          categoriesResponse,
-          tagsResponse,
-        ] = await Promise.all([
-          fetch("/api/get-organizations"),
-          fetch("/api/get-workshops"),
-          fetch("/api/get-all-categories"),
-          fetch("/api/get-tags"),
+        const [organizationList, workshopList] = await Promise.all([
+          loadAdminList<Organization[]>(
+            "/api/get-organizations",
+            ADMIN_CACHE_KEYS.organizations,
+            (data) => data.organizations || []
+          ),
+          loadAdminList<Workshop[]>(
+            "/api/get-workshops",
+            ADMIN_CACHE_KEYS.workshops,
+            (data) => data.workshops || []
+          ),
         ]);
 
-        const organizationsData =
-          await organizationsResponse.json();
-
-        const workshopsData =
-          await workshopsResponse.json();
-
-        const categoriesData =
-          await categoriesResponse.json();
-
-        const tagsData = await tagsResponse.json().catch(() => null);
-
-        if (
-          organizationsResponse.ok &&
-          organizationsData.success
-        ) {
-          setOrganizations(
-            organizationsData.organizations || []
-          );
+        if (cancelled) {
+          return;
         }
 
-        if (
-          workshopsResponse.ok &&
-          workshopsData.success
-        ) {
-          setWorkshops(
-            workshopsData.workshops || []
-          );
+        if (organizationList) {
+          setOrganizations(organizationList);
+        }
+        if (workshopList) {
+          setWorkshops(workshopList);
+        }
+        setLoadingInitial(false);
+
+        const [categoryList, tagList] = await Promise.all([
+          isAdminListCacheFresh(ADMIN_CACHE_KEYS.allCategories)
+            ? Promise.resolve(cachedCategories)
+            : loadAdminList<Category[]>(
+                "/api/get-all-categories",
+                ADMIN_CACHE_KEYS.allCategories,
+                (data) => data.categories || []
+              ),
+          isAdminListCacheFresh(ADMIN_CACHE_KEYS.tags)
+            ? Promise.resolve(cachedTags)
+            : loadAdminList<TagOption[]>(
+                "/api/get-tags",
+                ADMIN_CACHE_KEYS.tags,
+                mapTags
+              ),
+        ]);
+
+        if (cancelled) {
+          return;
         }
 
-        if (
-          categoriesResponse.ok &&
-          categoriesData.success
-        ) {
-          setCategories(
-            categoriesData.categories || []
-          );
+        if (categoryList) {
+          setCategories(categoryList);
         }
-
-        if (tagsResponse.ok && tagsData?.success) {
-          setTags(
-            (tagsData.data || tagsData.tags || []).map(
-              (tag: { id?: string; tagName?: string; tagColor?: string }) => ({
-                id: String(tag.id || ""),
-                tagName: String(tag.tagName || ""),
-                tagColor: String(tag.tagColor || ""),
-              })
-            ).filter((tag: TagOption) => tag.id && tag.tagName)
-          );
+        if (tagList) {
+          setTags(tagList);
         }
       } catch (err) {
         console.error(err);
-        setError(
-          "Unable to load export data."
-        );
-      } finally {
-        setLoadingInitial(false);
+        if (!cancelled) {
+          setError("Unable to load export data.");
+          setLoadingInitial(false);
+        }
       }
     };
 
-    loadInitialData();
+    void loadInitialData();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   /*
@@ -1606,21 +1645,28 @@ const availableQuestions = useMemo(() => {
   }
 
   try {
-    // Refresh workshops so TemplateId is current after template re-uploads.
-    const workshopsResponse = await fetch("/api/get-workshops");
-    const workshopsData = await workshopsResponse.json().catch(() => null);
-    if (workshopsResponse.ok && workshopsData?.success) {
-      setWorkshops(workshopsData.workshops || []);
+    const knownWorkshop =
+      workshops.find((item) => String(item.id) === String(workshopId)) ||
+      organizationWorkshops.find(
+        (item) => String(item.id) === String(workshopId)
+      );
+
+    let workshop = knownWorkshop;
+
+    // Only refetch when this workshop's template id is not already loaded.
+    if (!workshop?.templateId) {
+      const workshopList = await loadAdminList<Workshop[]>(
+        "/api/get-workshops",
+        ADMIN_CACHE_KEYS.workshops,
+        (data) => data.workshops || []
+      );
+      if (workshopList) {
+        setWorkshops(workshopList);
+        workshop = workshopList.find(
+          (item) => String(item.id) === String(workshopId)
+        );
+      }
     }
-
-    const workshopList =
-      workshopsData?.success && Array.isArray(workshopsData.workshops)
-        ? workshopsData.workshops
-        : organizationWorkshops;
-
-    const workshop = workshopList.find(
-      (item: Workshop) => String(item.id) === String(workshopId)
-    );
 
     if (!workshop) {
       console.warn("Selected workshop was not found.");

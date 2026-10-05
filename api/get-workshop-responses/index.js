@@ -151,7 +151,9 @@ module.exports = async function (context, req) {
 
     // Admins can view live participant answers during the workshop so
     // Responses/Export updates as soon as participants save.
-    const cached = getCachedPayload(workshopId);
+    // refresh=1 skips the short in-memory cache for a manual reload.
+    const forceRefresh = String(req.query.refresh || "") === "1";
+    const cached = forceRefresh ? null : getCachedPayload(workshopId);
     const payload =
       cached || (await buildWorkshopResponsePayload(workshop));
 

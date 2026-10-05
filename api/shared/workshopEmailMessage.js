@@ -8,12 +8,12 @@ const LINK_COLOR = "#0563C1";
 function p(inner, options = {}) {
   const marginBottom = options.marginBottom ?? "12pt";
   const paddingTop = options.paddingTop ?? "0";
-  return `<p style="margin:0 0 ${marginBottom} 0;padding:${paddingTop} 0 0 0;font-family:${FONT};font-size:${FONT_SIZE};line-height:${LINE_HEIGHT};color:${TEXT_COLOR}">${inner}</p>`;
+  return `<p style="margin:0 0 ${marginBottom} 0;margin-left:0;margin-right:0;padding:${paddingTop} 0 0 0;padding-left:0;text-indent:0;text-align:left;font-family:${FONT};font-size:${FONT_SIZE};line-height:${LINE_HEIGHT};color:${TEXT_COLOR}">${inner}</p>`;
 }
 
 /** Credential lines sit closer together (no full blank line between them). */
 function credentialLine(inner) {
-  return `<p style="margin:0 0 4pt 0;padding:0;font-family:${FONT};font-size:${FONT_SIZE};line-height:${LINE_HEIGHT};color:${TEXT_COLOR}">${inner}</p>`;
+  return `<p style="margin:0 0 4pt 0;margin-left:0;margin-right:0;padding:0;padding-left:0;text-indent:0;text-align:left;font-family:${FONT};font-size:${FONT_SIZE};line-height:${LINE_HEIGHT};color:${TEXT_COLOR}">${inner}</p>`;
 }
 
 function link(href, label) {
@@ -165,10 +165,10 @@ function buildWorkshopEmailContent({
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   </head>
-  <body style="margin:0;padding:0;background:#ffffff;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;background:#ffffff;">
+  <body style="margin:0;padding:0;background:#ffffff;text-align:left;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" align="left" style="border-collapse:collapse;margin:0;padding:0;background:#ffffff;">
       <tr>
-        <td style="padding:24px 28px;font-family:${FONT};font-size:${FONT_SIZE};line-height:${LINE_HEIGHT};color:${TEXT_COLOR};">
+        <td align="left" style="margin:0;padding:0;padding-left:0;text-align:left;font-family:${FONT};font-size:${FONT_SIZE};line-height:${LINE_HEIGHT};color:${TEXT_COLOR};">
           ${p(`Dear ${escapeHtml(name)},`)}
           ${p(
             `Team KNAV is delighted to invite you to your Organisation Development Workshop on <strong>${escapeHtml(
@@ -185,7 +185,7 @@ function buildWorkshopEmailContent({
           )}
           ${
             credentialsHtml
-              ? `<div style="margin:0 0 12pt 0;">${credentialsHtml}</div>`
+              ? `<div style="margin:0 0 12pt 0;margin-left:0;padding:0;padding-left:0;text-align:left;">${credentialsHtml}</div>`
               : ""
           }
           ${p(

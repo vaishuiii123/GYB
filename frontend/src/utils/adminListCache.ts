@@ -19,6 +19,7 @@ export const ADMIN_CACHE_KEYS = {
   topCategories: "top_categories_cache",
   admins: "admins_cache",
   questions: "questions_cache",
+  allCategories: "all_categories_cache",
 } as const;
 
 function readEntry<T>(key: string): CacheEntry<T> | null {
@@ -104,68 +105,30 @@ export function fetchOnce(url: string, init?: RequestInit): Promise<Response> {
   return promise.then((res) => res.clone());
 }
 
-async function prefetchOne(
+/**
+ * Return a fresh session cache hit, otherwise one shared GET.
+ * Stale cache is still returned when the network call fails.
+ */
+export async function loadAdminList<T>(
   url: string,
   cacheKey: string,
-  pick: (data: any) => unknown
-) {
-  try {
-    if (isAdminListCacheFresh(cacheKey)) {
-      return;
-    }
+  pick: (data: any) => T
+): Promise<T | null> {
+  if (isAdminListCacheFresh(cacheKey)) {
+    return readAdminListCache<T>(cacheKey);
+  }
 
+  try {
     const res = await fetchOnce(url);
     const data = await res.json();
-    if (!res.ok || !data?.success) {
-      return;
+    if (!res.ok || data?.success === false) {
+      return readAdminListCache<T>(cacheKey);
     }
 
-    writeAdminListCache(cacheKey, pick(data));
+    const value = pick(data);
+    writeAdminListCache(cacheKey, value);
+    return value;
   } catch {
-    // ignore prefetch errors
+    return readAdminListCache<T>(cacheKey);
   }
-}
-
-/** Warm common admin list caches after login / on dashboard. */
-export function prefetchAdminLists() {
-  void prefetchOne(
-    "/api/get-organizations",
-    ADMIN_CACHE_KEYS.organizations,
-    (data) => data.organizations || []
-  );
-  void prefetchOne(
-    "/api/get-participants",
-    ADMIN_CACHE_KEYS.participants,
-    (data) => data.participants || []
-  );
-  void prefetchOne(
-    "/api/get-workshops",
-    ADMIN_CACHE_KEYS.workshops,
-    (data) => data.workshops || []
-  );
-  void prefetchOne(
-    "/api/get-templates",
-    ADMIN_CACHE_KEYS.templates,
-    (data) => data.templates || []
-  );
-  void prefetchOne(
-    "/api/get-pre-od-templates",
-    ADMIN_CACHE_KEYS.preOdTemplates,
-    (data) => data.templates || []
-  );
-  void prefetchOne(
-    "/api/get-tags",
-    ADMIN_CACHE_KEYS.tags,
-    (data) => data.data || []
-  );
-  void prefetchOne(
-    "/api/get-top-categories",
-    ADMIN_CACHE_KEYS.topCategories,
-    (data) => data.data || []
-  );
-  void prefetchOne(
-    "/api/get-admins",
-    ADMIN_CACHE_KEYS.admins,
-    (data) => data.admins || []
-  );
 }

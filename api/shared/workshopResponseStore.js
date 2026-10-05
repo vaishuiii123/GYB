@@ -1,8 +1,10 @@
 const {
   ensureTableClient,
   getTableClient,
+  listPartition,
   escapeODataValue,
 } = require("./tableHelper");
+const { CACHE_KEYS, getOrLoad } = require("./listCache");
 const { parseWorkshopEndMs } = require("./workshopAccess");
 const { listPreOdResponsesForWorkshop } = require("./preOdResponseStore");
 const { PRE_OD_QUESTIONS, personalizePreOdQuestion } = require("./preOdQuestions");
@@ -213,20 +215,30 @@ async function loadQuestionLabels(questionIds) {
     return { labels, types };
   }
 
-  const client = getTableClient("Questions");
-  await Promise.all(
-    unique.map(async (questionId) => {
-      try {
-        const entity = await client.getEntity("Question", questionId);
-        labels[questionId] =
-          entity.QuestionText || entity.Question || questionId;
-        types[questionId] = entity.QuestionType || "";
-      } catch {
-        labels[questionId] = questionId;
-        types[questionId] = "";
+  const { value: index } = await getOrLoad(
+    CACHE_KEYS.questionLabels,
+    async () => {
+      const client = getTableClient("Questions");
+      const entities = await listPartition(client, "Question");
+      const map = {};
+      for (const entity of entities) {
+        const id = String(entity.rowKey || "");
+        if (!id) continue;
+        map[id] = {
+          text: entity.QuestionText || entity.Question || id,
+          type: entity.QuestionType || "",
+        };
       }
-    })
+      return map;
+    },
+    5 * 60 * 1000
   );
+
+  for (const questionId of unique) {
+    const item = index[questionId];
+    labels[questionId] = item?.text || questionId;
+    types[questionId] = item?.type || "";
+  }
 
   return { labels, types };
 }

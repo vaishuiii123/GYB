@@ -16,6 +16,7 @@ function invalidateParticipants(organizationId) {
 
 function invalidateQuestionStructure() {
   invalidate(CACHE_KEYS.questions);
+  invalidate(CACHE_KEYS.questionLabels);
   invalidate(CACHE_KEYS.allCategories);
   invalidate(CACHE_KEYS.tags);
   invalidate("question-options:all");

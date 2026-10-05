@@ -92,6 +92,7 @@ const CACHE_KEYS = {
   organizations: "list:organizations",
   participants: "list:participants",
   questions: "list:questions",
+  questionLabels: "list:question-label-index",
   allCategories: "list:all-categories",
   templates: "list:templates",
   preOdTemplates: "list:pre-od-templates",

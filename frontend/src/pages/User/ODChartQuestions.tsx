@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
 import WorkshopEditBanner from "../../components/WorkshopEditBanner";
@@ -31,6 +31,7 @@ import {
   Lightbulb,
   MoreVertical,
   Plus,
+  RefreshCw,
   Target,
   Trash2,
   Users,
@@ -488,6 +489,8 @@ export default function ODChartQuestions() {
     }>
   >([]);
   const workshopResponsesLoadedRef = useRef("");
+  const [refreshingResponses, setRefreshingResponses] = useState(false);
+  const responseRequestRef = useRef(0);
   const [noteComposerQuestionId, setNoteComposerQuestionId] = useState<
     string | null
   >(null);
@@ -1543,7 +1546,7 @@ export default function ODChartQuestions() {
     }
   }, [page, totalPages]);
 
-  useEffect(() => {
+  const loadWorkshopResponses = useCallback(async (manual = false) => {
     const workshopId = String(navState?.workshop?.id || "").trim();
     if (!workshopId) {
       setWorkshopResponseRows([]);
@@ -1551,74 +1554,98 @@ export default function ODChartQuestions() {
       return;
     }
 
-    let cancelled = false;
-    const loadWorkshopResponses = async () => {
-      try {
-        const response = await fetch(
-          `/api/get-workshop-responses?workshopId=${encodeURIComponent(
-            workshopId
-          )}`
-        );
-        const data = await response.json().catch(() => null);
-        if (cancelled) return;
+    const requestId = ++responseRequestRef.current;
+    if (manual) {
+      setRefreshingResponses(true);
+    }
 
-        const rows: Array<{
-          questionId: string;
-          participantId: string;
-          participant: string;
-          response: string;
-          note: string;
-        }> = [];
-
-        (data?.participants || []).forEach(
-          (entry: {
-            participantId?: string;
-            participantName?: string;
-            odChart?: {
-              answers?: Record<string, string>;
-              notes?: Record<string, string>;
-            };
-          }) => {
-            const participantId = String(entry.participantId || "");
-            const name =
-              String(entry.participantName || "").trim() || "Unknown";
-            const answersMap = entry.odChart?.answers || {};
-            const notesMap = entry.odChart?.notes || {};
-            Object.keys(answersMap).forEach((questionId) => {
-              const answer = String(answersMap[questionId] || "").trim();
-              if (!answer) return;
-              rows.push({
-                questionId: String(questionId),
-                participantId,
-                participant: name,
-                response: answer,
-                note: String(notesMap[questionId] || "").trim(),
-              });
-            });
-          }
-        );
-
-        setWorkshopResponseRows(rows);
-        workshopResponsesLoadedRef.current = workshopId;
-      } catch (error) {
-        console.error(error);
-        if (!cancelled && workshopResponsesLoadedRef.current !== workshopId) {
-          setWorkshopResponseRows([]);
-        }
+    try {
+      const params = new URLSearchParams({ workshopId });
+      if (manual) {
+        params.set("refresh", "1");
       }
-    };
+      const response = await fetch(
+        `/api/get-workshop-responses?${params.toString()}`,
+        { cache: "no-store" }
+      );
+      const data = await response.json().catch(() => null);
+      if (requestId !== responseRequestRef.current) return;
 
-    void loadWorkshopResponses();
+      if (!response.ok || data?.success === false) {
+        throw new Error(data?.message || "Unable to refresh responses.");
+      }
+
+      const rows: Array<{
+        questionId: string;
+        participantId: string;
+        participant: string;
+        response: string;
+        note: string;
+      }> = [];
+
+      (data?.participants || []).forEach(
+        (entry: {
+          participantId?: string;
+          participantName?: string;
+          odChart?: {
+            answers?: Record<string, string>;
+            notes?: Record<string, string>;
+          };
+        }) => {
+          const participantId = String(entry.participantId || "");
+          const name =
+            String(entry.participantName || "").trim() || "Unknown";
+          const answersMap = entry.odChart?.answers || {};
+          const notesMap = entry.odChart?.notes || {};
+          Object.keys(answersMap).forEach((questionId) => {
+            const answer = String(answersMap[questionId] || "").trim();
+            if (!answer) return;
+            rows.push({
+              questionId: String(questionId),
+              participantId,
+              participant: name,
+              response: answer,
+              note: String(notesMap[questionId] || "").trim(),
+            });
+          });
+        }
+      );
+
+      setWorkshopResponseRows(rows);
+      workshopResponsesLoadedRef.current = workshopId;
+      if (manual) {
+        setErrorMessage("");
+      }
+    } catch (error) {
+      console.error(error);
+      if (requestId !== responseRequestRef.current) return;
+      if (manual) {
+        setErrorMessage(
+          error instanceof Error
+            ? error.message
+            : "Unable to refresh responses."
+        );
+      } else if (workshopResponsesLoadedRef.current !== workshopId) {
+        setWorkshopResponseRows([]);
+      }
+    } finally {
+      if (manual) {
+        setRefreshingResponses(false);
+      }
+    }
+  }, [navState?.workshop?.id]);
+
+  useEffect(() => {
+    void loadWorkshopResponses(false);
     const intervalId = window.setInterval(() => {
       if (document.visibilityState === "hidden") return;
-      void loadWorkshopResponses();
+      void loadWorkshopResponses(false);
     }, 15000);
 
     return () => {
-      cancelled = true;
       window.clearInterval(intervalId);
     };
-  }, [navState?.workshop?.id]);
+  }, [loadWorkshopResponses]);
 
   const responsePieSlices = useMemo(() => {
     if (!responseQuestionId) return [];
@@ -1722,6 +1749,23 @@ export default function ODChartQuestions() {
             >
               View Response
             </button>
+            <button
+              type="button"
+              className="user-btn-secondary"
+              title="Refresh view responses"
+              onClick={() => {
+                void loadWorkshopResponses(true);
+              }}
+              disabled={saving || loading || refreshingResponses}
+            >
+              <RefreshCw
+                size={14}
+                strokeWidth={2.2}
+                className={refreshingResponses ? "od-refresh-spin" : undefined}
+                aria-hidden
+              />
+              {refreshingResponses ? "Refreshing..." : "Refresh"}
+            </button>
           </div>
         </div>
 
@@ -1752,57 +1796,61 @@ export default function ODChartQuestions() {
                     borderLeft: `3px solid ${question.tagColor || "#9b304a"}`,
                   }}
                 >
-                  <div className="qr-col qr-question">
-                    <span className="qr-label">Question</span>
-                    <div className="question-block-header">
-                      <span className="question-number">Q{questionNumber}</span>
-                      <div className="question-block-heading">
-                        <div className="question-text">{question.question}</div>
-                        <div className="question-meta">
-                          {question.tagName ? (
-                            <span className="question-tag">{question.tagName}</span>
-                          ) : null}
+                  <div className="qr-primary">
+                    <div className="qr-col qr-question">
+                      <span className="qr-label">Question</span>
+                      <div className="question-block-header">
+                        <span className="question-number">Q{questionNumber}</span>
+                        <div className="question-block-heading">
+                          <div className="question-text">{question.question}</div>
+                          <div className="question-meta">
+                            {question.tagName ? (
+                              <span className="question-tag">{question.tagName}</span>
+                            ) : null}
+                          </div>
                         </div>
                       </div>
                     </div>
+
+                    <div className="qr-col qr-response">
+                      <span className="qr-label">Response</span>
+                      {renderQuestionInput(question)}
+                    </div>
                   </div>
 
-                  <div className="qr-col qr-response">
-                    <span className="qr-label">Response</span>
-                    {renderQuestionInput(question)}
-                  </div>
+                  <div className="qr-secondary">
+                    <div className="qr-col qr-notes">
+                      <span className="qr-label">Notes</span>
+                      {renderNotesPanel(question)}
+                    </div>
 
-                  <div className="qr-col qr-notes">
-                    <span className="qr-label">Notes</span>
-                    {renderNotesPanel(question)}
-                  </div>
+                    <div className="qr-col qr-attachments">
+                      <span className="qr-label">Attachments</span>
+                      {renderAttachmentPanel(question)}
+                    </div>
 
-                  <div className="qr-col qr-attachments">
-                    <span className="qr-label">Attachments</span>
-                    {renderAttachmentPanel(question)}
-                  </div>
-
-                  <div className="qr-col qr-actions">
-                    <span className="qr-label">Actions</span>
-                    <div className="question-card-actions">
-                      <button
-                        type="button"
-                        className="user-btn-secondary qr-action-btn"
-                        onClick={() => setResponseQuestionId(question.id)}
-                        disabled={saving || loading}
-                      >
-                        <Eye size={14} strokeWidth={2.2} aria-hidden />
-                        View Response
-                      </button>
-                      <button
-                        type="button"
-                        className="user-btn-secondary qr-action-btn"
-                        onClick={() => openActionableForQuestion(question)}
-                        disabled={saving || loading || !canEdit}
-                      >
-                        <Plus size={14} strokeWidth={2.2} aria-hidden />
-                        Add as Actionable
-                      </button>
+                    <div className="qr-col qr-actions">
+                      <span className="qr-label">Actions</span>
+                      <div className="question-card-actions">
+                        <button
+                          type="button"
+                          className="user-btn-secondary qr-action-btn"
+                          onClick={() => setResponseQuestionId(question.id)}
+                          disabled={saving || loading}
+                        >
+                          <Eye size={14} strokeWidth={2.2} aria-hidden />
+                          View Response
+                        </button>
+                        <button
+                          type="button"
+                          className="user-btn-secondary qr-action-btn"
+                          onClick={() => openActionableForQuestion(question)}
+                          disabled={saving || loading || !canEdit}
+                        >
+                          <Plus size={14} strokeWidth={2.2} aria-hidden />
+                          Add as Actionable
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

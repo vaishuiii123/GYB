@@ -2279,13 +2279,8 @@ a.od-notes-file-name:hover {
   padding: 12px 8px 12px 14px;
   margin-bottom: 0;
   display: grid;
-  /* Default (all rating): balanced columns — not 70/30 */
-  grid-template-columns:
-    minmax(180px, 2.2fr)
-    minmax(120px, 1.3fr)
-    minmax(110px, 1.2fr)
-    minmax(100px, 1.1fr)
-    minmax(150px, 1.3fr);
+  /* Question + Response = 70%; Notes + Attachments + Actions = 30% */
+  grid-template-columns: minmax(0, 7fr) minmax(0, 3fr);
   gap: 10px 14px;
   align-items: start;
   box-sizing: border-box;
@@ -2294,14 +2289,24 @@ a.od-notes-file-name:hover {
   overflow: visible;
 }
 
-/* Any non-rating question in the list: Question + Response = 70%; rest = 30% */
-.od-questions-list.has-non-rating .question-block {
-  grid-template-columns:
-    minmax(200px, 4.4fr)
-    minmax(130px, 2.6fr)
-    minmax(100px, 1fr)
-    minmax(90px, 0.9fr)
-    minmax(150px, 1.1fr);
+.qr-primary,
+.qr-secondary {
+  display: grid;
+  gap: 10px 14px;
+  align-items: start;
+  min-width: 0;
+}
+
+.qr-primary {
+  grid-template-columns: minmax(0, 1fr) max-content;
+}
+
+.od-questions-list.has-non-rating .qr-primary {
+  grid-template-columns: minmax(0, 4.4fr) minmax(130px, 2.6fr);
+}
+
+.qr-secondary {
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 0.9fr) minmax(0, 1.2fr);
 }
 
 /* Creative notes column */
@@ -2644,14 +2649,14 @@ a.od-notes-file-name:hover {
   height: auto !important;
   min-height: 34px;
   padding: 7px 8px !important;
-  white-space: nowrap !important;
+  white-space: normal !important;
   line-height: 1.2;
   box-sizing: border-box;
   font-size: 12px !important;
 }
 
 .qr-actions {
-  min-width: 150px;
+  min-width: 0;
   overflow: visible;
 }
 
@@ -2922,6 +2927,11 @@ a.od-notes-file-name:hover {
 
 @media (max-width: 1100px) {
   .question-block {
+    grid-template-columns: 1fr;
+  }
+
+  .qr-primary,
+  .qr-secondary {
     grid-template-columns: 1fr 1fr;
   }
 
@@ -3102,6 +3112,16 @@ a.od-notes-file-name:hover {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+
+.od-chart-actions .od-refresh-spin {
+  animation: od-refresh-spin 0.8s linear infinite;
+}
+
+@keyframes od-refresh-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .od-chart-error {
