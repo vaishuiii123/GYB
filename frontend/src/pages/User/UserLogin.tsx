@@ -3,11 +3,11 @@ import { Link, useNavigate } from "react-router-dom";
 import { useMsal } from "@azure/msal-react";
 import { InteractionStatus } from "@azure/msal-browser";
 import {
+  BarChart3,
+  Eye,
+  EyeOff,
   Lock,
-  Phone,
-  Send,
   Target,
-  TrendingUp,
   User,
   Users,
 } from "lucide-react";
@@ -38,6 +38,7 @@ export default function UserLogin() {
   const [step, setStep] = useState<LoginStep>("phone");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [phoneNo, setPhoneNo] = useState("");
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
@@ -189,7 +190,6 @@ export default function UserLogin() {
         return;
       }
 
-      // Local/dev SMS bypass: complete login without OTP.
       if (data.skipOtp && data.user) {
         localStorage.setItem("participant", JSON.stringify(data.user));
         clearAllCachedPageData();
@@ -363,60 +363,18 @@ export default function UserLogin() {
       return;
     }
 
-    if (step === "phone") {
-      handleSendOtp();
-    } else {
-      handleVerifyOtp();
-    }
+    handleVerifyOtp();
   };
 
   return (
     <div className="user-login-page">
-      <aside className="user-login-brand">
-        <img src={myImage} alt="KNAV" className="user-login-logo" />
-
-        <div className="user-login-brand-copy">
-          <h1>GROW YOUR BUSINESS</h1>
-          <p className="user-login-brand-subtitle">
-            Organisation Development Workshop
-          </p>
-
-          <ul className="user-login-features">
-            <li>
-              <span className="user-login-feature-icon" aria-hidden>
-                <TrendingUp size={20} strokeWidth={2.2} />
-              </span>
-              <div>
-                <strong>Strategic Growth</strong>
-                <span>Unlock your potential and drive sustainable growth</span>
-              </div>
-            </li>
-            <li>
-              <span className="user-login-feature-icon" aria-hidden>
-                <Users size={20} strokeWidth={2.2} />
-              </span>
-              <div>
-                <strong>Organisational Excellence</strong>
-                <span>Strengthen capabilities, optimise execution and build for scale</span>
-              </div>
-            </li>
-            <li>
-              <span className="user-login-feature-icon" aria-hidden>
-                <Target size={20} strokeWidth={2.2} />
-              </span>
-              <div>
-                <strong>Business Impact</strong>
-                <span>Deliver measurable results and long-term value</span>
-              </div>
-            </li>
-          </ul>
+      <header className="user-login-topbar">
+        <div className="user-login-brand-mark">
+          <img src={myImage} alt="KNAV" className="user-login-logo" />
+          <p className="user-login-tagline">Partners Beyond Boundaries</p>
         </div>
 
-        <div className="user-login-brand-art" aria-hidden />
-      </aside>
-
-      <section className="user-login-panel">
-        <div className="user-login-toplinks">
+        <nav className="user-login-toplinks" aria-label="External links">
           <a
             href="https://in.knavcpa.com/"
             className="user-login-about"
@@ -425,6 +383,7 @@ export default function UserLogin() {
           >
             About KNAV
           </a>
+          <span className="user-login-toplinks-divider" aria-hidden />
           <a
             href="https://in.linkedin.com/company/knav-ind/"
             className="user-login-icon-btn"
@@ -434,129 +393,185 @@ export default function UserLogin() {
           >
             <LinkedInIcon />
           </a>
-        </div>
+        </nav>
+      </header>
 
-        <div className="user-login-card">
-          <div className="user-login-card-header">
-            <h2>Sign in</h2>
+      <div className="user-login-body">
+        <aside className="user-login-brand">
+          <div className="user-login-brand-copy">
+            <div className="user-login-brand-accent" aria-hidden />
+            <h1>Grow Your Business</h1>
+            <p className="user-login-brand-subtitle">
+              Organisation Development Workshop
+            </p>
+            <p className="user-login-brand-desc">
+              Unlock people potential, strengthen capabilities and build a more
+              resilient tomorrow.
+            </p>
+
+            <ul className="user-login-features">
+              <li>
+                <span className="user-login-feature-icon" aria-hidden>
+                  <BarChart3 size={28} strokeWidth={2} />
+                </span>
+                <strong>Strategic Growth</strong>
+              </li>
+              <li>
+                <span className="user-login-feature-icon" aria-hidden>
+                  <Users size={28} strokeWidth={2} />
+                </span>
+                <strong>Organisational Excellence</strong>
+              </li>
+              <li>
+                <span className="user-login-feature-icon" aria-hidden>
+                  <Target size={28} strokeWidth={2} />
+                </span>
+                <strong>Business Impact</strong>
+              </li>
+            </ul>
           </div>
 
-          {infoMessage ? (
-            <div className="user-login-info">{infoMessage}</div>
-          ) : null}
-          {errorMessage ? (
-            <div className="user-login-error">{errorMessage}</div>
-          ) : null}
+          <div className="user-login-brand-footer">
+            <div className="user-login-brand-footer-line" aria-hidden />
+            <p>Partners Beyond Boundaries</p>
+          </div>
+        </aside>
 
-          {step === "phone" ? (
-            <>
-              <label className="user-login-label" htmlFor="user-username">
-                Username
-              </label>
-              <div className="user-login-input-wrap">
-                <User size={16} strokeWidth={2} aria-hidden />
-                <input
-                  id="user-username"
-                  type="text"
-                  className="user-login-input"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Enter your username"
-                  autoComplete="username"
-                />
-              </div>
-
-              <label className="user-login-label" htmlFor="user-password">
-                Password
-              </label>
-              <div className="user-login-input-wrap">
-                <Lock size={16} strokeWidth={2} aria-hidden />
-                <input
-                  id="user-password"
-                  type="password"
-                  className="user-login-input"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Enter your password"
-                  autoComplete="current-password"
-                />
-              </div>
-
-              <button
-                type="button"
-                className="user-login-btn user-login-btn-primary"
-                onClick={handlePasswordLogin}
-                disabled={loading}
-              >
-                <Lock size={16} strokeWidth={2.2} />
-                {loadingAction === "password" ? "Signing in..." : "Login"}
-              </button>
-            </>
-          ) : null}         
-
-          {step === "otp" ? (
-            <div className="user-login-input-wrap">
-              <Lock size={16} strokeWidth={2} aria-hidden />
-              <input
-                type="text"
-                className="user-login-input"
-                value={otp}
-                onChange={(e) =>
-                  setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
-                }
-                onKeyDown={handleKeyDown}
-                placeholder="Enter OTP"
-                inputMode="numeric"
-                maxLength={6}
-                autoFocus
-              />
+        <section className="user-login-panel">
+          <div className="user-login-card">
+            <div className="user-login-card-header">
+              <h2>Welcome Back</h2>
+              <p>Sign in to access the KNAV Learning Portal</p>
             </div>
-          ) : null}
 
-          {step === "otp" ? (
-            <>
-              <button
-                type="button"
-                className="user-login-btn user-login-btn-primary"
-                onClick={handleVerifyOtp}
-                disabled={loading}
-              >
-                <Lock size={16} strokeWidth={2.2} />
-                {loadingAction === "otp" ? "Verifying..." : "Verify OTP"}
-              </button>
-              <button
-                type="button"
-                className="user-login-btn user-login-btn-secondary"
-                onClick={handleSendOtp}
-                disabled={loading}
-              >
-                Resend OTP
-              </button>
-              <button
-                type="button"
-                className="user-login-link-btn"
-                onClick={handleBackToPhone}
-                disabled={loading}
-              >
-                Back to login
-              </button>
-            </>
-          ) : null}
+            {infoMessage ? (
+              <div className="user-login-info">{infoMessage}</div>
+            ) : null}
+            {errorMessage ? (
+              <div className="user-login-error">{errorMessage}</div>
+            ) : null}
 
-          <div className="user-login-divider">
-            <span>OR</span>
+            {step === "phone" ? (
+              <>
+                <label className="user-login-label" htmlFor="user-username">
+                  Username
+                </label>
+                <div className="user-login-input-wrap">
+                  <User size={16} strokeWidth={2} aria-hidden />
+                  <input
+                    id="user-username"
+                    type="text"
+                    className="user-login-input"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Enter your username"
+                    autoComplete="username"
+                  />
+                </div>
+
+                <label className="user-login-label" htmlFor="user-password">
+                  Password
+                </label>
+                <div className="user-login-input-wrap">
+                  <Lock size={16} strokeWidth={2} aria-hidden />
+                  <input
+                    id="user-password"
+                    type={showPassword ? "text" : "password"}
+                    className="user-login-input"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Enter your password"
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    className="user-login-eye-btn"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? (
+                      <EyeOff size={16} strokeWidth={2} />
+                    ) : (
+                      <Eye size={16} strokeWidth={2} />
+                    )}
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  className="user-login-btn user-login-btn-primary"
+                  onClick={handlePasswordLogin}
+                  disabled={loading}
+                >
+                  <Lock size={16} strokeWidth={2.2} />
+                  {loadingAction === "password" ? "Signing in..." : "Sign In"}
+                </button>
+
+                <Link
+                  to="/adminlogin"
+                  className="user-login-btn user-login-btn-outline"
+                >
+                  <Lock size={16} strokeWidth={2.2} />
+                  Admin Login
+                </Link>
+              </>
+            ) : (
+              <>
+                <label className="user-login-label" htmlFor="user-otp">
+                  Verification code
+                </label>
+                <div className="user-login-input-wrap">
+                  <Lock size={16} strokeWidth={2} aria-hidden />
+                  <input
+                    id="user-otp"
+                    type="text"
+                    className="user-login-input"
+                    value={otp}
+                    onChange={(e) =>
+                      setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+                    }
+                    onKeyDown={handleKeyDown}
+                    placeholder="Enter OTP"
+                    inputMode="numeric"
+                    maxLength={6}
+                    autoFocus
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  className="user-login-btn user-login-btn-primary"
+                  onClick={handleVerifyOtp}
+                  disabled={loading}
+                >
+                  <Lock size={16} strokeWidth={2.2} />
+                  {loadingAction === "otp" ? "Verifying..." : "Verify OTP"}
+                </button>
+                <button
+                  type="button"
+                  className="user-login-btn user-login-btn-secondary"
+                  onClick={handleSendOtp}
+                  disabled={loading}
+                >
+                  Resend OTP
+                </button>
+                <button
+                  type="button"
+                  className="user-login-link-btn"
+                  onClick={handleBackToPhone}
+                  disabled={loading}
+                >
+                  Back to login
+                </button>
+              </>
+            )}
           </div>
 
-          <Link to="/adminlogin" className="user-login-btn user-login-btn-outline">
-            <Lock size={16} strokeWidth={2.2} />
-            Admin Login
-          </Link>
-        </div>
-
-        <p className="user-login-footer">© 2026 KNAV. All rights reserved.</p>
-      </section>
+          <p className="user-login-footer">© 2026 KNAV. All rights reserved.</p>
+        </section>
+      </div>
     </div>
   );
 }
