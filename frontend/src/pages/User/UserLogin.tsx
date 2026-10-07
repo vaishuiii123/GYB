@@ -441,7 +441,7 @@ export default function UserLogin() {
           <div className="user-login-card">
             <div className="user-login-card-header">
               <h2>Welcome Back</h2>
-              <p>Sign in to access the KNAV Learning Portal</p>
+              <p>Sign in to access </p>
             </div>
 
             {infoMessage ? (
@@ -568,8 +568,6 @@ export default function UserLogin() {
               </>
             )}
           </div>
-
-          <p className="user-login-footer">© 2026 KNAV. All rights reserved.</p>
         </section>
       </div>
     </div>
