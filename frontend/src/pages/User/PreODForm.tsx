@@ -19,6 +19,7 @@ import {
   ATTACHMENT_ACCEPT,
   ATTACHMENT_HINT,
   isAllowedAttachmentFile,
+  normalizeAttachmentList,
 } from "../../utils/attachmentTypes";
 import { useRegisterUnsavedGuard } from "../../utils/unsavedChanges";
 import {
@@ -31,10 +32,18 @@ import "../../styles/UserButtons.css";
 import "../../styles/PreODForm.css";
 
 type AttachmentMeta = {
+  id?: string;
   fileName: string;
   blobPath: string;
   contentType?: string;
   size?: number;
+};
+
+type PendingAttachment = {
+  id: string;
+  file: File;
+  fileName: string;
+  contentType: string;
 };
 
 type PreOdQuestion = {
@@ -56,9 +65,35 @@ type PreOdFormData = {
   message: string;
   questions: PreOdQuestion[];
   answers: Record<string, string>;
-  attachments?: Record<string, AttachmentMeta>;
+  attachments?: Record<string, AttachmentMeta[] | AttachmentMeta>;
   submittedDate?: string;
 };
+
+function normalizeAttachmentsMap(
+  value: Record<string, AttachmentMeta[] | AttachmentMeta> | undefined
+): Record<string, AttachmentMeta[]> {
+  const result: Record<string, AttachmentMeta[]> = {};
+  if (!value || typeof value !== "object") {
+    return result;
+  }
+
+  for (const [key, entry] of Object.entries(value)) {
+    const list = normalizeAttachmentList(entry)
+      .filter((item) => item.blobPath)
+      .map((item) => ({
+        id: String(item.id || item.blobPath || item.fileName),
+        fileName: item.fileName,
+        blobPath: String(item.blobPath),
+        contentType: item.contentType,
+        size: item.size,
+      }));
+    if (list.length > 0) {
+      result[key] = list;
+    }
+  }
+
+  return result;
+}
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -71,6 +106,30 @@ function fileToBase64(file: File): Promise<string> {
     reader.onerror = () => reject(new Error("Unable to read attachment file."));
     reader.readAsDataURL(file);
   });
+}
+
+async function readApiJson(
+  response: Response,
+  fallbackMessage: string
+): Promise<any> {
+  const raw = await response.text();
+  if (!raw.trim()) {
+    throw new Error(
+      `${fallbackMessage} (empty response${
+        response.status ? `, status ${response.status}` : ""
+      }). Check that the API is running.`
+    );
+  }
+
+  try {
+    return JSON.parse(raw);
+  } catch {
+    throw new Error(
+      `${fallbackMessage} (invalid JSON${
+        response.status ? `, status ${response.status}` : ""
+      }).`
+    );
+  }
 }
 
 export default function PreODForm() {
@@ -86,10 +145,10 @@ export default function PreODForm() {
   const [formData, setFormData] = useState<PreOdFormData | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [savedAttachments, setSavedAttachments] = useState<
-    Record<string, AttachmentMeta>
+    Record<string, AttachmentMeta[]>
   >({});
   const [pendingFiles, setPendingFiles] = useState<
-    Record<string, { file: File; fileName: string; contentType: string }>
+    Record<string, PendingAttachment[]>
   >({});
   const [attachmentPreview, setAttachmentPreview] =
     useState<AttachmentPreviewTarget | null>(null);
@@ -181,7 +240,7 @@ export default function PreODForm() {
         if (cached && requestId === requestIdRef.current) {
           setFormData(cached);
           setAnswers(cached.answers || {});
-          setSavedAttachments(cached.attachments || {});
+          setSavedAttachments(normalizeAttachmentsMap(cached.attachments));
           setLoading(false);
         } else if (!cached) {
           setLoading(true);
@@ -199,7 +258,10 @@ export default function PreODForm() {
         const response = await fetch(
           `/api/get-workshop-pre-od?${params.toString()}`
         );
-        const data = await response.json();
+        const data = await readApiJson(
+          response,
+          "Unable to load the questionnaire."
+        );
 
         if (cancelled || requestId !== requestIdRef.current) {
           return;
@@ -212,10 +274,14 @@ export default function PreODForm() {
           return;
         }
 
-        setFormData(data);
+        const normalizedAttachments = normalizeAttachmentsMap(data.attachments);
+        setFormData({ ...data, attachments: normalizedAttachments });
         setAnswers(data.answers || {});
-        setSavedAttachments(data.attachments || {});
-        setCachedPageData(cacheKey, data);
+        setSavedAttachments(normalizedAttachments);
+        setCachedPageData(cacheKey, {
+          ...data,
+          attachments: normalizedAttachments,
+        });
         setErrorMessage("");
       } catch (error) {
         console.error(error);
@@ -248,40 +314,40 @@ export default function PreODForm() {
     srNo: number,
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
-    const file = event.target.files?.[0];
+    const files = Array.from(event.target.files || []);
     const key = String(srNo);
-    if (!file) {
-      markDirty();
-      setPendingFiles((current) => {
-        const next = { ...current };
-        delete next[key];
-        return next;
+    event.target.value = "";
+
+    if (files.length === 0) {
+      return;
+    }
+
+    const accepted: PendingAttachment[] = [];
+    for (const file of files) {
+      if (file.size > 10 * 1024 * 1024) {
+        setErrorMessage("Attachment exceeds the 10 MB size limit.");
+        return;
+      }
+      if (!isAllowedAttachmentFile(file.name, file.type)) {
+        setErrorMessage(
+          "Unsupported file type. Allowed: images, Word, Excel, and PDF."
+        );
+        return;
+      }
+      accepted.push({
+        id: `pending-${key}-${Date.now()}-${Math.random()
+          .toString(36)
+          .slice(2, 8)}`,
+        file,
+        fileName: file.name,
+        contentType: file.type || "application/octet-stream",
       });
-      return;
-    }
-
-    if (file.size > 10 * 1024 * 1024) {
-      setErrorMessage("Attachment exceeds the 10 MB size limit.");
-      event.target.value = "";
-      return;
-    }
-
-    if (!isAllowedAttachmentFile(file.name, file.type)) {
-      setErrorMessage(
-        "Unsupported file type. Allowed: images, Word, Excel, and PDF."
-      );
-      event.target.value = "";
-      return;
     }
 
     markDirty();
     setPendingFiles((current) => ({
       ...current,
-      [key]: {
-        file,
-        fileName: file.name,
-        contentType: file.type || "application/octet-stream",
-      },
+      [key]: [...(current[key] || []), ...accepted],
     }));
     setErrorMessage("");
   };
@@ -291,40 +357,62 @@ export default function PreODForm() {
       return;
     }
 
-    const uploadedAttachments: Record<string, AttachmentMeta> = {
+    const uploadedAttachments: Record<string, AttachmentMeta[]> = {
       ...savedAttachments,
     };
 
-    for (const [questionSrNo, pending] of Object.entries(pendingFiles)) {
-      const base64 = await fileToBase64(pending.file);
-      const uploadResponse = await fetch("/api/upload-pre-od-attachment", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          participantId,
-          workshopId: formData.workshop.id,
-          organizationId,
-          questionSrNo,
-          fileName: pending.fileName,
-          contentType: pending.contentType,
-          base64,
-        }),
-      });
-      const uploadResult = await uploadResponse.json();
+    for (const [questionSrNo, pendingList] of Object.entries(pendingFiles)) {
+      const merged = [...(uploadedAttachments[questionSrNo] || [])];
 
-      if (!uploadResponse.ok || !uploadResult.success) {
-        throw new Error(
-          uploadResult.message ||
-            `Failed to upload attachment for question ${questionSrNo}.`
+      for (const pending of pendingList) {
+        const base64 = await fileToBase64(pending.file);
+        const uploadResponse = await fetch("/api/upload-pre-od-attachment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            participantId,
+            workshopId: formData.workshop.id,
+            organizationId,
+            questionSrNo,
+            fileName: pending.fileName,
+            contentType: pending.contentType,
+            base64,
+          }),
+        });
+        const uploadResult = await readApiJson(
+          uploadResponse,
+          `Failed to upload attachment for question ${questionSrNo}.`
         );
+
+        if (!uploadResponse.ok || !uploadResult.success) {
+          throw new Error(
+            uploadResult.message ||
+              `Failed to upload attachment for question ${questionSrNo}.`
+          );
+        }
+
+        merged.push({
+          id: String(
+            uploadResult.data.blobPath ||
+              pending.id ||
+              uploadResult.data.fileName
+          ),
+          fileName: uploadResult.data.fileName,
+          blobPath: uploadResult.data.blobPath,
+          contentType: uploadResult.data.contentType,
+          size: uploadResult.data.size,
+        });
       }
 
-      uploadedAttachments[questionSrNo] = {
-        fileName: uploadResult.data.fileName,
-        blobPath: uploadResult.data.blobPath,
-        contentType: uploadResult.data.contentType,
-        size: uploadResult.data.size,
-      };
+      uploadedAttachments[questionSrNo] = merged;
+    }
+
+    // Ensure every question key is present so removals persist.
+    for (const question of formData.questions || []) {
+      const key = String(question.srNo);
+      if (!Object.prototype.hasOwnProperty.call(uploadedAttachments, key)) {
+        uploadedAttachments[key] = [];
+      }
     }
 
     const response = await fetch("/api/save-pre-od-response", {
@@ -342,15 +430,19 @@ export default function PreODForm() {
       }),
     });
 
-    const data = await response.json();
+    const data = await readApiJson(
+      response,
+      "Failed to save your responses."
+    );
 
     if (!response.ok || !data.success) {
       throw new Error(data.message || "Failed to save your responses.");
     }
 
-    setSavedAttachments(
+    const nextAttachments = normalizeAttachmentsMap(
       data.data?.attachments || uploadedAttachments
     );
+    setSavedAttachments(nextAttachments);
     setPendingFiles({});
     setIsDirty(false);
     setFormData((current) =>
@@ -358,7 +450,7 @@ export default function PreODForm() {
         ? {
             ...current,
             answers,
-            attachments: data.data?.attachments || uploadedAttachments,
+            attachments: nextAttachments,
             submittedDate: data.data?.submittedDate || current.submittedDate,
           }
         : current
@@ -385,6 +477,31 @@ export default function PreODForm() {
   };
 
   useRegisterUnsavedGuard(isDirty && canFill, handleSave);
+
+  // Quiet auto-save so responses are not lost if the Pre-OD window closes
+  // before the participant clicks Save.
+  useEffect(() => {
+    if (!canFill || !isDirty || saving || loading) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        try {
+          await saveAnswers(true);
+          setSuccessMessage("Draft auto-saved.");
+          setErrorMessage("");
+        } catch (error: any) {
+          console.error(error);
+          // Keep the form dirty; user can still save manually.
+        }
+      })();
+    }, 30000);
+
+    return () => window.clearTimeout(timer);
+    // saveAnswers closes over latest answers/attachments intentionally.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canFill, isDirty, saving, loading, answers, pendingFiles, savedAttachments]);
 
   const handleNext = async () => {
     try {
@@ -532,9 +649,26 @@ export default function PreODForm() {
               <div className="pre-od-question-list">
                 {pageQuestions.map((item) => {
                   const key = String(item.srNo);
-                  const pending = pendingFiles[key];
-                  const saved = savedAttachments[key];
-                  const displayName = pending?.fileName || saved?.fileName || "";
+                  const pendingList = pendingFiles[key] || [];
+                  const savedList = savedAttachments[key] || [];
+                  const attachmentItems = [
+                    ...pendingList.map((entry) => ({
+                      id: entry.id,
+                      fileName: entry.fileName,
+                      contentType: entry.contentType,
+                      file: entry.file,
+                      blobPath: undefined as string | undefined,
+                      pending: true,
+                    })),
+                    ...savedList.map((entry) => ({
+                      id: String(entry.id || entry.blobPath || entry.fileName),
+                      fileName: entry.fileName,
+                      contentType: entry.contentType,
+                      file: undefined as File | undefined,
+                      blobPath: entry.blobPath,
+                      pending: false,
+                    })),
+                  ];
                   const allowAttachment =
                     String(item.attachmentsApplicable || "Y").toUpperCase() !==
                     "N";
@@ -587,6 +721,7 @@ export default function PreODForm() {
                                 <input
                                   type="file"
                                   accept={ATTACHMENT_ACCEPT}
+                                  multiple
                                   disabled={saving}
                                   onChange={(event) =>
                                     handleAttachmentChange(item.srNo, event)
@@ -596,61 +731,101 @@ export default function PreODForm() {
                             </div>
                           ) : null}
 
-                          {displayName ? (
-                            <div className="pre-od-attach-file">
-                              <FileText size={14} strokeWidth={2.1} aria-hidden />
-                              <span title={displayName}>{displayName}</span>
-                              <button
-                                type="button"
-                                className="pre-od-attachment-link"
-                                onClick={() =>
-                                  setAttachmentPreview({
-                                    url:
-                                      saved?.blobPath && !pending
-                                        ? `/api/get-pre-od-attachment?participantId=${encodeURIComponent(
-                                            participantId
-                                          )}&workshopId=${encodeURIComponent(
-                                            formData.workshop.id
-                                          )}&questionSrNo=${encodeURIComponent(
-                                            key
-                                          )}`
-                                        : undefined,
-                                    file: pending?.file,
-                                    fileName: displayName,
-                                    contentType:
-                                      pending?.contentType ||
-                                      saved?.contentType ||
-                                      "",
-                                  })
-                                }
+                          {attachmentItems.length > 0 ? (
+                            attachmentItems.map((attachment) => (
+                              <div
+                                key={attachment.id}
+                                className="pre-od-attach-file"
                               >
-                                <Eye size={13} strokeWidth={2.2} aria-hidden />
-                                Preview
-                              </button>
-                              {canFill ? (
+                                <FileText
+                                  size={14}
+                                  strokeWidth={2.1}
+                                  aria-hidden
+                                />
+                                <span title={attachment.fileName}>
+                                  {attachment.fileName}
+                                </span>
                                 <button
                                   type="button"
-                                  className="pre-od-attach-remove"
-                                  aria-label={`Remove ${displayName}`}
-                                  disabled={saving}
-                                  onClick={() => {
-                                    markDirty();
-                                    setPendingFiles((prev) => {
-                                      const next = { ...prev };
-                                      delete next[key];
-                                      return next;
-                                    });
-                                    setSavedAttachments((prev) => {
-                                      const next = { ...prev };
-                                      delete next[key];
-                                      return next;
-                                    });
-                                  }}
+                                  className="pre-od-attachment-link"
+                                  onClick={() =>
+                                    setAttachmentPreview({
+                                      url:
+                                        attachment.blobPath && !attachment.pending
+                                          ? `/api/get-pre-od-attachment?participantId=${encodeURIComponent(
+                                              participantId
+                                            )}&workshopId=${encodeURIComponent(
+                                              formData.workshop.id
+                                            )}&questionSrNo=${encodeURIComponent(
+                                              key
+                                            )}&blobPath=${encodeURIComponent(
+                                              attachment.blobPath
+                                            )}`
+                                          : undefined,
+                                      file: attachment.file,
+                                      fileName: attachment.fileName,
+                                      contentType: attachment.contentType || "",
+                                    })
+                                  }
                                 >
-                                  <Trash2 size={12} strokeWidth={2} />
+                                  <Eye
+                                    size={13}
+                                    strokeWidth={2.2}
+                                    aria-hidden
+                                  />
+                                  Preview
                                 </button>
-                              ) : null}
-                            </div>
+                                {canFill ? (
+                                  <button
+                                    type="button"
+                                    className="pre-od-attach-remove"
+                                    aria-label={`Remove ${attachment.fileName}`}
+                                    disabled={saving}
+                                    onClick={() => {
+                                      markDirty();
+                                      if (attachment.pending) {
+                                        setPendingFiles((prev) => {
+                                          const nextList = (
+                                            prev[key] || []
+                                          ).filter(
+                                            (entry) => entry.id !== attachment.id
+                                          );
+                                          const next = { ...prev };
+                                          if (nextList.length === 0) {
+                                            delete next[key];
+                                          } else {
+                                            next[key] = nextList;
+                                          }
+                                          return next;
+                                        });
+                                        return;
+                                      }
+                                      setSavedAttachments((prev) => {
+                                        const nextList = (
+                                          prev[key] || []
+                                        ).filter(
+                                          (entry) =>
+                                            String(
+                                              entry.id ||
+                                                entry.blobPath ||
+                                                entry.fileName
+                                            ) !== attachment.id
+                                        );
+                                        const next = { ...prev };
+                                        if (nextList.length === 0) {
+                                          delete next[key];
+                                        } else {
+                                          next[key] = nextList;
+                                        }
+                                        return next;
+                                      });
+                                    }}
+                                  >
+                                    <Trash2 size={12} strokeWidth={2} />
+                                  </button>
+                                ) : null}
+                              </div>
+                            ))
                           ) : (
                             <p className="pre-od-attach-empty">
                               No attachments yet. {ATTACHMENT_HINT}

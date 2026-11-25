@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Globe } from "lucide-react";
 import { getParticipantFromStorage } from "../../utils/selectedWorkshop";
@@ -6,6 +6,13 @@ import "../../styles/AboutUs.css";
 
 const KNAV_WEBSITE_URL = "https://in.knavcpa.com/";
 const KNAV_LINKEDIN_URL = "https://in.linkedin.com/company/knav-ind/";
+
+const DEFAULT_PARAGRAPHS = [
+  "In today's ever-changing business landscape, adaptability is key. KNAV's Organization Development Workshop is a collaborative platform for businesses aiming to accelerate growth. The goal is simple: align strategic objectives with action plans, engage stakeholders, and chart a clear path forward in a resilience-focused environment.",
+  "Through this exercise, guided by KNAV experts, you will explore key business facets, uncover strengths and challenges, identify opportunities, and create a roadmap toward your vision.",
+  "Together, we will embark on a journey of strategic exploration to unlock your business's full potential. This interactive workshop encourages active participation and idea-sharing, fostering a supportive environment where real breakthroughs happen!",
+  "To support this process, KNAV has developed the Grow Your Business platform, where you will complete the Pre-Organisation Development Workshop Questionnaire and collaborate throughout the workshop journey.",
+];
 
 function LinkedInIcon() {
   return (
@@ -21,8 +28,22 @@ function LinkedInIcon() {
   );
 }
 
+function renderParagraph(text: string) {
+  // Keep Grow Your Business bold when present in default/custom copy.
+  const parts = String(text).split(/(Grow Your Business)/g);
+  return parts.map((part, index) =>
+    part === "Grow Your Business" ? (
+      <strong key={`${part}-${index}`}>{part}</strong>
+    ) : (
+      <span key={`${part}-${index}`}>{part}</span>
+    )
+  );
+}
+
 export default function AboutUs() {
   const navigate = useNavigate();
+  const [paragraphs, setParagraphs] = useState<string[]>(DEFAULT_PARAGRAPHS);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const participant = getParticipantFromStorage();
@@ -30,6 +51,39 @@ export default function AboutUs() {
       navigate("/", { replace: true });
     }
   }, [navigate]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      try {
+        const response = await fetch("/api/get-welcome-content");
+        const data = await response.json();
+        if (cancelled) {
+          return;
+        }
+        if (data.success && Array.isArray(data.data?.paragraphs)) {
+          const next = data.data.paragraphs
+            .map((item: unknown) => String(item || "").trim())
+            .filter(Boolean);
+          if (next.length > 0) {
+            setParagraphs(next);
+          }
+        }
+      } catch (error) {
+        console.error(error);
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const goToDashboard = () => {
     navigate("/userdashboard");
@@ -76,34 +130,15 @@ export default function AboutUs() {
 
       <main className="about-main">
         <div className="about-card">
-          <p>
-            In today&apos;s ever-changing business landscape, adaptability is
-            key. KNAV&apos;s Organization Development Workshop is a collaborative
-            platform for businesses aiming to accelerate growth. The goal is
-            simple: align strategic objectives with action plans, engage
-            stakeholders, and chart a clear path forward in a resilience-focused
-            environment.
-          </p>
-
-          <p>
-            Through this exercise, guided by KNAV experts, you will explore key
-            business facets, uncover strengths and challenges, identify
-            opportunities, and create a roadmap toward your vision.
-          </p>
-
-          <p>
-            Together, we will embark on a journey of strategic exploration to
-            unlock your business&apos;s full potential. This interactive workshop
-            encourages active participation and idea-sharing, fostering a
-            supportive environment where real breakthroughs happen!
-          </p>
-
-          <p>
-            To support this process, KNAV has developed the{" "}
-            <strong>Grow Your Business</strong> platform, where you will
-            complete the Pre-Organisation Development Workshop Questionnaire and
-            collaborate throughout the workshop journey.
-          </p>
+          {loading
+            ? DEFAULT_PARAGRAPHS.map((text) => (
+                <p key={text.slice(0, 24)}>{renderParagraph(text)}</p>
+              ))
+            : paragraphs.map((text, index) => (
+                <p key={`${index}-${text.slice(0, 24)}`}>
+                  {renderParagraph(text)}
+                </p>
+              ))}
 
           <div className="about-card-actions">
             <button

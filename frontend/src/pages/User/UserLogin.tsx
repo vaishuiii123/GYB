@@ -7,6 +7,7 @@ import {
   Eye,
   EyeOff,
   Lock,
+  Phone,
   Target,
   User,
   Users,
@@ -32,10 +33,12 @@ function LinkedInIcon() {
   );
 }
 
-type LoginStep = "phone" | "otp";
+type LoginStep = "credentials" | "otp";
+type LoginMethod = "username" | "phone";
 
 export default function UserLogin() {
-  const [step, setStep] = useState<LoginStep>("phone");
+  const [step, setStep] = useState<LoginStep>("credentials");
+  const [loginMethod, setLoginMethod] = useState<LoginMethod>("username");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -291,6 +294,9 @@ export default function UserLogin() {
           ? `Local OTP: ${data.devOtp}`
           : data.message || "OTP sent successfully."
       );
+      if (data.devOtp) {
+        setOtp(String(data.devOtp));
+      }
     } catch (error) {
       console.error(error);
       setErrorMessage("Unable to send OTP.");
@@ -344,11 +350,21 @@ export default function UserLogin() {
     }
   };
 
-  const handleBackToPhone = () => {
-    setStep("phone");
+  const handleBackToCredentials = () => {
+    setStep("credentials");
     setOtp("");
     setErrorMessage("");
     setInfoMessage("");
+  };
+
+  const switchLoginMethod = (method: LoginMethod) => {
+    if (method === loginMethod || loading) {
+      return;
+    }
+    setLoginMethod(method);
+    setErrorMessage("");
+    setInfoMessage("");
+    setOtp("");
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -360,6 +376,11 @@ export default function UserLogin() {
 
     if (field === "user-username" || field === "user-password") {
       handlePasswordLogin();
+      return;
+    }
+
+    if (field === "user-phone") {
+      handleSendOtp();
       return;
     }
 
@@ -451,63 +472,136 @@ export default function UserLogin() {
               <div className="user-login-error">{errorMessage}</div>
             ) : null}
 
-            {step === "phone" ? (
+            {step === "credentials" ? (
               <>
-                <label className="user-login-label" htmlFor="user-username">
-                  Username
-                </label>
-                <div className="user-login-input-wrap">
-                  <User size={16} strokeWidth={2} aria-hidden />
-                  <input
-                    id="user-username"
-                    type="text"
-                    className="user-login-input"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Enter your username"
-                    autoComplete="username"
-                  />
-                </div>
-
-                <label className="user-login-label" htmlFor="user-password">
-                  Password
-                </label>
-                <div className="user-login-input-wrap">
-                  <Lock size={16} strokeWidth={2} aria-hidden />
-                  <input
-                    id="user-password"
-                    type={showPassword ? "text" : "password"}
-                    className="user-login-input"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Enter your password"
-                    autoComplete="current-password"
-                  />
+                <div
+                  className="user-login-method-toggle"
+                  role="tablist"
+                  aria-label="Login method"
+                >
                   <button
                     type="button"
-                    className="user-login-eye-btn"
-                    onClick={() => setShowPassword((prev) => !prev)}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    role="tab"
+                    aria-selected={loginMethod === "username"}
+                    className={`user-login-method-btn ${
+                      loginMethod === "username" ? "is-active" : ""
+                    }`}
+                    onClick={() => switchLoginMethod("username")}
+                    disabled={loading}
                   >
-                    {showPassword ? (
-                      <EyeOff size={16} strokeWidth={2} />
-                    ) : (
-                      <Eye size={16} strokeWidth={2} />
-                    )}
+                    Username
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={loginMethod === "phone"}
+                    className={`user-login-method-btn ${
+                      loginMethod === "phone" ? "is-active" : ""
+                    }`}
+                    onClick={() => switchLoginMethod("phone")}
+                    disabled={loading}
+                  >
+                    Phone number
                   </button>
                 </div>
 
-                <button
-                  type="button"
-                  className="user-login-btn user-login-btn-primary"
-                  onClick={handlePasswordLogin}
-                  disabled={loading}
-                >
-                  <Lock size={16} strokeWidth={2.2} />
-                  {loadingAction === "password" ? "Signing in..." : "Sign In"}
-                </button>
+                {loginMethod === "username" ? (
+                  <>
+                    <label className="user-login-label" htmlFor="user-username">
+                      Username
+                    </label>
+                    <div className="user-login-input-wrap">
+                      <User size={16} strokeWidth={2} aria-hidden />
+                      <input
+                        id="user-username"
+                        type="text"
+                        className="user-login-input"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        placeholder="Enter your username"
+                        autoComplete="username"
+                      />
+                    </div>
+
+                    <label className="user-login-label" htmlFor="user-password">
+                      Password
+                    </label>
+                    <div className="user-login-input-wrap">
+                      <Lock size={16} strokeWidth={2} aria-hidden />
+                      <input
+                        id="user-password"
+                        type={showPassword ? "text" : "password"}
+                        className="user-login-input"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        placeholder="Enter your password"
+                        autoComplete="current-password"
+                      />
+                      <button
+                        type="button"
+                        className="user-login-eye-btn"
+                        onClick={() => setShowPassword((prev) => !prev)}
+                        aria-label={
+                          showPassword ? "Hide password" : "Show password"
+                        }
+                      >
+                        {showPassword ? (
+                          <EyeOff size={16} strokeWidth={2} />
+                        ) : (
+                          <Eye size={16} strokeWidth={2} />
+                        )}
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="user-login-btn user-login-btn-primary"
+                      onClick={handlePasswordLogin}
+                      disabled={loading}
+                    >
+                      <Lock size={16} strokeWidth={2.2} />
+                      {loadingAction === "password"
+                        ? "Signing in..."
+                        : "Sign In"}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <label className="user-login-label" htmlFor="user-phone">
+                      Phone number
+                    </label>
+                    <div className="user-login-input-wrap">
+                      <Phone size={16} strokeWidth={2} aria-hidden />
+                      <input
+                        id="user-phone"
+                        type="tel"
+                        className="user-login-input"
+                        value={phoneNo}
+                        onChange={(e) =>
+                          setPhoneNo(e.target.value.replace(/[^\d+\s-]/g, ""))
+                        }
+                        onKeyDown={handleKeyDown}
+                        placeholder="Enter 10-digit mobile number"
+                        autoComplete="tel"
+                        inputMode="tel"
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      className="user-login-btn user-login-btn-primary"
+                      onClick={handleSendOtp}
+                      disabled={loading}
+                    >
+                      <Phone size={16} strokeWidth={2.2} />
+                      {loadingAction === "otp"
+                        ? "Sending OTP..."
+                        : "Send OTP"}
+                    </button>
+                  </>
+                )}
 
                 <Link
                   to="/adminlogin"
@@ -560,7 +654,7 @@ export default function UserLogin() {
                 <button
                   type="button"
                   className="user-login-link-btn"
-                  onClick={handleBackToPhone}
+                  onClick={handleBackToCredentials}
                   disabled={loading}
                 >
                   Back to login

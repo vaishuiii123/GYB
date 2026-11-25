@@ -149,6 +149,25 @@ function isRatingQuestion(question: Question): boolean {
   return type.includes("rating") || looksLikeTrafficLight;
 }
 
+/** Pie charts are only meaningful for rating / choice answers — not free text. */
+function isPieChartQuestion(question: Question): boolean {
+  const type = String(question.answerType || "Text").trim().toLowerCase();
+  const options = (question.options || [])
+    .map((option) => String(option || "").trim())
+    .filter(Boolean);
+  if (isRatingQuestion(question)) {
+    return true;
+  }
+  if (type.includes("multiple") || type.includes("single")) {
+    return true;
+  }
+  // Choice-like questions with discrete options (e.g. Yes/No) still chart well.
+  if (options.length > 0 && !type.includes("text")) {
+    return true;
+  }
+  return false;
+}
+
 function formatResponseText(value: string) {
   const parts = String(value || "")
     .split("|")
@@ -1647,7 +1666,7 @@ export default function ODChartQuestions() {
     };
   }, [loadWorkshopResponses]);
 
-  const responsePieSlices = useMemo(() => {
+  const responseRowsForModal = useMemo(() => {
     if (!responseQuestionId) return [];
 
     const questionId = String(responseQuestionId);
@@ -1689,7 +1708,7 @@ export default function ODChartQuestions() {
       });
     }
 
-    return buildAnswerSlices(rows);
+    return rows;
   }, [
     responseQuestionId,
     workshopResponseRows,
@@ -1697,6 +1716,11 @@ export default function ODChartQuestions() {
     answers,
     notes,
   ]);
+
+  const responsePieSlices = useMemo(
+    () => buildAnswerSlices(responseRowsForModal),
+    [responseRowsForModal]
+  );
 
   if (!navState) {
     return null;
@@ -1708,6 +1732,9 @@ export default function ODChartQuestions() {
   const responseQuestionIndex = responseQuestion
     ? questions.findIndex((item) => item.id === responseQuestion.id)
     : -1;
+  const showResponsePie = responseQuestion
+    ? isPieChartQuestion(responseQuestion)
+    : false;
 
   return (
     <ODChartShell>
@@ -1918,16 +1945,27 @@ export default function ODChartQuestions() {
 
             <div className="od-response-body">
               <section className="od-response-pie-section">
-                {responsePieSlices.length > 0 ? (
+                {showResponsePie && responsePieSlices.length > 0 ? (
                   <ResponsePieChart
                     title={responseQuestion.question}
                     slices={responsePieSlices}
                   />
+                ) : responseRowsForModal.length > 0 ? (
+                  <ul className="od-response-text-list">
+                    {responseRowsForModal.map((row, index) => (
+                      <li key={`${row.participant}-${index}`}>
+                        <strong>{row.participant || "Unknown"}</strong>
+                        <span>
+                          {formatResponseText(row.response) || "—"}
+                        </span>
+                        {row.note ? (
+                          <em className="od-response-pie-note">{row.note}</em>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
                 ) : (
-                  <p>
-                    {formatResponseText(answers[responseQuestion.id] || "") ||
-                      "No response yet."}
-                  </p>
+                  <p>No response yet.</p>
                 )}
               </section>
             </div>
@@ -1958,6 +1996,7 @@ export default function ODChartQuestions() {
                     state: {
                       view: "questions",
                       question: responseQuestion.question,
+                      questionId: responseQuestion.id,
                       returnTo: "question",
                     },
                   });

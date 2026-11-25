@@ -28,6 +28,7 @@ const TagManagement = lazy(() => import("./pages/Admin/TagManagement"));
 const QuestionManagement = lazy(() => import("./pages/Admin/QuestionManagement"));
 const WorkshopResponses = lazy(() => import("./pages/Admin/WorkshopResponses"));
 const AdminManagement = lazy(() => import("./pages/Admin/AdminManagement"));
+const ContentManagement = lazy(() => import("./pages/Admin/ContentManagement"));
 const Export = lazy(() => import("./pages/Admin/Export"));
 
 const UserLogin = lazy(() => import("./pages/User/UserLogin"));
@@ -220,6 +221,11 @@ function App() {
        <Route
           path="/admin-management"
           element={<AdminManagement user={currentUser} />}
+        />
+
+       <Route
+          path="/content-management"
+          element={<ContentManagement user={currentUser} />}
         />
        
       </Routes>

@@ -112,14 +112,73 @@ export default function VisionMission() {
     editMessage: initialEditMessage,
   } = getActiveWorkshopContext();
 
+  const collectKeywordsForSave = () => {
+    let nextVision = [...visionKeywords];
+    let nextMission = [...missionKeywords];
+
+    // Commit in-progress chip edit before save so typed text is not dropped.
+    if (editingChip && canEdit) {
+      const { zone, index } = editingChip;
+      const trimmed = editingValue.trim();
+      const target = zone === "vision" ? nextVision : nextMission;
+      if (index >= 0 && index < target.length) {
+        if (!trimmed) {
+          target.splice(index, 1);
+        } else {
+          const duplicate = target.some(
+            (item, itemIndex) =>
+              itemIndex !== index &&
+              item.toLowerCase() === trimmed.toLowerCase()
+          );
+          if (!duplicate) {
+            target[index] = trimmed;
+          }
+        }
+      }
+    }
+
+    const pendingVision = visionInput.trim();
+    if (
+      pendingVision &&
+      !nextVision.some(
+        (item) => item.toLowerCase() === pendingVision.toLowerCase()
+      )
+    ) {
+      nextVision = [...nextVision, pendingVision];
+    }
+
+    const pendingMission = missionInput.trim();
+    if (
+      pendingMission &&
+      !nextMission.some(
+        (item) => item.toLowerCase() === pendingMission.toLowerCase()
+      )
+    ) {
+      nextMission = [...nextMission, pendingMission];
+    }
+
+    return { nextVision, nextMission };
+  };
+
   const isDirty = useMemo(() => {
     if (!canEdit || loading) {
       return false;
     }
-    return (
-      snapshotKeywords(visionKeywords, missionKeywords) !== savedSnapshot
-    );
-  }, [canEdit, loading, visionKeywords, missionKeywords, savedSnapshot]);
+    const { nextVision, nextMission } = collectKeywordsForSave();
+    return snapshotKeywords(nextVision, nextMission) !== savedSnapshot;
+    // collectKeywordsForSave reads current edit/input state intentionally.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    canEdit,
+    loading,
+    visionKeywords,
+    missionKeywords,
+    visionInput,
+    missionInput,
+    editingChip,
+    editingValue,
+    savedSnapshot,
+  ]);
 
   const handleSave = async () => {
     if (!canEdit) {
@@ -135,7 +194,17 @@ export default function VisionMission() {
       return false;
     }
 
-    if (visionKeywords.length === 0 && missionKeywords.length === 0) {
+    const { nextVision, nextMission } = collectKeywordsForSave();
+
+    // Flush pending typed text / chip edits into state before persisting.
+    setVisionKeywords(nextVision);
+    setMissionKeywords(nextMission);
+    setVisionInput("");
+    setMissionInput("");
+    setEditingChip(null);
+    setEditingValue("");
+
+    if (nextVision.length === 0 && nextMission.length === 0) {
       setErrorMessage("Add at least one item to Vision or Mission.");
       return false;
     }
@@ -152,10 +221,10 @@ export default function VisionMission() {
           participantId: participant.id,
           organizationId: participant.organizationId || "",
           workshopId,
-          visionKeywords,
-          missionKeywords,
-          visionText: visionKeywords.join(" "),
-          missionText: missionKeywords.join(" "),
+          visionKeywords: nextVision,
+          missionKeywords: nextMission,
+          visionText: nextVision.join(" "),
+          missionText: nextMission.join(" "),
         }),
       });
 
@@ -169,7 +238,7 @@ export default function VisionMission() {
       clearCachedPageData(
         `vision-mission:${participant?.id || ""}:${selectedWorkshop?.id || ""}`
       );
-      setSavedSnapshot(snapshotKeywords(visionKeywords, missionKeywords));
+      setSavedSnapshot(snapshotKeywords(nextVision, nextMission));
       setMessage("Vision & Mission saved successfully.");
       return true;
     } catch (error) {
@@ -601,8 +670,8 @@ export default function VisionMission() {
               disabled={!canEdit}
               placeholder={
                 selectedKeywords.length === 0
-                  ? "Click here, then pick keywords — or type and press Enter"
-                  : "Type and press Enter"
+                  ? "Click here, then pick keywords — or type and Save"
+                  : "Type a keyword, then Enter or Save"
               }
             />
           </div>

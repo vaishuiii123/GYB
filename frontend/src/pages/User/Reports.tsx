@@ -232,12 +232,33 @@ function resolveQuestionTagId(
   return String(question.tagId || category.tagId || "").trim();
 }
 
+/** Prefer British spelling to match Organisation Development elsewhere. */
+function canonicalizeCategoryLabel(name: string) {
+  return String(name || "").replace(/optimization/gi, (match) => {
+    if (match === match.toUpperCase()) {
+      return "OPTIMISATION";
+    }
+    if (match[0] === match[0].toUpperCase()) {
+      return "Optimisation";
+    }
+    return "optimisation";
+  });
+}
+
 function categoryLeafName(category: string) {
   const parts = String(category || "")
     .split(">")
     .map((part) => part.trim())
     .filter(Boolean);
-  return parts[parts.length - 1] || category || "-";
+  const leaf = parts[parts.length - 1] || category || "-";
+  return canonicalizeCategoryLabel(leaf);
+}
+
+/** Collapse spelling variants like Optimisation / Optimization for filters. */
+function normalizeCategoryKey(name: string) {
+  return canonicalizeCategoryLabel(name)
+    .trim()
+    .toLowerCase();
 }
 
 function responseTone(response: string) {
@@ -420,6 +441,7 @@ type ReportView = "summary" | "questions" | "vision" | "actionable";
 type ReportsLocationState = {
   view?: ReportView;
   question?: string;
+  questionId?: string;
   returnTo?: "question";
 };
 
@@ -856,10 +878,58 @@ export default function Reports() {
     if (reportState.returnTo === "question") {
       markReportsReturnFromQuestions();
       setFromQuestion(true);
+    } else {
+      setFromQuestion(readReportsReturn() === "question");
+    }
+
+    // When opened from a specific question, scope the table to that question only.
+    // Users can still clear the question column filter to see everything again.
+    const focusedQuestion = String(reportState.question || "").trim();
+    const focusedQuestionId = String(reportState.questionId || "").trim();
+    if (focusedQuestion || focusedQuestionId) {
+      setActiveView(reportState.view || "questions");
+    }
+    if (focusedQuestion) {
+      setHeaderFilters((prev) => ({
+        ...prev,
+        question: [focusedQuestion],
+      }));
+    }
+  }, [
+    reportState.returnTo,
+    reportState.question,
+    reportState.questionId,
+    reportState.view,
+    location.key,
+  ]);
+
+  const appliedQuestionFocusKeyRef = useRef("");
+
+  // Prefer the exact question label from loaded rows when we have a questionId,
+  // so the column filter matches even if navigation text differs slightly.
+  // Apply once per navigation so a manual clear of the filter is not overridden.
+  useEffect(() => {
+    const focusedQuestionId = String(reportState.questionId || "").trim();
+    const focusKey = `${location.key}:${focusedQuestionId}`;
+    if (!focusedQuestionId || responses.length === 0) {
       return;
     }
-    setFromQuestion(readReportsReturn() === "question");
-  }, [reportState.returnTo, location.key]);
+    if (appliedQuestionFocusKeyRef.current === focusKey) {
+      return;
+    }
+    const match = responses.find(
+      (row) => String(row.questionId || "").trim() === focusedQuestionId
+    );
+    const label = String(match?.question || "").trim();
+    if (!label) {
+      return;
+    }
+    appliedQuestionFocusKeyRef.current = focusKey;
+    setHeaderFilters((prev) => ({
+      ...prev,
+      question: [label],
+    }));
+  }, [reportState.questionId, responses, location.key]);
 
   const tagNameById = useMemo(() => {
     const map = new Map<string, string>();
@@ -1213,22 +1283,29 @@ export default function Reports() {
   }, [responsesWithTags, search]);
 
   const categoryOptions = useMemo(() => {
-    const names = new Set<string>();
+    const byKey = new Map<string, string>();
     responsesWithTags.forEach((item) => {
       const category = categoryLeafName(item.category || "");
-      if (category && category !== "-") {
-        names.add(category);
+      if (!category || category === "-") {
+        return;
+      }
+      const key = normalizeCategoryKey(category);
+      if (!byKey.has(key)) {
+        byKey.set(key, category);
       }
     });
-    return Array.from(names).sort((a, b) => a.localeCompare(b));
+    return Array.from(byKey.values()).sort((a, b) => a.localeCompare(b));
   }, [responsesWithTags]);
 
   const categoryScopedResponses = useMemo(() => {
     if (!categoryFilter) {
       return filteredResponses;
     }
+    const selectedKey = normalizeCategoryKey(categoryFilter);
     return filteredResponses.filter(
-      (item) => categoryLeafName(item.category || "") === categoryFilter
+      (item) =>
+        normalizeCategoryKey(categoryLeafName(item.category || "")) ===
+        selectedKey
     );
   }, [filteredResponses, categoryFilter]);
 
@@ -1753,7 +1830,7 @@ export default function Reports() {
                       >
                         <td>{item.participant}</td>
                         <td>
-                          {item.category?.split(">").pop()?.trim() || "-"}
+                          {categoryLeafName(item.category || "")}
                         </td>
                         <td>{item.tag || "-"}</td>
                         <td>{item.question}</td>

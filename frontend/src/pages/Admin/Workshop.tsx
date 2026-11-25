@@ -47,6 +47,7 @@ export default function Workshop({ user }: PageProps) {
   const [viewParticipants, setViewParticipants] = useState<any[]>([]);
   const [loadingOrgView, setLoadingOrgView] = useState(false);
   const [emailSendingKey, setEmailSendingKey] = useState("");
+  const [reminderSending, setReminderSending] = useState(false);
 
   const [formData, setFormData] = useState({
     workshopName: "",
@@ -359,6 +360,47 @@ export default function Workshop({ user }: PageProps) {
       appAlert(error?.message || "Failed to send workshop emails.", "error");
     } finally {
       setEmailSendingKey("");
+    }
+  };
+
+  const sendPreOdReminders = async () => {
+    const workshopId = String(viewWorkshopDetails?.id || "").trim();
+    if (!workshopId) {
+      appAlert("Open a workshop to send Pre-OD reminders.", "warning");
+      return;
+    }
+
+    const confirmed = await appConfirm(
+      "Send reminder emails to participants who have not completed the Pre-OD questionnaire?",
+      {
+        title: "Send Pre-OD reminders",
+        confirmLabel: "Send reminders",
+      }
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    setReminderSending(true);
+    try {
+      const response = await fetch("/api/send-pre-od-reminder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workshopId,
+          loginUrl: window.location.origin,
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Failed to send Pre-OD reminders.");
+      }
+      appAlert(data.message || "Pre-OD reminders sent.", "success");
+    } catch (error: any) {
+      console.error(error);
+      appAlert(error?.message || "Failed to send Pre-OD reminders.", "error");
+    } finally {
+      setReminderSending(false);
     }
   };
 
@@ -1104,16 +1146,28 @@ export default function Workshop({ user }: PageProps) {
                     Assigned Participants
                   </h4>
                   {viewWorkshopDetails && viewParticipants.length > 0 ? (
-                    <button
-                      type="button"
-                      className={styles.emailAllButton}
-                      disabled={Boolean(emailSendingKey)}
-                      onClick={() => sendWorkshopEmails()}
-                    >
-                      {emailSendingKey === "all"
-                        ? "Sending..."
-                        : "Email All"}
-                    </button>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <button
+                        type="button"
+                        className={styles.emailAllButton}
+                        disabled={Boolean(emailSendingKey) || reminderSending}
+                        onClick={() => sendWorkshopEmails()}
+                      >
+                        {emailSendingKey === "all"
+                          ? "Sending..."
+                          : "Email All"}
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.emailAllButton}
+                        disabled={Boolean(emailSendingKey) || reminderSending}
+                        onClick={() => void sendPreOdReminders()}
+                      >
+                        {reminderSending
+                          ? "Sending reminders..."
+                          : "Remind incomplete Pre-OD"}
+                      </button>
+                    </div>
                   ) : null}
                 </div>
 

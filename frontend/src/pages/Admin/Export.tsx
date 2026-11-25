@@ -1595,6 +1595,12 @@ const availableQuestions = useMemo(() => {
     );
   }, [actionableRows, exportType, search]);
 
+  // ZIP must unlock for V&M / actionables even when OD chart rows are empty.
+  const canExportZip =
+    filteredResponses.length > 0 ||
+    filteredVisionMission.length > 0 ||
+    filteredActionables.length > 0;
+
   useEffect(() => {
     if (
       exportType === "preod" &&
@@ -1832,7 +1838,7 @@ const availableQuestions = useMemo(() => {
    */
 
   const handleExportZip = async () => {
-    if (filteredResponses.length === 0 || exportingZip) {
+    if (!canExportZip || exportingZip) {
       return;
     }
 
@@ -1884,58 +1890,61 @@ const availableQuestions = useMemo(() => {
         );
       });
 
-      const worksheet = XLSX.utils.json_to_sheet(
-        filteredResponses.map((item, index) => {
-          const row: Record<string, string> = {
-            Participant: item.participant,
-            Organization: item.organization,
-            Workshop: item.workshop,
-            Category: item.category,
-            Question: item.question,
-            Response: item.response,
-          };
-          if (exportType === "od") {
-            row.Notes = item.note || "";
-          }
-          row["Attachment File"] =
-            plannedFileNameByIndex.get(index) ||
-            item.attachmentFileName ||
-            "-";
-          row["ZIP Path"] = zipPathByIndex.get(index) || "-";
-          return row;
-        })
-      );
-
-      worksheet["!cols"] =
-        exportType === "od"
-          ? [
-              { wch: 20 },
-              { wch: 20 },
-              { wch: 25 },
-              { wch: 35 },
-              { wch: 50 },
-              { wch: 40 },
-              { wch: 40 },
-              { wch: 28 },
-              { wch: 70 },
-            ]
-          : [
-              { wch: 20 },
-              { wch: 20 },
-              { wch: 25 },
-              { wch: 35 },
-              { wch: 50 },
-              { wch: 40 },
-              { wch: 28 },
-              { wch: 70 },
-            ];
-
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "All Responses");
 
-      if (exportType === "od" && visionMissionRows.length > 0) {
+      if (filteredResponses.length > 0) {
+        const worksheet = XLSX.utils.json_to_sheet(
+          filteredResponses.map((item, index) => {
+            const row: Record<string, string> = {
+              Participant: item.participant,
+              Organization: item.organization,
+              Workshop: item.workshop,
+              Category: item.category,
+              Question: item.question,
+              Response: item.response,
+            };
+            if (exportType === "od") {
+              row.Notes = item.note || "";
+            }
+            row["Attachment File"] =
+              plannedFileNameByIndex.get(index) ||
+              item.attachmentFileName ||
+              "-";
+            row["ZIP Path"] = zipPathByIndex.get(index) || "-";
+            return row;
+          })
+        );
+
+        worksheet["!cols"] =
+          exportType === "od"
+            ? [
+                { wch: 20 },
+                { wch: 20 },
+                { wch: 25 },
+                { wch: 35 },
+                { wch: 50 },
+                { wch: 40 },
+                { wch: 40 },
+                { wch: 28 },
+                { wch: 70 },
+              ]
+            : [
+                { wch: 20 },
+                { wch: 20 },
+                { wch: 25 },
+                { wch: 35 },
+                { wch: 50 },
+                { wch: 40 },
+                { wch: 28 },
+                { wch: 70 },
+              ];
+
+        XLSX.utils.book_append_sheet(workbook, worksheet, "All Responses");
+      }
+
+      if (exportType === "od" && filteredVisionMission.length > 0) {
         const visionSheet = XLSX.utils.json_to_sheet(
-          visionMissionRows.map((item) => ({
+          filteredVisionMission.map((item) => ({
             Participant: item.participant,
             Organization: item.organization,
             Workshop: item.workshop,
@@ -1972,9 +1981,9 @@ const availableQuestions = useMemo(() => {
         XLSX.utils.book_append_sheet(workbook, notesSheet, "Notes");
       }
 
-      if (exportType === "od" && actionableRows.length > 0) {
+      if (exportType === "od" && filteredActionables.length > 0) {
         const actionableSheet = XLSX.utils.json_to_sheet(
-          actionableRows.map((item) => ({
+          filteredActionables.map((item) => ({
             Participant: item.participant,
             Organization: item.organization,
             Workshop: item.workshop,
@@ -1990,6 +1999,10 @@ const availableQuestions = useMemo(() => {
           actionableSheet,
           "Actionable"
         );
+      }
+
+      if (workbook.SheetNames.length === 0) {
+        throw new Error("Nothing to export for the current filters.");
       }
 
       const excelBuffer = XLSX.write(workbook, {
@@ -2171,7 +2184,7 @@ const availableQuestions = useMemo(() => {
             searchPlaceholder="Search organization..."
             onChange={handleOrganizationChange}
             options={organizations.map((organization) => ({
-              value: organization.id,
+              value: String(organization.id),
               label: organization.organizationName,
             }))}
           />
@@ -2190,10 +2203,11 @@ const availableQuestions = useMemo(() => {
             placeholder="Select Workshop"
             searchPlaceholder="Search workshop..."
             disabled={!selectedOrganization}
+            emptyMessage="No workshops for this organization"
             onChange={handleWorkshopChange}
             options={organizationWorkshops.map((workshop) => ({
-              value: workshop.id,
-              label: workshop.workshopName || workshop.id,
+              value: String(workshop.id),
+              label: workshop.workshopName || String(workshop.id),
             }))}
           />
         </div>
@@ -2339,7 +2353,7 @@ const availableQuestions = useMemo(() => {
             type="button"
             className="export-excel-button"
             onClick={handleExportZip}
-            disabled={filteredResponses.length === 0 || exportingZip}
+            disabled={!canExportZip || exportingZip}
             title="Download ZIP (Excel + attachments)"
           >
             {exportingZip ? (

@@ -11,8 +11,8 @@ export default function Sidebar() {
     { name: "Template", path: "/template", icon: "📄" },
     { name: "Workshop", path: "/workshop", icon: "🎓" },
     { name: "Responses", path: "/export", icon: "📤" },
+    { name: "Content", path: "/content-management", icon: "📝" },
     { name: "Admin Management", path: "/admin-management", icon: "🛡️" },
-   
   ];
 
   return (

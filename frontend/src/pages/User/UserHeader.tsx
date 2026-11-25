@@ -79,11 +79,23 @@ export default function UserHeader() {
             >
               <Menu size={24} strokeWidth={2} />
             </button>
-            <img
-              src={knavLogo}
-              alt="KNAV"
-              className="user-header-logo"
-            />
+            <button
+              type="button"
+              className="user-header-logo-btn"
+              onClick={() => {
+                if (!isHomePage) {
+                  void tryNavigate("/userdashboard");
+                }
+              }}
+              aria-label="Go to homepage"
+              title="Home"
+            >
+              <img
+                src={knavLogo}
+                alt="KNAV"
+                className="user-header-logo"
+              />
+            </button>
           </div>
 
           <div className="user-header-right">

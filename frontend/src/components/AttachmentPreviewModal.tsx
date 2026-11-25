@@ -38,6 +38,52 @@ async function loadArrayBuffer(target: AttachmentPreviewTarget): Promise<ArrayBu
   return response.arrayBuffer();
 }
 
+function toUint8Array(buffer: ArrayBuffer): Uint8Array {
+  return new Uint8Array(buffer);
+}
+
+function isExcelBinary(bytes: Uint8Array): boolean {
+  if (bytes.length < 4) {
+    return false;
+  }
+  // XLSX / XLSM are ZIP packages (PK..)
+  const isZip = bytes[0] === 0x50 && bytes[1] === 0x4b;
+  // Legacy XLS is OLE Compound File (D0 CF 11 E0)
+  const isOle =
+    bytes[0] === 0xd0 &&
+    bytes[1] === 0xcf &&
+    bytes[2] === 0x11 &&
+    bytes[3] === 0xe0;
+  return isZip || isOle;
+}
+
+function sheetPlainText(sheet: XLSX.WorkSheet): string {
+  const rows = XLSX.utils.sheet_to_json<(string | number | boolean | null)[]>(
+    sheet,
+    { header: 1, defval: "", raw: false }
+  );
+  return rows
+    .map((row) =>
+      (Array.isArray(row) ? row : [])
+        .map((cell) => String(cell ?? "").trim())
+        .filter(Boolean)
+        .join(" ")
+    )
+    .filter(Boolean)
+    .join("\n");
+}
+
+/** Detect classic binary→UTF-8 mojibake (e.g. Mandarin garbage from raw xlsx bytes). */
+function looksLikeBinaryMojibake(text: string): boolean {
+  const sample = text.slice(0, 800);
+  if (!sample.trim()) {
+    return false;
+  }
+  const cjk = (sample.match(/[\u3400-\u9fff]/g) || []).length;
+  const latin = (sample.match(/[A-Za-z0-9]/g) || []).length;
+  return cjk > 24 && cjk > latin * 2;
+}
+
 export default function AttachmentPreviewModal({ target, onClose }: Props) {
   const [objectUrl, setObjectUrl] = useState("");
   const [htmlPreview, setHtmlPreview] = useState("");
@@ -113,13 +159,36 @@ export default function AttachmentPreviewModal({ target, onClose }: Props) {
 
         if (kind === "excel") {
           const buffer = await loadArrayBuffer(target);
-          const workbook = XLSX.read(buffer, { type: "array" });
+          const bytes = toUint8Array(buffer);
+          if (!isExcelBinary(bytes)) {
+            setError(
+              "This Excel file could not be previewed (file data looks corrupted). Please use Open / Download."
+            );
+            return;
+          }
+          // SheetJS expects a Uint8Array for type:"array" — passing ArrayBuffer
+          // can mis-parse the workbook and render binary garbage as text.
+          const workbook = XLSX.read(bytes, {
+            type: "array",
+            cellDates: true,
+          });
           const firstSheet = workbook.SheetNames[0];
           if (!firstSheet) {
             setError("This Excel file has no sheets to preview.");
             return;
           }
           const sheet = workbook.Sheets[firstSheet];
+          const plain = sheetPlainText(sheet);
+          if (!plain) {
+            setError("This Excel sheet is empty.");
+            return;
+          }
+          if (looksLikeBinaryMojibake(plain)) {
+            setError(
+              "Excel preview could not be rendered correctly. Please use Open / Download to view the workbook."
+            );
+            return;
+          }
           const html = XLSX.utils.sheet_to_html(sheet);
           if (!revoked) {
             setHtmlPreview(html || "<p>(Empty sheet)</p>");

@@ -35,6 +35,23 @@
   min-width: 0;
 }
 
+.user-header-logo-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: 6px;
+  line-height: 0;
+}
+
+.user-header-logo-btn:focus-visible {
+  outline: 2px solid #7b0f2c;
+  outline-offset: 2px;
+}
+
 .user-header-logo {
   height: 36px;
   width: auto;
