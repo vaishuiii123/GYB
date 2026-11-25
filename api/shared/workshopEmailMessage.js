@@ -1,3 +1,7 @@
+const {
+  getDefaultWorkshopEmailTemplate,
+} = require("./workshopEmailTemplate");
+
 const FONT = "'Times New Roman',Times,serif";
 const FONT_SIZE = "12pt";
 const LINE_HEIGHT = "150%";
@@ -88,77 +92,104 @@ function formatResponseDeadline(startDate) {
   });
 }
 
-function buildWorkshopEmailContent({
-  workshopName,
-  organizationName,
-  participantName,
-  loginId,
-  password,
-  loginUrl,
-  startDate,
-  endDate,
-}) {
-  const name = String(participantName || "Participant").trim();
-  const org = String(organizationName || "your organization").trim();
-  const userLogin = String(loginId || "").trim();
-  const userPassword = String(password || "").trim();
-  const url = String(loginUrl || "")
-    .trim()
-    .replace(/\/?$/, "/");
-  const odDates = formatOdDateRange(startDate, endDate);
-  const responseDeadline = formatResponseDeadline(startDate);
+function applyPlaceholders(template, values) {
+  return String(template || "").replace(
+    /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g,
+    (_, key) => {
+      const value = values[key];
+      return value == null ? "" : String(value);
+    }
+  );
+}
 
-  const subject =
-    "Your Organisation Development Workshop with KNAV - Next Steps";
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
 
-  const text = [
-    `Dear ${name},`,
-    "",
-    `Team KNAV is delighted to invite you to your Organisation Development Workshop on ${odDates || "the scheduled dates"}.`,
-    "",
-    `This workshop is designed as a collaborative space to review the current state of ${org} and co-create a roadmap for its growth and development. Together, we will explore key areas such as your vision and mission, growth strategy, processes, service offerings, market opportunities, and governance - with the aim of aligning today's actions with tomorrow's aspirations.`,
-    "",
-    "Before the session, we would like to gather a well-rounded understanding of your business, including your perspectives on its future, as well as key facts about its financial position, market landscape, and overall operations. Please complete the Pre-Organisation Development Workshop Questionnaire on our Grow Your Business Platform using the details below:",
-    "",
-    url ? `Website: ${url}` : null,
-    userLogin ? `Login ID: ${userLogin}` : null,
-    userPassword ? `Password: ${userPassword}` : null,
-    "",
-    responseDeadline
-      ? `Kindly share your responses on the platform by ${responseDeadline}.`
-      : "Kindly share your responses on the platform before the workshop begins.",
-    "",
-    "If you have any questions or need support, feel free to reach out directly to a Team KNAV member over email.",
-    "",
-    "We look forward to your inputs and to an engaging workshop ahead!",
-    "",
-    "Best regards,",
-    "KNAV Advisory Team",
-  ]
-    .filter((line) => line !== null)
-    .join("\n");
+function isCredentialLine(line) {
+  return /^(Website|Login ID|Password)\s*:/i.test(String(line || "").trim());
+}
 
-  const credentialsHtml = [
-    url
-      ? credentialLine(
-          `<strong>Website:</strong> ${link(url, url)}`
-        )
-      : "",
-    userLogin
-      ? credentialLine(
-          `<strong>Login ID:</strong> ${link(`mailto:${userLogin}`, userLogin)}`
-        )
-      : "",
-    userPassword
-      ? credentialLine(
-          `<strong>Password:</strong> ${escapeHtml(userPassword)}`
-        )
-      : "",
-  ]
-    .filter(Boolean)
-    .join("");
+function renderCredentialHtml(line, values) {
+  const trimmed = String(line || "").trim();
+  const match = trimmed.match(/^(Website|Login ID|Password)\s*:\s*(.*)$/i);
+  if (!match) {
+    return credentialLine(escapeHtml(trimmed));
+  }
 
-  const html = `
+  const label = match[1];
+  const lower = label.toLowerCase();
+
+  if (lower === "website") {
+    const url = String(values.loginUrl || "").trim();
+    if (!url) return "";
+    return credentialLine(`<strong>Website:</strong> ${link(url, url)}`);
+  }
+
+  if (lower === "login id") {
+    const loginId = String(values.loginId || "").trim();
+    if (!loginId) return "";
+    return credentialLine(
+      `<strong>Login ID:</strong> ${link(`mailto:${loginId}`, loginId)}`
+    );
+  }
+
+  const password = String(values.password || "").trim();
+  if (!password) return "";
+  return credentialLine(
+    `<strong>Password:</strong> ${escapeHtml(password)}`
+  );
+}
+
+function buildHtmlFromBody(filledBody, values) {
+  const lines = String(filledBody || "").split(/\r?\n/);
+  const blocks = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    if (isCredentialLine(line)) {
+      const credentialHtml = [];
+      while (i < lines.length && isCredentialLine(lines[i])) {
+        const html = renderCredentialHtml(lines[i], values);
+        if (html) credentialHtml.push(html);
+        i += 1;
+      }
+      if (credentialHtml.length > 0) {
+        blocks.push(
+          `<div style="margin:0 0 12pt 0;margin-left:0;padding:0;padding-left:0;text-align:left;">${credentialHtml.join(
+            ""
+          )}</div>`
+        );
+      }
+      continue;
+    }
+
+    if (!String(line || "").trim()) {
+      i += 1;
+      continue;
+    }
+
+    const paragraphLines = [];
+    while (i < lines.length && String(lines[i] || "").trim()) {
+      if (isCredentialLine(lines[i])) {
+        break;
+      }
+      paragraphLines.push(String(lines[i]));
+      i += 1;
+    }
+
+    const inner = escapeHtml(paragraphLines.join("\n")).replace(/\n/g, "<br />");
+    const isLast = i >= lines.length;
+    blocks.push(p(inner, isLast ? { marginBottom: "0" } : undefined));
+  }
+
+  return `
 <!DOCTYPE html>
 <html>
   <head>
@@ -169,58 +200,75 @@ function buildWorkshopEmailContent({
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" align="left" style="border-collapse:collapse;margin:0;padding:0;background:#ffffff;">
       <tr>
         <td align="left" style="margin:0;padding:0;padding-left:0;text-align:left;font-family:${FONT};font-size:${FONT_SIZE};line-height:${LINE_HEIGHT};color:${TEXT_COLOR};">
-          ${p(`Dear ${escapeHtml(name)},`)}
-          ${p(
-            `Team KNAV is delighted to invite you to your Organisation Development Workshop on <strong>${escapeHtml(
-              odDates || "the scheduled dates"
-            )}</strong>.`
-          )}
-          ${p(
-            `This workshop is designed as a collaborative space to review the current state of <strong>${escapeHtml(
-              org
-            )}</strong> and co-create a roadmap for its growth and development. Together, we will explore key areas such as your vision and mission, growth strategy, processes, service offerings, market opportunities, and governance - with the aim of aligning today's actions with tomorrow's aspirations.`
-          )}
-          ${p(
-            "Before the session, we would like to gather a well-rounded understanding of your business, including your perspectives on its future, as well as key facts about its financial position, market landscape, and overall operations. Please complete the <strong>Pre-Organisation Development Workshop Questionnaire</strong> on our Grow Your Business Platform using the details below:"
-          )}
-          ${
-            credentialsHtml
-              ? `<div style="margin:0 0 12pt 0;margin-left:0;padding:0;padding-left:0;text-align:left;">${credentialsHtml}</div>`
-              : ""
-          }
-          ${p(
-            responseDeadline
-              ? `Kindly share your responses on the platform by <strong>${escapeHtml(
-                  responseDeadline
-                )}</strong>.`
-              : "Kindly share your responses on the platform before the workshop begins."
-          )}
-          ${p(
-            "If you have any questions or need support, feel free to reach out directly to a Team KNAV member over email."
-          )}
-          ${p(
-            "We look forward to your inputs and to an engaging workshop ahead!"
-          )}
-          ${p(
-            `Best regards,<br /><span style="font-family:${FONT};font-size:${FONT_SIZE};">KNAV Advisory Team</span>`,
-            { marginBottom: "0" }
-          )}
+          ${blocks.join("\n")}
         </td>
       </tr>
     </table>
   </body>
 </html>
   `.trim();
-
-  return { subject, text, html };
 }
 
-function escapeHtml(value) {
-  return String(value || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+function buildWorkshopEmailContent({
+  workshopName,
+  organizationName,
+  participantName,
+  loginId,
+  password,
+  loginUrl,
+  startDate,
+  endDate,
+  template,
+}) {
+  const name = String(participantName || "Participant").trim();
+  const org = String(organizationName || "your organization").trim();
+  const userLogin = String(loginId || "").trim();
+  const userPassword = String(password || "").trim();
+  const url = String(loginUrl || "")
+    .trim()
+    .replace(/\/?$/, "/");
+  const odDates = formatOdDateRange(startDate, endDate) || "the scheduled dates";
+  const responseDeadline =
+    formatResponseDeadline(startDate) ||
+    "before the workshop begins";
+
+  const resolvedTemplate = {
+    subject:
+      String(template?.subject || "").trim() ||
+      getDefaultWorkshopEmailTemplate().subject,
+    body:
+      String(template?.body || "").trim() ||
+      getDefaultWorkshopEmailTemplate().body,
+  };
+
+  const values = {
+    workshopName: String(workshopName || "").trim(),
+    participantName: name,
+    organizationName: org,
+    loginId: userLogin,
+    password: userPassword,
+    loginUrl: url,
+    odDates,
+    responseDeadline,
+  };
+
+  const subject = applyPlaceholders(resolvedTemplate.subject, values);
+  const text = applyPlaceholders(resolvedTemplate.body, values)
+    .split(/\r?\n/)
+    .filter((line) => {
+      const trimmed = line.trim();
+      if (/^Website\s*:/i.test(trimmed) && !url) return false;
+      if (/^Login ID\s*:/i.test(trimmed) && !userLogin) return false;
+      if (/^Password\s*:/i.test(trimmed) && !userPassword) return false;
+      return true;
+    })
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  const html = buildHtmlFromBody(text, values);
+
+  return { subject, text, html };
 }
 
 module.exports = {

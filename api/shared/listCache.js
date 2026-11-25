@@ -101,6 +101,8 @@ const CACHE_KEYS = {
   admins: "list:admins",
   workshops: "list:workshops",
   visionMissionKeywords: "list:vision-mission-keywords",
+  welcomeContent: "list:welcome-content",
+  workshopEmailTemplate: "list:workshop-email-template",
 };
 
 function workshopByQueryKey(participantId, organizationId) {

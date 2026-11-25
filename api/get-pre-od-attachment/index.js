@@ -1,12 +1,16 @@
 const { getPreOdResponse } = require("../shared/preOdResponseStore");
 const { downloadAttachmentBlob } = require("../shared/blobHelper");
-const { buildContentDisposition } = require("../shared/attachmentHelper");
+const {
+  buildContentDisposition,
+  normalizeAttachmentList,
+} = require("../shared/attachmentHelper");
 
 module.exports = async function (context, req) {
   try {
     const participantId = String(req.query.participantId || "").trim();
     const workshopId = String(req.query.workshopId || "").trim();
     const questionSrNo = String(req.query.questionSrNo || "").trim();
+    const requestedBlobPath = String(req.query.blobPath || "").trim();
     const inline =
       String(req.query.inline || "").trim() === "1" ||
       String(req.query.inline || "")
@@ -25,9 +29,12 @@ module.exports = async function (context, req) {
     }
 
     const saved = await getPreOdResponse(workshopId, participantId);
-    const attachment = saved?.attachments?.[questionSrNo];
+    const list = normalizeAttachmentList(saved?.attachments?.[questionSrNo]);
+    const selected = requestedBlobPath
+      ? list.find((item) => item.blobPath === requestedBlobPath)
+      : list[0];
 
-    if (!attachment?.blobPath) {
+    if (!selected?.blobPath) {
       context.res = {
         status: 404,
         body: {
@@ -38,9 +45,9 @@ module.exports = async function (context, req) {
       return;
     }
 
-    const downloaded = await downloadAttachmentBlob(attachment.blobPath);
+    const downloaded = await downloadAttachmentBlob(selected.blobPath);
     const fileName =
-      String(attachment.fileName || "attachment").replace(
+      String(selected.fileName || "attachment").replace(
         /[<>:"/\\|?*\x00-\x1f]+/g,
         "_"
       ) || "attachment";
@@ -49,7 +56,7 @@ module.exports = async function (context, req) {
       status: 200,
       headers: {
         "Content-Type":
-          attachment.contentType ||
+          selected.contentType ||
           downloaded.contentType ||
           "application/octet-stream",
         "Content-Disposition": buildContentDisposition(fileName, inline),

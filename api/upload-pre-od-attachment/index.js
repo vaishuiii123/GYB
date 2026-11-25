@@ -3,13 +3,18 @@ const {
   getWorkshopForOrganization,
 } = require("../shared/workshopAccess");
 const { assertPreOdFillable } = require("../shared/preOdAccess");
-const { uploadAttachmentBlob } = require("../shared/blobHelper");
 const {
   isAllowedAttachmentFile,
   MAX_ATTACHMENT_BYTES,
   sanitizeFileName,
 } = require("../shared/attachmentHelper");
 const { parseCustomQuestions } = require("../shared/preOdCustomQuestions");
+
+function getUploadAttachmentBlob() {
+  // Lazy-load so a missing storage SDK returns JSON instead of an empty 500.
+  const { uploadAttachmentBlob } = require("../shared/blobHelper");
+  return uploadAttachmentBlob;
+}
 
 function parseSrNos(value) {
   if (!value) {
@@ -136,7 +141,7 @@ module.exports = async function (context, req) {
       `${Date.now()}_${safeName}`,
     ].join("/");
 
-    const uploaded = await uploadAttachmentBlob(
+    const uploaded = await getUploadAttachmentBlob()(
       blobPath,
       buffer,
       contentType || "application/octet-stream"
@@ -158,11 +163,18 @@ module.exports = async function (context, req) {
     };
   } catch (error) {
     context.log(error);
+    const message = String(
+      error && error.message ? error.message : "Attachment upload failed."
+    );
     context.res = {
       status: 500,
       body: {
         success: false,
-        message: error.message,
+        message:
+          message.includes("Cannot find module") &&
+          message.includes("@azure/storage-blob")
+            ? "Attachment storage is not configured on this API (missing @azure/storage-blob). Run npm install in the api folder and restart Functions."
+            : message,
       },
     };
   }

@@ -10,6 +10,9 @@ const {
   savePreOdResponse,
 } = require("../shared/preOdResponseStore");
 const { parseCustomQuestions } = require("../shared/preOdCustomQuestions");
+const {
+  normalizeAttachmentList,
+} = require("../shared/attachmentHelper");
 
 function parseSrNos(value) {
   if (!value) {
@@ -43,26 +46,54 @@ function cleanAttachments(rawAttachments, assignedSrNos) {
 
   for (const srNo of assignedSrNos) {
     const key = String(srNo);
-    const item = source[key] || source[srNo];
-    if (!item || typeof item !== "object") {
+    const item = source[key] ?? source[srNo];
+    if (item == null) {
       continue;
     }
 
-    const blobPath = String(item.blobPath || "").trim();
-    const fileName = String(item.fileName || "").trim();
-    if (!blobPath || !fileName) {
+    const list = normalizeAttachmentList(item)
+      .filter((entry) => entry.blobPath && entry.fileName)
+      .map((entry) => ({
+        id: entry.id || entry.blobPath,
+        fileName: entry.fileName,
+        blobPath: entry.blobPath,
+        contentType: entry.contentType || "application/octet-stream",
+        size: Number(entry.size) || 0,
+      }));
+
+    if (list.length === 0) {
       continue;
     }
 
-    attachments[key] = {
-      fileName,
-      blobPath,
-      contentType: String(item.contentType || "application/octet-stream"),
-      size: Number(item.size) || 0,
-    };
+    // Persist as an array so multiple files are supported going forward.
+    attachments[key] = list;
   }
 
   return attachments;
+}
+
+function mergeAttachments(existingAttachments, incomingAttachments, assignedSrNos) {
+  const merged = {
+    ...(existingAttachments && typeof existingAttachments === "object"
+      ? existingAttachments
+      : {}),
+  };
+  const incoming =
+    incomingAttachments && typeof incomingAttachments === "object"
+      ? incomingAttachments
+      : {};
+
+  // Keys present in the payload are authoritative (including explicit clears).
+  for (const [key, value] of Object.entries(incoming)) {
+    const list = normalizeAttachmentList(value);
+    if (list.length === 0) {
+      delete merged[key];
+    } else {
+      merged[key] = list;
+    }
+  }
+
+  return cleanAttachments(merged, assignedSrNos);
 }
 
 async function loadParticipantName(participantId) {
@@ -142,11 +173,9 @@ module.exports = async function (context, req) {
 
     const existing = await getPreOdResponse(workshop.id, participantId);
     const cleanedAnswers = cleanAnswers(answers, allSrNos);
-    const cleanedAttachments = cleanAttachments(
-      {
-        ...(existing?.attachments || {}),
-        ...(attachments && typeof attachments === "object" ? attachments : {}),
-      },
+    const cleanedAttachments = mergeAttachments(
+      existing?.attachments || {},
+      attachments,
       allSrNos
     );
     const participantName = await loadParticipantName(participantId);
